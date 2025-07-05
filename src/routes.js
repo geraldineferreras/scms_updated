@@ -1,0 +1,351 @@
+/*!
+
+=========================================================
+* Argon Dashboard React - v1.2.4
+=========================================================
+
+* Product Page: https://www.creative-tim.com/product/argon-dashboard-react
+* Copyright 2024 Creative Tim (https://www.creative-tim.com)
+* Licensed under MIT (https://github.com/creativetimofficial/argon-dashboard-react/blob/master/LICENSE.md)
+
+* Coded by Creative Tim
+
+=========================================================
+
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+*/
+import Index from "views/Index.js";
+import Profile from "views/examples/Profile.js";
+import Maps from "views/examples/Maps.js";
+import Register from "views/examples/Register.js";
+import Login from "views/examples/Login.js";
+import Tables from "views/examples/Tables.js";
+import Icons from "views/examples/Icons.js";
+import UserManagement from "views/examples/UserManagement.js";
+import ForgotPassword from "views/examples/ForgotPassword.js";
+import QRLogin from "views/examples/QRLogin.js";
+import QRRegister from "views/examples/QRRegister.js";
+import CreateUser from "views/examples/CreateUser.js";
+import EditUser from "views/examples/EditUser.js";
+import SectionManagement from "views/examples/SectionManagement.js";
+import StudentJoinClass from "./views/examples/StudentJoinClass";
+import Announcements from "views/examples/Announcements.js";
+import Materials from "views/examples/Materials.js";
+import Assignments from "views/examples/Assignments.js";
+import Submissions from "views/examples/Submissions.js";
+import Attendance from "views/examples/Attendance.js";
+import Grades from "views/examples/Grades.js";
+import ExcuseLetters from "views/examples/ExcuseLetters.js";
+import Notifications from "views/examples/Notifications.js";
+import Classroom from "views/examples/Classroom.js";
+import TeacherAnnouncement from "views/examples/TeacherAnnouncement.js";
+import TeacherMaterials from "views/examples/TeacherMaterials.js";
+import TeacherAssignments from "views/examples/TeacherAssignments.js";
+import TeacherSubmissions from "views/examples/TeacherSubmissions.js";
+import TeacherAttendance from "views/examples/TeacherAttendance.js";
+import TeacherGrades from "views/examples/TeacherGrades.js";
+import TeacherVideoConferencing from "views/examples/TeacherVideoConferencing.js";
+import VideoConferencePage from "views/examples/VideoConferencePage.js";
+import ExcuseManagement from "views/examples/ExcuseManagement.js";
+import ClassroomDetail from "views/examples/ClassroomDetail.js";
+import AccessControl from "views/examples/AccessControl.js";
+import SubjectManagement from "views/examples/SubjectManagement.js";
+import OfferingsManagement from "views/examples/OfferingsManagement.js";
+import CreateSection from "views/examples/CreateSection.js";
+import AttendanceLog from "views/examples/AttendanceLog.js";
+import GradesLog from "views/examples/GradesLog.js";
+import AuditLog from "views/examples/AuditLog.js";
+
+var routes = [
+  {
+    path: "/index",
+    name: "Dashboard",
+    icon: "ni ni-tv-2 text-primary",
+    component: <Index />,
+    layout: "/admin",
+  },
+  {
+    path: "/user-management",
+    name: "User Management",
+    icon: "ni ni-settings-gear-65 text-blue",
+    component: <UserManagement />,
+    layout: "/admin",
+  },
+  {
+    path: "/subject-management",
+    name: "Subject Management",
+    icon: "ni ni-books text-info",
+    component: <SubjectManagement />,
+    layout: "/admin",
+  },
+  {
+    path: "/section-management",
+    name: "Section Management",
+    icon: "ni ni-books text-green",
+    component: <SectionManagement />,
+    layout: "/admin",
+  },
+  {
+    path: "/maps",
+    name: "Maps",
+    icon: "ni ni-pin-3 text-orange",
+    component: <Maps />,
+    layout: "/admin",
+  },
+  {
+    path: "/user-profile",
+    name: "User Profile",
+    icon: "ni ni-single-02 text-yellow",
+    component: <Profile />,
+    layout: "/admin",
+  },
+  {
+    path: "/tables",
+    name: "Tables",
+    icon: "ni ni-bullet-list-67 text-red",
+    component: <Tables />,
+    layout: "/admin",
+  },
+  {
+    path: "/login",
+    name: "Login",
+    icon: "ni ni-key-25 text-info",
+    component: <Login />,
+    layout: "/auth",
+  },
+  {
+    path: "/register",
+    name: "Register",
+    icon: "ni ni-circle-08 text-pink",
+    component: <Register />,
+    layout: "/auth",
+  },
+  {
+    path: "/",
+    name: "Register",
+    icon: "ni ni-circle-08 text-pink",
+    component: <Register />,
+    layout: "/auth",
+  },
+  {
+    path: "/forgot-password",
+    name: "Forgot Password",
+    icon: "ni ni-key-25 text-info",
+    component: <ForgotPassword />,
+    layout: "/auth",
+  },
+  {
+    path: "/qr-login",
+    name: "QR Login",
+    icon: "ni ni-camera-compact text-info",
+    component: <QRLogin />,
+    layout: "/auth",
+  },
+  {
+    path: "/qr-register",
+    name: "QR Register",
+    icon: "ni ni-camera-compact text-info",
+    component: <QRRegister />,
+    layout: "/auth",
+  },
+  {
+    path: "/create-user",
+    name: "Create User",
+    icon: "ni ni-fat-add text-primary",
+    component: <CreateUser />,
+    layout: "/admin",
+  },
+  {
+    path: "/edit-user/:id",
+    name: "Edit User",
+    icon: "ni ni-single-02 text-primary",
+    component: <EditUser />,
+    layout: "/admin",
+  },
+  {
+    path: "/index",
+    name: "Dashboard",
+    icon: "ni ni-tv-2 text-primary",
+    component: <Index />,
+    layout: "/student",
+  },
+  {
+    path: "/user-management",
+    name: "User Management",
+    icon: "ni ni-settings-gear-65 text-blue",
+    component: <UserManagement />,
+    layout: "/student",
+  },
+  {
+    path: "/section-management",
+    name: "Section Management",
+    icon: "ni ni-books text-green",
+    component: <SectionManagement />,
+    layout: "/student",
+  },
+  {
+    path: "/maps",
+    name: "Maps",
+    icon: "ni ni-pin-3 text-orange",
+    component: <Maps />,
+    layout: "/student",
+  },
+  {
+    path: "/user-profile",
+    name: "User Profile",
+    icon: "ni ni-single-02 text-yellow",
+    component: <Profile />,
+    layout: "/student",
+  },
+  {
+    path: "/tables",
+    name: "Tables",
+    icon: "ni ni-bullet-list-67 text-red",
+    component: <Tables />,
+    layout: "/student",
+  },
+  {
+    path: "/create-user",
+    name: "Create User",
+    icon: "ni ni-fat-add text-primary",
+    component: <CreateUser />,
+    layout: "/student",
+  },
+  {
+    path: "/edit-user/:id",
+    name: "Edit User",
+    icon: "ni ni-single-02 text-primary",
+    component: <EditUser />,
+    layout: "/student",
+  },
+  {
+    path: "/index",
+    name: "Dashboard",
+    icon: "ni ni-tv-2 text-primary",
+    component: <Index />,
+    layout: "/teacher",
+  },
+  {
+    path: "/classroom",
+    name: "Classroom",
+    icon: "ni ni-building text-success",
+    component: <Classroom />,
+    layout: "/teacher",
+  },
+  {
+    path: "/video-conferencing",
+    name: "Video Conferencing",
+    icon: "ni ni-camera-compact text-purple",
+    component: <TeacherVideoConferencing />,
+    layout: "/teacher",
+  },
+  {
+    path: "/video-conference/:sessionId",
+    name: "Live Video Conference",
+    component: <VideoConferencePage />,
+    layout: "/video-conference",
+  },
+  {
+    path: "/announcement",
+    name: "Announcement",
+    icon: "ni ni-bell-55 text-info",
+    component: <TeacherAnnouncement />,
+    layout: "/teacher",
+  },
+  {
+    path: "/materials",
+    name: "Materials",
+    icon: "ni ni-archive-2 text-orange",
+    component: <TeacherMaterials />,
+    layout: "/teacher",
+  },
+  {
+    path: "/assignments/*",
+    name: "Assignments",
+    icon: "ni ni-bullet-list-67 text-red",
+    component: <TeacherAssignments />,
+    layout: "/teacher",
+  },
+  {
+    path: "/submissions",
+    name: "Submissions",
+    icon: "ni ni-send text-primary",
+    component: <TeacherSubmissions />,
+    layout: "/teacher",
+  },
+  {
+    path: "/attendance",
+    name: "Attendance",
+    icon: "ni ni-check-bold text-green",
+    component: <TeacherAttendance />,
+    layout: "/teacher",
+  },
+  {
+    path: "/grades",
+    name: "Recitation & Grades",
+    icon: "ni ni-chart-bar-32 text-yellow",
+    component: <TeacherGrades />,
+    layout: "/teacher",
+  },
+  {
+    path: "/excuse-management",
+    name: "Excuse Management",
+    icon: "ni ni-single-copy-04 text-pink",
+    component: <ExcuseManagement />,
+    layout: "/teacher",
+  },
+  {
+    path: "/classroom/:code",
+    name: "Classroom Detail",
+    component: <ClassroomDetail />,
+    layout: "/teacher",
+  },
+  {
+    path: "/access-control",
+    name: "Access Control",
+    icon: "ni ni-lock-circle-open text-info",
+    component: <AccessControl />,
+    layout: "/admin",
+  },
+  {
+    path: "/offerings-management",
+    name: "Offerings Management",
+    icon: "ni ni-collection text-orange",
+    component: <OfferingsManagement />,
+    layout: "/admin",
+  },
+  {
+    path: "/join-class",
+    name: "Join Class",
+    icon: "ni ni-fat-add text-success",
+    component: <StudentJoinClass />,
+    layout: "/student"
+  },
+  {
+    path: "/create-section",
+    name: "Create Section",
+    icon: "ni ni-fat-add text-primary",
+    component: <CreateSection />,
+    layout: "/admin",
+  },
+  {
+    path: "/reports-logs/attendance",
+    name: "Attendance Log",
+    component: <AttendanceLog />,
+    layout: "/admin",
+  },
+  {
+    path: "/reports-logs/grades",
+    name: "Grades Log",
+    component: <GradesLog />,
+    layout: "/admin",
+  },
+  {
+    path: "/reports-logs/audit",
+    name: "Audit Log",
+    component: <AuditLog />,
+    layout: "/admin",
+  },
+];
+export default routes;

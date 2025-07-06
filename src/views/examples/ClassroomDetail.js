@@ -36,7 +36,8 @@ import {
 import classnames from "classnames";
 import Header from "../../components/Headers/Header";
 import "./Classroom.css";
-import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolder, FaPlus } from 'react-icons/fa';
+import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolder, FaPlus, FaPaperclip, FaSmile } from 'react-icons/fa';
+import userDefault from '../../assets/img/theme/user-default.svg';
 
 const themes = [
   { name: "Blue Gradient", value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
@@ -126,6 +127,99 @@ const sampleGrades = [
   { studentId: 5, studentName: "David Brown", assignment1: 88, quiz1: 90, project1: 87, average: 88.3 }
 ];
 
+const avatarUrls = [
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
+  "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop&crop=face"
+];
+
+const getRandomAvatar = (userId) => {
+  if (userId === undefined || userId === null) return userDefault;
+  const idString = typeof userId === 'string' || typeof userId === 'number' ? userId.toString() : '0';
+  const index = Math.abs(idString.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % avatarUrls.length;
+  return avatarUrls[index];
+};
+
+const getAvatarForUser = (user) => {
+  if (!user) return userDefault;
+  if (user.profile_pic && user.profile_pic !== userDefault) {
+    return user.profile_pic;
+  }
+  if (user.id) {
+    return getRandomAvatar(user.id);
+  }
+  return userDefault;
+};
+
+const findUserByName = (name) => {
+  if (!name) return null;
+  const allUsers = [...sampleStudents, { id: 'teacher', name: 'Prof. Smith', role: 'teacher' }];
+  return allUsers.find(u => u.name?.toLowerCase() === name.toLowerCase() || u.full_name?.toLowerCase() === name.toLowerCase());
+};
+
+// Helper to get file type, icon, and preview
+const getFileTypeIconOrPreview = (att) => {
+  // Handle different attachment types
+  if (!att) {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#90A4AE" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#90A4AE" fontWeight="bold">FILE</text></svg>, type: 'FILE', color: '#90A4AE' };
+  }
+
+  // Handle link attachments
+  if (att.type === "Link" && att.url) {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">LINK</text></svg>, type: 'LINK', color: '#1976D2' };
+  }
+
+  // Handle YouTube attachments
+  if (att.type === "YouTube" && att.url) {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#FF0000" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#FF0000" fontWeight="bold">YT</text></svg>, type: 'YOUTUBE', color: '#FF0000' };
+  }
+
+  // Handle file attachments
+  const fileName = att.name;
+  if (!fileName || typeof fileName !== 'string') {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#90A4AE" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#90A4AE" fontWeight="bold">FILE</text></svg>, type: 'FILE', color: '#90A4AE' };
+  }
+
+  const ext = fileName.split('.').pop().toLowerCase();
+  const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+
+  // Microsoft Word
+  const wordExts = ['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm'];
+  if (wordExts.includes(ext)) {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">WORD</text></svg>, type: 'WORD', color: '#1976D2' };
+  }
+  // Microsoft Excel (including CSV)
+  const excelExts = ['xls', 'xlsx', 'xlsm', 'xlsb', 'xlt', 'xltx', 'xltm', 'csv'];
+  if (excelExts.includes(ext)) {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#388E3C" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#388E3C" fontWeight="bold">EXCEL</text></svg>, type: 'EXCEL', color: '#388E3C' };
+  }
+  // Microsoft PowerPoint
+  const pptExts = ['ppt', 'pptx', 'pps', 'ppsx', 'pptm', 'potx', 'potm', 'ppsm'];
+  if (pptExts.includes(ext)) {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#FF9800" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#FF9800" fontWeight="bold">PPT</text></svg>, type: 'PPT', color: '#FF9800' };
+  }
+  // TXT
+  if (ext === 'txt') {
+    return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#607d8b" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#607d8b" fontWeight="bold">TXT</text></svg>, type: 'TXT', color: '#607d8b' };
+  }
+
+  if (imageTypes.includes(ext) && att.file) {
+    const url = URL.createObjectURL(att.file);
+    return { preview: <img src={url} alt={fileName} style={{ width: 32, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #e9ecef' }} />, type: ext.toUpperCase(), color: '#90A4AE' };
+  }
+  if (ext === 'mp4') return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#8e24aa" strokeWidth="2"/><polygon points="13,14 25,20 13,26" fill="#8e24aa"/><text x="16" y="36" textAnchor="middle" fontSize="10" fill="#8e24aa" fontWeight="bold">MP4</text></svg>, type: 'MP4', color: '#8e24aa' };
+  if (ext === 'mp3') return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#43a047" strokeWidth="2"/><circle cx="16" cy="20" r="7" fill="#43a047"/><rect x="22" y="13" width="3" height="14" rx="1.5" fill="#43a047"/><text x="16" y="36" textAnchor="middle" fontSize="10" fill="#43a047" fontWeight="bold">MP3</text></svg>, type: 'MP3', color: '#43a047' };
+  if (ext === 'pdf') return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#F44336" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#F44336" fontWeight="bold">PDF</text></svg>, type: 'PDF', color: '#F44336' };
+  return { preview: <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="40" rx="6" fill="#fff" stroke="#90A4AE" strokeWidth="2"/><path d="M8 8h16v24H8z" fill="#fff"/><text x="16" y="28" textAnchor="middle" fontSize="10" fill="#90A4AE" fontWeight="bold">FILE</text></svg>, type: ext.toUpperCase(), color: '#90A4AE' };
+};
+
 const ClassroomDetail = () => {
   const { code } = useParams();
   const [activeTab, setActiveTab] = useState("stream");
@@ -191,6 +285,7 @@ const ClassroomDetail = () => {
   const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   const [linkInput, setLinkInput] = useState("");
   const [youtubeInput, setYouTubeInput] = useState("");
+  const [linkError, setLinkError] = useState("");
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -222,11 +317,96 @@ const ClassroomDetail = () => {
   const [materialForm, setMaterialForm] = useState({ title: '', description: '', topic: '', attachments: [] });
   const materialFileInputRef = useRef();
 
+  const [announcementDropdowns, setAnnouncementDropdowns] = useState({});
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState(null);
+  const [editAnnouncementData, setEditAnnouncementData] = useState({ title: '', content: '' });
+
+  const [formExpanded, setFormExpanded] = useState(false);
+
+  const [attachmentDropdownOpen, setAttachmentDropdownOpen] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const emojiPickerRef = useRef();
+
+  // 1. Add state for preview modal and attachment
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState(null);
+  const [previewText, setPreviewText] = useState("");
+
+  // Add state for mp3 playing
+  const [mp3Playing, setMp3Playing] = useState(false);
+
+  // 1. Add state for the new announcement title
+  const [newAnnouncementTitle, setNewAnnouncementTitle] = useState("");
+
+  // 1. Add state for allowComments in the creation form
+  const [allowComments, setAllowComments] = useState(true);
+
+  // 3. In handlePostAnnouncement, save both title and content
+  const handlePostAnnouncement = (e) => {
+    e.preventDefault();
+    if ((newAnnouncement && newAnnouncement.trim().length > 0) || attachments.length > 0) {
+      const announcement = {
+        id: Date.now(),
+        title: newAnnouncementTitle,
+        content: newAnnouncement,
+        author: "Prof. Smith",
+        date: new Date().toISOString().split('T')[0],
+        isPinned: false,
+        attachments,
+        year: selectedYear,
+        audience: selectedAudience,
+        originalIndex: announcements.length,
+        comments: [],
+        allowComments,
+      };
+      setAnnouncements([announcement, ...announcements]);
+      setNewAnnouncement("");
+      setNewAnnouncementTitle("");
+      setAttachments([]);
+    }
+  };
+
+  // 3. Add handler to post a comment
+  const handlePostComment = (announcementId) => {
+    const comment = commentInputs[announcementId]?.trim();
+    if (!comment) return;
+    setAnnouncements(prev => prev.map(a =>
+      a.id === announcementId
+        ? { ...a, comments: [...(a.comments || []), { text: comment, author: "Prof. Smith", date: new Date().toISOString().split('T')[0] }] }
+        : a
+    ));
+    setCommentInputs(inputs => ({ ...inputs, [announcementId]: "" }));
+  };
+
+  // 2. Add a function to handle preview open
+  const handlePreviewAttachment = async (att) => {
+    setPreviewAttachment(att);
+    setPreviewText("");
+    setPreviewModalOpen(true);
+    // If TXT or CSV, read as text
+    const ext = att.name ? att.name.split('.').pop().toLowerCase() : '';
+    if ((ext === 'txt' || ext === 'csv') && att.file) {
+      const text = await att.file.text();
+      setPreviewText(text);
+    }
+  };
+
   useEffect(() => {
     const classes = JSON.parse(localStorage.getItem("teacherClasses")) || [];
     const foundClass = classes.find(cls => cls.code === code);
     setClassInfo(foundClass);
   }, [code]);
+
+  useEffect(() => {
+    if (!emojiPickerOpen) return;
+    function handleClickOutside(event) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setEmojiPickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [emojiPickerOpen]);
 
   const handleCopyCode = () => {
     if (classInfo) {
@@ -309,19 +489,53 @@ const ClassroomDetail = () => {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAttachments([...attachments, { type: "File", name: file.name, file }]);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setAttachments(prev => [...prev, ...files.map(file => ({ name: file.name, file }))]);
     }
     e.target.value = "";
   };
 
   const handleAddLink = () => {
-    if (linkInput.trim()) {
-      setAttachments([...attachments, { type: "Link", url: linkInput }]);
-      setLinkInput("");
-      setShowLinkModal(false);
+    let url = linkInput.trim();
+    setLinkError("");
+    if (!url) {
+      setLinkError("Please enter a link URL");
+      return;
     }
+
+    // If it already looks like a valid URL, keep as is
+    let formatted = url;
+    let valid = false;
+    // Try as-is
+    try {
+      const urlObj = new URL(formatted);
+      if (urlObj.protocol && urlObj.hostname) valid = true;
+    } catch {}
+
+    // If not valid, try to autoformat
+    if (!valid) {
+      // Remove spaces and illegal chars
+      if (/[^a-zA-Z0-9.-]/.test(url)) {
+        setLinkError("Please enter a valid URL or word (no spaces or special characters)");
+        return;
+      }
+      formatted = `https://${url}.com`;
+      try {
+        const urlObj = new URL(formatted);
+        if (urlObj.protocol && urlObj.hostname) valid = true;
+      } catch {}
+    }
+
+    if (!valid) {
+      setLinkError("Could not autoformat to a valid link. Please check your input.");
+      return;
+    }
+
+    setAttachments([...attachments, { type: "Link", url: formatted }]);
+      setLinkInput("");
+    setLinkError("");
+      setShowLinkModal(false);
   };
 
   const handleAddYouTube = () => {
@@ -372,26 +586,6 @@ const ClassroomDetail = () => {
       setNewAnnouncement("");
       setAttachments([]);
       alert("Draft saved!");
-    }
-  };
-
-  const handlePostAnnouncement = (e) => {
-    e.preventDefault();
-    if (newAnnouncement.trim()) {
-      const announcement = {
-        id: Date.now(),
-        title: newAnnouncement,
-        content: newAnnouncement,
-        author: "Prof. Smith",
-        date: new Date().toISOString().split('T')[0],
-        isPinned: false,
-        attachments,
-        year: selectedYear,
-        audience: selectedAudience
-      };
-      setAnnouncements([announcement, ...announcements]);
-      setNewAnnouncement("");
-      setAttachments([]);
     }
   };
 
@@ -583,6 +777,126 @@ const ClassroomDetail = () => {
     opacity: 0.85
   };
 
+  const handleDropdownToggle = (id) => {
+    setAnnouncementDropdowns((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleEditAnnouncement = (id) => {
+    const ann = announcements.find(a => a.id === id);
+    setEditingAnnouncementId(id);
+    setEditAnnouncementData({ 
+      title: ann.title, 
+      content: ann.content, 
+      attachments: ann.attachments ? [...ann.attachments] : [],
+      allowComments: ann.allowComments,
+    });
+  };
+
+  const handleEditAnnouncementChange = (e) => {
+    const { name, value } = e.target;
+    setEditAnnouncementData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEditAnnouncement = (id) => {
+    setAnnouncements(prev => prev.map(a => a.id === id ? { 
+      ...a, 
+      title: editAnnouncementData.title, 
+      content: editAnnouncementData.content,
+      attachments: editAnnouncementData.attachments || [],
+      allowComments: editAnnouncementData.allowComments !== false
+    } : a));
+    setEditingAnnouncementId(null);
+    setEditAnnouncementData({ title: '', content: '', attachments: [], allowComments: true });
+  };
+
+  const handleCancelEditAnnouncement = () => {
+    setEditingAnnouncementId(null);
+    setEditAnnouncementData({ title: '', content: '', attachments: [], allowComments: true });
+  };
+
+  const handleDeleteAnnouncement = (id) => {
+    setAnnouncements(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handleCancelPost = (e) => {
+    if (e) e.preventDefault();
+    setNewAnnouncement("");
+    setAttachments([]);
+  };
+
+  // Add handler to pin/unpin an announcement
+  const handlePinAnnouncement = (id) => {
+    setAnnouncements(prev => {
+      // Add originalIndex to any missing (for legacy announcements)
+      let withIndex = prev.map((a, i) => a.originalIndex === undefined ? { ...a, originalIndex: i } : a);
+      const updated = withIndex.map(a => a.id === id ? { ...a, isPinned: !a.isPinned } : a);
+      const pinned = updated.filter(a => a.isPinned);
+      const unpinned = updated.filter(a => !a.isPinned).sort((a, b) => a.originalIndex - b.originalIndex);
+      return [...pinned, ...unpinned];
+    });
+  };
+
+  // 1. Add state for comment input (per announcement)
+  const [commentInputs, setCommentInputs] = useState({});
+
+  // 1. Add state for editing comments
+  const [editingComment, setEditingComment] = useState({}); // { [announcementId]: commentIdx }
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState({}); // { [announcementId]: bool }
+  const emojiList = ["😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗", "😙", "😚", "🙂", "🤗", "🤩", "🤔", "🤨", "😐", "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "🥱", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓", "😔", "😕", "🙃", "🤑", "😲", "☹️", "🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩", "🤯", "😬", "😰", "😱", "🥵", "🥶", "😳", "🤪", "😵", "😡", "😠", "🤬", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "😇", "🥳", "🥺", "🤠", "🥸", "😈", "👿", "👹", "👺", "💀", "👻", "👽", "🤖", "💩", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾"];
+
+  // 2. Edit comment handler
+  const handleEditComment = (announcementId, idx, text) => {
+    setEditingComment({ [announcementId]: idx });
+    setEditingCommentText(text);
+  };
+  const handleSaveEditComment = (announcementId, idx) => {
+    setAnnouncements(prev => prev.map(a =>
+      a.id === announcementId
+        ? { ...a, comments: a.comments.map((c, i) => i === idx ? { ...c, text: editingCommentText } : c) }
+      : a
+    ));
+    setEditingComment({});
+    setEditingCommentText("");
+  };
+  const handleCancelEditComment = () => {
+    setEditingComment({});
+    setEditingCommentText("");
+  };
+  // 3. Delete comment handler
+  const handleDeleteComment = (announcementId, idx) => {
+    if (!window.confirm("Delete this comment?")) return;
+    setAnnouncements(prev => prev.map(a =>
+      a.id === announcementId
+        ? { ...a, comments: a.comments.filter((_, i) => i !== idx) }
+      : a
+    ));
+  };
+  // 4. Emoji picker for comment input
+  const handleAddEmojiToInput = (announcementId, emoji) => {
+    setCommentInputs(inputs => ({ ...inputs, [announcementId]: (inputs[announcementId] || "") + emoji }));
+    setShowEmojiPicker(picker => ({ ...picker, [announcementId]: false }));
+  };
+
+  // Add handlers for edit attachments
+  const editFileInputRef = useRef();
+  const handleEditFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setEditAnnouncementData(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...files.map(file => ({ name: file.name, file }))]
+      }));
+    }
+    e.target.value = "";
+  };
+  const handleRemoveEditAttachment = (idx) => {
+    setEditAnnouncementData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== idx)
+    }));
+  };
+
   if (!classInfo) {
     return (
       <div>
@@ -616,10 +930,28 @@ const ClassroomDetail = () => {
           justifyContent: 'space-between',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         }}>
-          <div>
-            <h1 style={{ fontWeight: 800, letterSpacing: 1 }}>
-              {classInfo.name} <span style={{ fontWeight: 400, fontSize: 22, opacity: 0.85 }}>({classInfo.section})</span>
+          {/* Overlay for image themes */}
+          {selectedTheme && selectedTheme.startsWith('url(') && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0,0,0,0.45)',
+              zIndex: 1
+            }} />
+          )}
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <h1 style={{ 
+              fontWeight: 800, 
+              letterSpacing: 1, 
+              color: '#fff', 
+              textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 0 #000' 
+            }}>
+              {classInfo.name} <span style={{ fontWeight: 400, fontSize: 22, opacity: 0.92, color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 0 #000' }}>({classInfo.section})</span>
             </h1>
             <div style={{ fontSize: 20, opacity: 0.95, fontWeight: 500 }}>{classInfo.subject}</div>
             <div className="mt-3 d-flex align-items-center flex-wrap">
@@ -670,7 +1002,7 @@ const ClassroomDetail = () => {
               <Badge color="light" className="text-dark">{classInfo.schoolYear}</Badge>
             </div>
           </div>
-          <div className="d-flex flex-column align-items-end" style={{ minWidth: 160 }}>
+          <div className="d-flex flex-column align-items-end" style={{ minWidth: 160, position: 'relative', zIndex: 2 }}>
             <Button 
               color="link" 
               style={{ color: '#fff', fontWeight: 400, fontSize: 13, padding: 0, marginBottom: 4, textDecoration: 'none' }} 
@@ -845,124 +1177,129 @@ const ClassroomDetail = () => {
         <TabContent activeTab={activeTab}>
           {/* Stream Tab */}
           <TabPane tabId="stream">
-            <Card className="mb-4" style={{ borderRadius: 14, boxShadow: '0 2px 8px rgba(44,62,80,0.07)' }}>
+            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
               <CardBody>
-                <h4 className="mb-3">Stream</h4>
-                
-                {/* Post Announcement Form */}
-                <Form onSubmit={handlePostAnnouncement} className="mb-4" style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(44,62,80,0.10)', padding: '1.5rem', marginBottom: 32 }}>
-                  {/* For row */}
-                  <div className="d-flex align-items-center mb-3" style={{ gap: 16 }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>For</div>
-                      <Dropdown isOpen={yearDropdownOpen} toggle={() => setYearDropdownOpen(!yearDropdownOpen)}>
-                        <DropdownToggle caret color="light" style={{ borderRadius: 8, minWidth: 140, fontWeight: 500, color: '#222', border: '1px solid #e9ecef' }}>
-                          {selectedYear}
-                        </DropdownToggle>
-                        <DropdownMenu>
-                          {years.map(y => <DropdownItem key={y} onClick={() => setSelectedYear(y)}>{y}</DropdownItem>)}
-                        </DropdownMenu>
-                      </Dropdown>
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, color: 'transparent' }}>-</div>
-                      <Dropdown isOpen={audienceDropdownOpen} toggle={() => setAudienceDropdownOpen(!audienceDropdownOpen)}>
-                        <DropdownToggle caret color="light" style={{ borderRadius: 8, minWidth: 140, fontWeight: 500, color: '#222', border: '1px solid #e9ecef' }}>
-                          {selectedAudience}
-                        </DropdownToggle>
-                        <DropdownMenu>
-                          {audiences.map(a => <DropdownItem key={a} onClick={() => setSelectedAudience(a)}>{a}</DropdownItem>)}
-                        </DropdownMenu>
-                      </Dropdown>
-                    </div>
-                  </div>
-                  {/* Textarea */}
-                  <FormGroup className="mb-3">
+                <h4 className="mb-4" style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1 }}>Stream <i className="ni ni-chat-round text-info ml-2" /></h4>
+                {/* Post Announcement Form Only */}
+                {!formExpanded ? (
+                  <FormGroup className="mb-2" style={{ margin: 0 }}>
                     <Input
                       type="textarea"
                       name="announcement"
-                      id="announcement"
                       value={newAnnouncement}
-                      onChange={(e) => setNewAnnouncement(e.target.value)}
-                      placeholder="Share with your class"
-                      rows="3"
-                      style={{ borderRadius: 10, border: '1.5px solid #bfc9da', fontSize: 17, padding: '1.25rem 1rem', boxShadow: 'none', minHeight: 90, color: '#222', background: '#f8fafc' }}
+                      onFocus={() => setFormExpanded(true)}
+                      onChange={e => setNewAnnouncement(e.target.value)}
+                      placeholder="Share an announcement with your class..."
+                      style={{ fontSize: 14, minHeight: 80, padding: 8, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
                     />
                   </FormGroup>
-                  {/* Attachments preview */}
-                  {attachments.length > 0 && (
-                    <div className="mb-3" style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                      {attachments.map((att, idx) => (
-                        <div key={idx} style={{ background: '#f1f3f4', borderRadius: 8, padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {att.type === 'File' && <i className="ni ni-paperclip" style={{ color: '#1976d2' }}></i>}
-                          {att.type === 'Link' && <i className="ni ni-link-2" style={{ color: '#34A853' }}></i>}
-                          {att.type === 'YouTube' && <i className="ni ni-youtube-play" style={{ color: '#EA4335' }}></i>}
-                          <span style={{ fontWeight: 500, fontSize: 15 }}>
-                            {att.type === 'File' ? att.name : att.url}
-                          </span>
-                          <Button close onClick={() => handleRemoveAttachment(idx)} style={{ fontSize: 18, marginLeft: 4 }} />
+                ) : (
+                  <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', padding: '1.5rem 1.5rem 1rem', marginBottom: 0, border: '1.5px solid #e9ecef', maxWidth: '100%' }}>
+                    <Form onSubmit={handlePostAnnouncement} style={{ marginBottom: 12 }}>
+                      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center' }}>
+                        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input type="checkbox" id="allowComments" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} style={{ accentColor: '#285fa7', width: 18, height: 18, margin: 0 }} />
+                          <label htmlFor="allowComments" style={{ fontWeight: 500, fontSize: 16, color: '#444', margin: 0, cursor: 'pointer', userSelect: 'none' }}>Allow comments</label>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Action Row */}
-                  <div className="d-flex align-items-center justify-content-between mt-3" style={{ gap: 12 }}>
-                    <Dropdown isOpen={addDropdownOpen} toggle={() => setAddDropdownOpen(!addDropdownOpen)}>
-                      <DropdownToggle color="light" style={{ borderRadius: 8, fontWeight: 600, color: '#1976d2', border: '1px solid #e9ecef', display: 'flex', alignItems: 'center', gap: 6, padding: '0.5rem 1.25rem' }}>
-                        <i className="ni ni-attach-87" style={{ fontSize: 18, marginRight: 4 }}></i> Add
+                      </div>
+                      <FormGroup className="mb-2">
+                        <Input
+                          type="text"
+                          name="announcementTitle"
+                          value={newAnnouncementTitle}
+                          onChange={e => setNewAnnouncementTitle(e.target.value)}
+                          placeholder="Announcement title (optional)"
+                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }}
+                        />
+                      </FormGroup>
+                      <FormGroup className="mb-2">
+                        <Input
+                          type="textarea"
+                          name="announcement"
+                          value={newAnnouncement}
+                          autoFocus
+                          onChange={e => setNewAnnouncement(e.target.value)}
+                          placeholder="Share an announcement with your class..."
+                          style={{ fontSize: 14, minHeight: 80, padding: 8, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
+                        />
+                      </FormGroup>
+                      <div className="d-flex w-100" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                        <div className="d-flex align-items-center" style={{ gap: 8, position: 'relative' }}>
+                          <Dropdown isOpen={attachmentDropdownOpen} toggle={() => setAttachmentDropdownOpen(!attachmentDropdownOpen)}>
+                            <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <FaPaperclip />
                       </DropdownToggle>
                       <DropdownMenu>
-                        <DropdownItem header>Add attachment</DropdownItem>
-                        <DropdownItem onClick={() => handleAddAttachment('Google Drive')}><i className="ni ni-cloud-upload-96 mr-2" style={{ color: '#4285F4' }}></i> Google Drive</DropdownItem>
-                        <DropdownItem onClick={() => handleAddAttachment('Link')}><i className="ni ni-link-2 mr-2" style={{ color: '#34A853' }}></i> Link</DropdownItem>
-                        <DropdownItem onClick={() => handleAddAttachment('File')}><i className="ni ni-paperclip mr-2" style={{ color: '#F9AB00' }}></i> File</DropdownItem>
-                        <DropdownItem onClick={() => handleAddAttachment('YouTube')}><i className="ni ni-youtube-play mr-2" style={{ color: '#EA4335' }}></i> YouTube</DropdownItem>
+                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); fileInputRef.current.click(); }}>File</DropdownItem>
+                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowLinkModal(true); }}>Link</DropdownItem>
+                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowYouTubeModal(true); }}>YouTube</DropdownItem>
+                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); /* TODO: Google Drive logic */ }}>Google Drive</DropdownItem>
                       </DropdownMenu>
                     </Dropdown>
                     <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
+                          <div style={{ position: 'relative' }}>
+                            <Button color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>
+                              <FaSmile />
+                            </Button>
+                            {emojiPickerOpen && (
+                              <div ref={emojiPickerRef} style={{ position: 'absolute', top: 40, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 10, minWidth: 260, maxWidth: 320, maxHeight: 200, overflowY: 'auto' }}>
+                                {[
+                                  "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗", "😙", "😚", "🙂", "🤗", "🤩", "🤔", "🤨", "😐", "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "🥱", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓", "😔", "😕", "🙃", "🤑", "😲", "☹️", "🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩", "🤯", "😬", "😰", "😱", "🥵", "🥶", "😳", "🤪", "😵", "😡", "😠", "🤬", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "😇", "🥳", "🥺", "🤠", "🥸", "😈", "👿", "👹", "👺", "💀", "👻", "👽", "🤖", "💩", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾"
+                                ].map(emoji => (
+                                  <span key={emoji} style={{ fontSize: 22, cursor: 'pointer', margin: 4 }} onClick={() => {
+                                    setNewAnnouncement(newAnnouncement + emoji);
+                                    setEmojiPickerOpen(false);
+                                  }}>{emoji}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                     <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                      <Button color="secondary" outline style={{ borderRadius: 8, fontWeight: 600, minWidth: 90 }} onClick={e => { e.preventDefault(); setNewAnnouncement(''); setAttachments([]); }}>Cancel</Button>
-                      <Dropdown isOpen={postDropdownOpen} toggle={() => setPostDropdownOpen(!postDropdownOpen)} direction="down">
-                        <Button color="primary" type="submit" style={{ borderRadius: '8px 0 0 8px', fontWeight: 700, minWidth: 90, boxShadow: '0 2px 8px #1976d255' }} disabled={!newAnnouncement.trim()}>
-                          Post
+                          <Button color="secondary" style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8 }} onClick={e => { handleCancelPost(e); setFormExpanded(false); }}>Cancel</Button>
+                          <Button color="primary" type="submit" style={{ fontSize: 15, padding: '4px 22px', borderRadius: 8, fontWeight: 700, boxShadow: '0 2px 8px #667eea33', background: '#7b8cff', border: 'none' }} disabled={(!newAnnouncement || newAnnouncement.trim().length === 0) && attachments.length === 0}>
+                            <i className="ni ni-send mr-1" style={{ fontSize: 15 }} /> Post
                         </Button>
-                        <DropdownToggle color="primary" style={{ borderRadius: '0 8px 8px 0', fontWeight: 700, minWidth: 30, boxShadow: '0 2px 8px #1976d255', borderLeft: '1px solid #1565c0', padding: '0 0.75rem' }} caret disabled={!newAnnouncement.trim()}>
+                          <Dropdown isOpen={postDropdownOpen} toggle={() => (newAnnouncement.trim() || attachments.length > 0) && setPostDropdownOpen(!postDropdownOpen)} disabled={!newAnnouncement.trim() && attachments.length === 0}>
+                            <DropdownToggle style={{ fontSize: 13, padding: '4px 10px', borderRadius: 8, background: '#bfcfff', border: 'none' }} disabled={!newAnnouncement.trim() && attachments.length === 0}>
+                              <FaEllipsisV size={13} />
                         </DropdownToggle>
-                        <DropdownMenu>
-                          <DropdownItem onClick={e => { e.preventDefault(); setShowScheduleModal(true); }}>Schedule</DropdownItem>
-                          <DropdownItem onClick={e => { e.preventDefault(); handleSaveDraft(); }}>Save draft</DropdownItem>
+                            <DropdownMenu right>
+                              <DropdownItem onClick={() => setShowScheduleModal(true)} disabled={!newAnnouncement.trim() && attachments.length === 0}>Schedule</DropdownItem>
+                              <DropdownItem onClick={handleSaveDraft} disabled={!newAnnouncement.trim() && attachments.length === 0}>Save as Draft</DropdownItem>
                         </DropdownMenu>
                       </Dropdown>
                     </div>
                   </div>
-                  {/* Link Modal */}
-                  <Modal isOpen={showLinkModal} toggle={() => setShowLinkModal(false)} centered>
-                    <div style={{ padding: '2rem' }}>
-                      <h5 style={{ fontWeight: 700, marginBottom: 16 }}>Add Link</h5>
-                      <InputGroup>
-                        <InputGroupText><i className="ni ni-link-2" /></InputGroupText>
-                        <Input type="url" placeholder="Paste a link..." value={linkInput} onChange={e => setLinkInput(e.target.value)} />
-                      </InputGroup>
-                      <div className="d-flex justify-content-end mt-3" style={{ gap: 8 }}>
-                        <Button color="secondary" outline onClick={() => setShowLinkModal(false)}>Cancel</Button>
-                        <Button color="primary" onClick={handleAddLink} disabled={!linkInput.trim()}>Add</Button>
+                    </Form>
+                    {/* After the form controls in the expanded form, show attached files if any */}
+                    {attachments.length > 0 && (
+                      <div style={{ marginTop: 12, marginBottom: 4, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                        {attachments.map((att, idx) => {
+                          const { preview, type, color } = getFileTypeIconOrPreview(att);
+                          const url = att.file ? URL.createObjectURL(att.file) : undefined;
+                          const isLink = att.type === "Link" || att.type === "YouTube";
+                          const displayName = isLink ? att.url : att.name;
+                          
+                          return (
+                            <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                  {type} 
+                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
+                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
                       </div>
                     </div>
-                  </Modal>
-                  {/* YouTube Modal */}
-                  <Modal isOpen={showYouTubeModal} toggle={() => setShowYouTubeModal(false)} centered>
-                    <div style={{ padding: '2rem' }}>
-                      <h5 style={{ fontWeight: 700, marginBottom: 16 }}>Add YouTube Link</h5>
-                      <InputGroup>
-                        <InputGroupText><i className="ni ni-youtube-play" /></InputGroupText>
-                        <Input type="url" placeholder="Paste a YouTube link..." value={youtubeInput} onChange={e => setYouTubeInput(e.target.value)} />
-                      </InputGroup>
-                      <div className="d-flex justify-content-end mt-3" style={{ gap: 8 }}>
-                        <Button color="secondary" outline onClick={() => setShowYouTubeModal(false)}>Cancel</Button>
-                        <Button color="primary" onClick={handleAddYouTube} disabled={!youtubeInput.trim()}>Add</Button>
+                              <Button close onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} style={{ fontSize: 18, marginLeft: 4 }} />
                       </div>
+                          );
+                        })}
                     </div>
-                  </Modal>
+                    )}
+                  </div>
+                )}
                   {/* Schedule Modal */}
                   <Modal isOpen={showScheduleModal} toggle={() => setShowScheduleModal(false)} centered>
                     <div style={{ padding: '2rem' }}>
@@ -977,31 +1314,244 @@ const ClassroomDetail = () => {
                       </InputGroup>
                       <div className="d-flex justify-content-end mt-3" style={{ gap: 8 }}>
                         <Button color="secondary" outline onClick={() => setShowScheduleModal(false)}>Cancel</Button>
-                        <Button color="primary" onClick={handleSchedule} disabled={!scheduleDate || !scheduleTime || !newAnnouncement.trim()}>Schedule</Button>
+                      <Button color="primary" onClick={handleSchedule} disabled={!scheduleDate || !scheduleTime || (!newAnnouncement.trim() && attachments.length === 0)}>Schedule</Button>
                       </div>
                     </div>
                   </Modal>
-                </Form>
-
                 {/* Announcements List */}
-                <div>
-                  {announcements.map((announcement) => (
-                    <Card key={announcement.id} className="mb-3" style={{ borderRadius: "12px" }}>
-                      <CardBody>
-                        <div className="d-flex justify-content-between align-items-start mb-2">
-                          <h6 className="mb-1 font-weight-bold">
-                            {announcement.title}
-                            {announcement.isPinned && (
-                              <Badge color="warning" className="ml-2">Pinned</Badge>
-                            )}
-                          </h6>
-                          <small className="text-muted">{announcement.date}</small>
-                        </div>
-                        <p className="mb-2">{announcement.content}</p>
-                        <small className="text-muted">Posted by {announcement.author}</small>
-                      </CardBody>
-                    </Card>
-                  ))}
+                <div style={{ marginTop: 48 }}>
+                  {announcements.map((announcement) => {
+                    const authorUser = findUserByName(announcement.author);
+                    const avatarSrc = getAvatarForUser(authorUser);
+                    const isEditing = editingAnnouncementId === announcement.id;
+                    return (
+                      <Card key={announcement.id} className="mb-2" style={{ borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', borderLeft: announcement.isPinned ? '4px solid #f7b731' : '4px solid #324cdd', background: '#fff', transition: 'box-shadow 0.2s, border-color 0.2s', padding: 0 }}>
+                        <CardBody style={{ padding: '0.75rem 1rem' }}>
+                          <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 8 }}>
+                            <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                              <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <img src={avatarSrc} alt="avatar" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ fontWeight: 600, color: '#111', fontSize: 12 }}>{announcement.author}</div>
+                                  {announcement.isPinned && (
+                                    <Badge color="warning" className="ml-2">Pinned</Badge>
+                                  )}
+                                </div>
+                                <small className="text-muted" style={{ fontSize: 11 }}>{announcement.date}</small>
+                              </div>
+                            </div>
+                            <div className="d-flex align-items-center" style={{ marginLeft: 12, flexShrink: 0 }}>
+                              <Dropdown isOpen={announcementDropdowns[announcement.id]} toggle={() => handleDropdownToggle(announcement.id)}>
+                                <DropdownToggle tag="span" data-toggle="dropdown" aria-expanded={announcementDropdowns[announcement.id]} style={{ cursor: 'pointer', padding: 2, border: 'none', background: 'none' }}>
+                                  <FaEllipsisV size={14} />
+                                </DropdownToggle>
+                                <DropdownMenu right>
+                                  <DropdownItem onClick={() => handleEditAnnouncement(announcement.id)}>Edit</DropdownItem>
+                                  <DropdownItem onClick={() => handleDeleteAnnouncement(announcement.id)}>Delete</DropdownItem>
+                                  <DropdownItem onClick={() => handlePinAnnouncement(announcement.id)}>
+                                    {announcement.isPinned ? 'Unpin' : 'Pin this announcement'}
+                                  </DropdownItem>
+                                </DropdownMenu>
+                              </Dropdown>
+                            </div>
+                          </div>
+                          {isEditing ? (
+                            <>
+                              {/* Editable title input */}
+                              <input
+                                name="title"
+                                value={editAnnouncementData.title}
+                                onChange={handleEditAnnouncementChange}
+                                style={{ fontWeight: 700, fontSize: 15, color: '#111', marginBottom: 8, border: '1px solid #e9ecef', borderRadius: 5, padding: '4px 10px', width: '100%' }}
+                                placeholder="Announcement title (optional)"
+                              />
+                              {/* Editable content textarea */}
+                              <textarea
+                                name="content"
+                                value={editAnnouncementData.content}
+                                onChange={handleEditAnnouncementChange}
+                                style={{ fontSize: 13, color: '#2d3748', border: '1px solid #e9ecef', borderRadius: 5, padding: 8, width: '100%', minHeight: 80, marginBottom: 8 }}
+                                rows={3}
+                                placeholder="Share an announcement with your class..."
+                              />
+                              {/* Attachments: show current with remove, and add new */}
+                              <div style={{ marginBottom: 8 }}>
+                                {editAnnouncementData.attachments && editAnnouncementData.attachments.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
+                                    {editAnnouncementData.attachments.map((att, idx) => {
+                                      const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                      const url = att.file ? URL.createObjectURL(att.file) : undefined;
+                                      const isLink = att.type === "Link" || att.type === "YouTube";
+                                      const displayName = isLink ? att.url : att.name;
+                                      return (
+                                        <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                            <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                              {type}
+                                              {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
+                                              {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                            </div>
+                                          </div>
+                                          <Button close onClick={() => handleRemoveEditAttachment(idx)} style={{ fontSize: 18, marginLeft: 4 }} />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                {/* Add new attachment */}
+                                <input type="file" multiple style={{ display: 'none' }} ref={editFileInputRef} onChange={handleEditFileChange} />
+                                <Button color="secondary" size="sm" style={{ fontSize: 14, borderRadius: 8, padding: '4px 14px' }} onClick={() => editFileInputRef.current.click()}>
+                                  <FaPaperclip style={{ marginRight: 6 }} /> Add Attachment
+                                </Button>
+                              </div>
+                              {/* Save/Cancel buttons */}
+                              <div className="d-flex" style={{ gap: 8, marginTop: 8 }}>
+                                <Button color="success" size="sm" onClick={() => handleSaveEditAnnouncement(announcement.id)} style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8 }}>Save</Button>
+                                <Button color="secondary" size="sm" onClick={handleCancelEditAnnouncement} style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8 }}>Cancel</Button>
+                              </div>
+                              {/* In edit mode, add a toggle for allowComments */}
+                              <input type="checkbox" id="editAllowComments" checked={editAnnouncementData.allowComments !== false} onChange={e => setEditAnnouncementData(prev => ({ ...prev, allowComments: e.target.checked }))} style={{ marginRight: 8 }} />
+                              <label htmlFor="editAllowComments" style={{ fontWeight: 500, fontSize: 14, color: '#444', marginRight: 16 }}>Allow comments</label>
+                            </>
+                          ) : (
+                            <>
+                              {announcement.title && announcement.title.trim() !== "" && (
+                                <h6 className="mb-1 font-weight-bold" style={{ color: '#111', fontSize: 17, letterSpacing: 0.2, marginBottom: 8 }}>
+                                  {announcement.title}
+                                </h6>
+                              )}
+                              <p className="mb-2" style={{ fontSize: 13, color: '#2d3748', marginBottom: 0 }}>{announcement.content}</p>
+                              {!isEditing && announcement.attachments && announcement.attachments.length > 0 && (
+                                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                                  {announcement.attachments.map((att, idx) => {
+                                    const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                    const url = att.file ? URL.createObjectURL(att.file) : undefined;
+                                    const isLink = att.type === "Link" || att.type === "YouTube";
+                                    const displayName = isLink ? att.url : att.name;
+                                    return (
+                                      <div
+                                        key={idx}
+                                        onClick={() => {
+                                          if (isLink && att.url) {
+                                            window.open(att.url, '_blank', 'noopener,noreferrer');
+                                          } else {
+                                            handlePreviewAttachment(att);
+                                          }
+                                        }}
+                                        style={{ background: '#f8fafd', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                                      >
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                          <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                            {type}
+                                            {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                            {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {/* After the message content, add the comment section: */}
+                              {announcement.allowComments !== false && (
+                                <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 12, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
+                                  {announcement.comments && announcement.comments.length > 0 && (
+                                    <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 6 }}>Comments</div>
+                                  )}
+                                  {/* List comments */}
+                                  {announcement.comments && announcement.comments.length > 0 && (
+                                    <div style={{ marginBottom: 8 }}>
+                                      {announcement.comments.map((c, idx) => {
+                                        const commentUser = findUserByName(c.author);
+                                        const commentAvatar = getAvatarForUser(commentUser);
+                                        const isEditing = editingComment[announcement.id] === idx;
+                                        const isOwn = c.author === "Prof. Smith";
+                                        return (
+                                          <div key={idx} className="d-flex align-items-start" style={{ marginBottom: 6, gap: 10, padding: '4px 0', borderBottom: '1px solid #e9ecef', fontSize: 13, color: '#2d3748' }}>
+                                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: 2 }}>
+                                              <img src={commentAvatar} alt="avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                              <span style={{ fontWeight: 600 }}>{c.author}</span>
+                                              <span style={{ color: '#90A4AE', fontSize: 11, marginLeft: 8 }}>{c.date}</span>
+                                              {isEditing ? (
+                                                <div className="d-flex align-items-center" style={{ gap: 6, marginTop: 2 }}>
+                                                  <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ fontSize: 13, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff', flex: 1 }}
+                                                    value={editingCommentText}
+                                                    onChange={e => setEditingCommentText(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') handleSaveEditComment(announcement.id, idx); }}
+                                                    autoFocus
+                                                  />
+                                                  <button className="btn btn-success btn-sm" style={{ fontSize: 13, borderRadius: 6, fontWeight: 600, padding: '4px 10px' }} onClick={() => handleSaveEditComment(announcement.id, idx)}>Save</button>
+                                                  <button className="btn btn-secondary btn-sm" style={{ fontSize: 13, borderRadius: 6, fontWeight: 600, padding: '4px 10px' }} onClick={handleCancelEditComment}>Cancel</button>
+                                                </div>
+                                              ) : (
+                                                <div style={{ marginLeft: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                  <span>{c.text}</span>
+                                                  {isOwn && (
+                                                    <>
+                                                      <button className="btn btn-link btn-sm p-0" style={{ fontSize: 13, color: '#324cdd' }} onClick={() => handleEditComment(announcement.id, idx, c.text)}>Edit</button>
+                                                      <button className="btn btn-link btn-sm p-0" style={{ fontSize: 13, color: '#e74c3c' }} onClick={() => handleDeleteComment(announcement.id, idx)}>Delete</button>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  {/* Input for new comment */}
+                                  <div className="d-flex" style={{ gap: 8, position: 'relative' }}>
+                                    <input
+                                      type="text"
+                                      className="form-control"
+                                      style={{ fontSize: 13, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff' }}
+                                      placeholder="Add a comment..."
+                                      value={commentInputs[announcement.id] || ""}
+                                      onChange={e => setCommentInputs(inputs => ({ ...inputs, [announcement.id]: e.target.value }))}
+                                      onKeyDown={e => { if (e.key === 'Enter') handlePostComment(announcement.id); }}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary"
+                                      style={{ fontSize: 18, borderRadius: 8, padding: '4px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                      onClick={() => setShowEmojiPicker(picker => ({ ...picker, [announcement.id]: !picker[announcement.id] }))}
+                                    >
+                                      <FaSmile />
+                                    </button>
+                                    {showEmojiPicker[announcement.id] && (
+                                      <div style={{ position: 'absolute', top: '100%', left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 10, minWidth: 220, maxWidth: 320, maxHeight: 200, overflowY: 'auto' }}>
+                                        {emojiList.map(emoji => (
+                                          <span key={emoji} style={{ fontSize: 22, cursor: 'pointer', margin: 4 }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      style={{ fontSize: 13, borderRadius: 6, fontWeight: 600, padding: '4px 16px' }}
+                                      onClick={() => handlePostComment(announcement.id)}
+                                      disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
+                                    >Post</button>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </CardBody>
+                      </Card>
+                    );
+                  })}
                 </div>
               </CardBody>
             </Card>
@@ -1222,6 +1772,164 @@ const ClassroomDetail = () => {
             <Button color="primary" type="submit" style={{ borderRadius: 10, fontWeight: 600, boxShadow: '0 2px 8px #fa709a55' }}>Add</Button>
           </ModalFooter>
         </Form>
+      </Modal>
+
+      {/* Link Modal */}
+      <Modal isOpen={showLinkModal} toggle={() => {
+        setShowLinkModal(false);
+        setLinkError("");
+        setLinkInput("");
+      }} centered>
+        <ModalHeader>
+          <h5 className="mb-0 font-weight-bold">Add Link</h5>
+        </ModalHeader>
+        <ModalBody>
+          <FormGroup>
+            <Label for="linkInput" className="font-weight-bold">Link URL</Label>
+            <Input
+              type="url"
+              id="linkInput"
+              placeholder="Enter link URL (e.g., https://example.com)..."
+              value={linkInput}
+              onChange={e => {
+                setLinkInput(e.target.value);
+                if (linkError) setLinkError("");
+              }}
+              className={linkError ? "is-invalid" : ""}
+            />
+            {linkError && (
+              <div className="invalid-feedback d-block">
+                {linkError}
+              </div>
+            )}
+          </FormGroup>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => {
+            setShowLinkModal(false);
+            setLinkError("");
+            setLinkInput("");
+          }}>
+            Cancel
+          </Button>
+          <Button color="primary" onClick={handleAddLink}>
+            Add Link
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal isOpen={previewModalOpen} toggle={() => setPreviewModalOpen(false)} size="lg" centered style={{ transform: 'translateX(96px)' }}>
+        <ModalHeader toggle={() => setPreviewModalOpen(false)}>
+          File Preview
+        </ModalHeader>
+        <ModalBody style={{ minHeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {previewAttachment && (() => {
+            const ext = previewAttachment.name ? previewAttachment.name.split('.').pop().toLowerCase() : '';
+            // Microsoft Office
+            const wordExts = ['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm'];
+            const excelExts = ['xls', 'xlsx', 'xlsm', 'xlsb', 'xlt', 'xltx', 'xltm', 'csv'];
+            const pptExts = ['ppt', 'pptx', 'pps', 'ppsx', 'pptm', 'potx', 'potm', 'ppsm'];
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext) && previewAttachment.file) {
+              const url = URL.createObjectURL(previewAttachment.file);
+              return <img src={url} alt={previewAttachment.name} style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8 }} />;
+            }
+            if (ext === 'pdf' && previewAttachment.file) {
+              const url = URL.createObjectURL(previewAttachment.file);
+              return <iframe src={url} title="PDF Preview" style={{ width: '100%', height: 500, border: 'none' }} />;
+            }
+            if ((ext === 'txt' || ext === 'csv') && previewText) {
+              return <pre style={{ width: '100%', maxHeight: 400, overflow: 'auto', background: '#f8fafd', borderRadius: 8, padding: 16 }}>{previewText}</pre>;
+            }
+            if (wordExts.includes(ext)) {
+              return <div style={{ textAlign: 'center', width: '100%' }}>
+                <svg width="64" height="80" viewBox="0 0 32 40" fill="none" style={{ marginBottom: 16 }}><rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/><text x="16" y="28" textAnchor="middle" fontSize="16" fill="#1976D2" fontWeight="bold">WORD</text></svg>
+                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>{previewAttachment.name}</div>
+                <div>Preview not supported. <a href={URL.createObjectURL(previewAttachment.file)} download={previewAttachment.name} style={{ color: '#324cdd', fontWeight: 600 }}>Download</a></div>
+              </div>;
+            }
+            if (excelExts.includes(ext)) {
+              return <div style={{ textAlign: 'center', width: '100%' }}>
+                <svg width="64" height="80" viewBox="0 0 32 40" fill="none" style={{ marginBottom: 16 }}><rect width="32" height="40" rx="6" fill="#fff" stroke="#388E3C" strokeWidth="2"/><text x="16" y="28" textAnchor="middle" fontSize="16" fill="#388E3C" fontWeight="bold">EXCEL</text></svg>
+                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>{previewAttachment.name}</div>
+                <div>Preview not supported. <a href={URL.createObjectURL(previewAttachment.file)} download={previewAttachment.name} style={{ color: '#388E3C', fontWeight: 600 }}>Download</a></div>
+              </div>;
+            }
+            if (pptExts.includes(ext)) {
+              return <div style={{ textAlign: 'center', width: '100%' }}>
+                <svg width="64" height="80" viewBox="0 0 32 40" fill="none" style={{ marginBottom: 16 }}><rect width="32" height="40" rx="6" fill="#fff" stroke="#FF9800" strokeWidth="2"/><text x="16" y="28" textAnchor="middle" fontSize="16" fill="#FF9800" fontWeight="bold">PPT</text></svg>
+                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>{previewAttachment.name}</div>
+                <div>Preview not supported. <a href={URL.createObjectURL(previewAttachment.file)} download={previewAttachment.name} style={{ color: '#FF9800', fontWeight: 600 }}>Download</a></div>
+                <div style={{ marginTop: 16 }}>
+                  <a href="https://slides.google.com" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', background: '#FF9800', padding: '8px 18px', borderRadius: 8, fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>Try to open in Google Slides</a>
+                  <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>(Upload the file in Google Slides to view it online)</div>
+                </div>
+              </div>;
+            }
+            if (ext === 'mp3' && previewAttachment.file) {
+              const url = URL.createObjectURL(previewAttachment.file);
+              return (
+                <div style={{ width: '100%', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 28 }}>{previewAttachment.name}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                    <div style={{ marginBottom: 8, position: 'relative', width: 120, height: 120 }}>
+                      {/* Sound waves - smaller so they don't reach the text */}
+                      {[1,2,3].map(i => (
+                        <div
+                          key={i}
+                          style={{
+                            position: 'absolute',
+                            left: 60 - i*20,
+                            top: 60 - i*20,
+                            width: i*40,
+                            height: i*40,
+                            borderRadius: '50%',
+                            border: '2px solid #90caf9',
+                            opacity: 0.5,
+                            pointerEvents: 'none',
+                            animation: mp3Playing ? `wave-pulse 1.2s ${i*0.2}s infinite linear` : 'none',
+                            zIndex: 1,
+                          }}
+                        />
+                      ))}
+                      {/* Vinyl record */}
+                      <svg width="120" height="120" viewBox="0 0 120 120" style={{ zIndex: 2, position: 'relative', display: 'block' }}>
+                        <circle cx="60" cy="60" r="56" fill="#222" stroke="#444" strokeWidth="4" />
+                        <circle cx="60" cy="60" r="20" fill="#324cdd" />
+                        <circle cx="60" cy="60" r="6" fill="#fff" />
+                      </svg>
+                    </div>
+                    <audio
+                      controls
+                      style={{ width: '100%' }}
+                      src={url}
+                      onPlay={() => setMp3Playing(true)}
+                      onPause={() => setMp3Playing(false)}
+                      onEnded={() => setMp3Playing(false)}
+                    >
+                      Your browser does not support the audio element.
+                    </audio>
+                  </div>
+                  <style>{`
+                    @keyframes wave-pulse {
+                      0% { opacity: 0.5; transform: scale(1); }
+                      50% { opacity: 1; transform: scale(1.08); }
+                      100% { opacity: 0.5; transform: scale(1); }
+                    }
+                  `}</style>
+                </div>
+              );
+            }
+            if (ext === 'mp4' && previewAttachment.file) {
+              const url = URL.createObjectURL(previewAttachment.file);
+              return <video controls style={{ width: '100%', maxHeight: 400, borderRadius: 8 }} src={url}>Your browser does not support the video tag.</video>;
+            }
+            return <div style={{ textAlign: 'center', width: '100%' }}>
+              <p>No preview available for this file type.</p>
+              {previewAttachment.file && <a href={URL.createObjectURL(previewAttachment.file)} download={previewAttachment.name} style={{ color: '#324cdd', fontWeight: 600 }}>Download</a>}
+            </div>;
+          })()}
+        </ModalBody>
       </Modal>
     </div>
   );

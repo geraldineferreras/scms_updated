@@ -18,9 +18,8 @@ import {
   ToastHeader,
   ToastBody
 } from "reactstrap";
-import Header from "../../components/Headers/Header";
-import { useNavigate } from "react-router-dom";
 import "./Classroom.css";
+import { useNavigate } from "react-router-dom";
 
 function generateCode() {
   // Generate a more readable 6-character code
@@ -146,7 +145,7 @@ const Classroom = () => {
 
   return (
     <div>
-      <Header compact />
+      {/* <Header compact /> */}
       
       {/* Main Container */}
       <div className="container mt-4">
@@ -188,7 +187,7 @@ const Classroom = () => {
         {/* Class Cards Grid */}
         <Row className="g-4">
           {classes.map((cls, idx) => (
-            <Col lg="4" md="6" sm="12" key={cls.id}>
+            <Col lg="4" md="6" sm="12" key={cls.id} className="mb-4">
               <Card 
                 className={`shadow-sm h-100 ${newlyCreatedClass?.id === cls.id ? 'border-primary border-3' : ''}`}
                 style={{ 
@@ -196,7 +195,8 @@ const Classroom = () => {
                   cursor: "pointer", 
                   transition: "all 0.3s ease",
                   transform: newlyCreatedClass?.id === cls.id ? "scale(1.02)" : "scale(1)",
-                  border: newlyCreatedClass?.id === cls.id ? "3px solid #007bff" : "1px solid #e9ecef"
+                  border: newlyCreatedClass?.id === cls.id ? "3px solid #007bff" : "1px solid #e9ecef",
+                  background: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), ${cls.theme}`,
                 }}
                 onClick={() => handleCardClick(cls.code)}
                 onMouseEnter={(e) => {
@@ -276,7 +276,7 @@ const Classroom = () => {
       </div>
 
       {/* Create Class Modal */}
-      <Modal isOpen={modal} toggle={toggleModal} size="lg" centered>
+      <Modal isOpen={modal} toggle={toggleModal} size="lg" style={{ marginLeft: 'auto', marginRight: 180, marginTop: 80, alignItems: 'flex-start' }}>
         <ModalHeader toggle={toggleModal} style={{ border: "none", paddingBottom: "0" }}>
           <h4 className="mb-0">Create New Class</h4>
         </ModalHeader>

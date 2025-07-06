@@ -225,4 +225,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Custom select wrapper and arrow */
+.custom-select-wrapper {}
+.custom-select-input {}
+.custom-select-arrow {}
+@media (max-width: 767px) {
+  .modal-lg {}
+  .custom-select-arrow {}
 } 

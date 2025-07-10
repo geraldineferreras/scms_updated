@@ -85,11 +85,21 @@ const Classroom = () => {
   const [showToast, setShowToast] = useState(false);
   const [newlyCreatedClass, setNewlyCreatedClass] = useState(null);
   const navigate = useNavigate();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Save classes to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("teacherClasses", JSON.stringify(classes));
   }, [classes]);
+
+  // Force re-render on window focus to update themes
+  useEffect(() => {
+    const handleFocus = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const toggleModal = () => setModal(!modal);
 
@@ -151,71 +161,101 @@ const Classroom = () => {
       <div className="container mt-4">
         
         {/* Header Section with Blue Gradient */}
-        <div className="bg-gradient-primary text-white p-4 rounded mb-4" 
+        <div className="p-4 rounded mb-4 text-dark position-relative" 
              style={{
-               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+               background: `#f5f7fa url("data:image/svg+xml,%3Csvg width='600' height='200' viewBox='0 0 600 200' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='120' y='30' width='300' height='70' rx='4' fill='%23343c43' stroke='%23444b5a' stroke-width='4'/%3E%3Crect x='180' y='110' width='60' height='20' rx='3' fill='%23586a75'/%3E%3Crect x='140' y='140' width='50' height='16' rx='3' fill='%23b0bec5'/%3E%3Crect x='250' y='140' width='50' height='16' rx='3' fill='%23b0bec5'/%3E%3Crect x='360' y='140' width='50' height='16' rx='3' fill='%23b0bec5'/%3E%3Crect x='150' y='150' width='30' height='8' rx='2' fill='%238ecae6'/%3E%3Crect x='260' y='150' width='30' height='8' rx='2' fill='%238ecae6'/%3E%3Crect x='370' y='150' width='30' height='8' rx='2' fill='%238ecae6'/%3E%3Crect x='200' y='120' width='10' height='20' rx='2' fill='%23b0bec5'/%3E%3Crect x='310' y='120' width='10' height='20' rx='2' fill='%23b0bec5'/%3E%3Crect x='420' y='120' width='10' height='20' rx='2' fill='%23b0bec5'/%3E%3Cellipse cx='175' cy='158' rx='10' ry='12' fill='%238ecae6'/%3E%3Crect x='170' y='155' width='10' height='10' rx='2' fill='%238ecae6'/%3E%3Crect x='380' y='145' width='15' height='5' rx='1' fill='%23444b5a'/%3E%3Crect x='390' y='145' width='10' height='5' rx='1' fill='%238ecae6'/%3E%3Crect x='390' y='135' width='10' height='5' rx='1' fill='%23b0bec5'/%3E%3Crect x='110' y='60' width='40' height='6' rx='2' fill='%23b0bec5'/%3E%3Crect x='450' y='60' width='40' height='6' rx='2' fill='%23b0bec5'/%3E%3Ccircle cx='100' cy='40' r='16' fill='%23fff' stroke='%23b0bec5' stroke-width='2'/%3E%3Cpath d='M100 40 L100 48' stroke='%23444b5a' stroke-width='2'/%3E%3Cpath d='M100 40 L108 40' stroke='%23444b5a' stroke-width='2'/%3E%3Crect x='80' y='80' width='30' height='6' rx='2' fill='%23b0bec5'/%3E%3Crect x='490' y='80' width='30' height='6' rx='2' fill='%23b0bec5'/%3E%3Crect x='500' y='100' width='40' height='30' rx='3' fill='%23ececec' stroke='%23b0bec5' stroke-width='2'/%3E%3Crect x='510' y='110' width='20' height='5' rx='1' fill='%238ecae6'/%3E%3Crect x='510' y='120' width='20' height='5' rx='1' fill='%23b0bec5'/%3E%3Cellipse cx='540' cy='170' rx='18' ry='10' fill='%238ecae6'/%3E%3Crect x='530' y='160' width='10' height='20' rx='3' fill='%23444b5a'/%3E%3Crect x='540' y='160' width='10' height='20' rx='3' fill='%234caf50'/%3E%3Crect x='550' y='160' width='10' height='20' rx='3' fill='%238ecae6'/%3E%3Cpath d='M140 50 L200 50' stroke='%23b0bec5' stroke-width='2'/%3E%3Cpath d='M200 50 L200 80' stroke='%23b0bec5' stroke-width='2'/%3E%3Crect x='320' y='110' width='60' height='20' rx='3' fill='%23586a75'/%3E%3Crect x='340' y='120' width='20' height='10' rx='2' fill='%23b0bec5'/%3E%3Crect x='350' y='130' width='10' height='5' rx='1' fill='%238ecae6'/%3E%3C!-- Left corner books --%3E%3Crect x='20' y='170' width='18' height='8' rx='2' fill='%23b0bec5'/%3E%3Crect x='40' y='172' width='14' height='6' rx='2' fill='%238ecae6'/%3E%3Crect x='58' y='168' width='10' height='10' rx='2' fill='%23f9dc5c'/%3E%3C!-- Left corner plant --%3E%3Cellipse cx='35' cy='192' rx='12' ry='5' fill='%238ecae6'/%3E%3Crect x='30' y='180' width='10' height='15' rx='2' fill='%234caf50'/%3E%3C/svg%3E") no-repeat right center / 540px auto`,
                borderRadius: "16px",
-               boxShadow: "0 8px 32px rgba(102, 126, 234, 0.3)"
+               boxShadow: "0 8px 32px rgba(173, 181, 189, 0.3)"
              }}>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="mb-2" style={{ fontWeight: 700, fontSize: "2.5rem" }}>
-                My Classrooms
-              </h1>
-              <p className="mb-0" style={{ fontSize: "1.1rem", opacity: 0.9 }}>
-                Manage your classes, materials, students, and activities in one place.
-              </p>
+          {/* Overlay for focus */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(255,255,255,0.5)',
+            borderRadius: '16px',
+            zIndex: 1
+          }} />
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <h1 className="mb-2" style={{ fontWeight: 700, fontSize: "2.5rem", textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}>
+                  My Classrooms
+                </h1>
+                <p className="mb-0" style={{ fontSize: "1.1rem", opacity: 0.9 }}>
+                  Manage your classes, materials, students, and activities in one place.
+                </p>
+              </div>
+              <Button 
+                color="primary" 
+                size="lg" 
+                onClick={toggleModal}
+                style={{ 
+                  borderRadius: "12px", 
+                  fontWeight: 600, 
+                  fontSize: "1rem",
+                  padding: "12px 24px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
+                }}
+              >
+                <i className="ni ni-fat-add mr-2"></i>
+                Create Class
+              </Button>
             </div>
-            <Button 
-              color="light" 
-              size="lg" 
-              onClick={toggleModal}
-              style={{ 
-                borderRadius: "12px", 
-                fontWeight: 600, 
-                fontSize: "1rem",
-                padding: "12px 24px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
-              }}
-            >
-              <i className="ni ni-fat-add mr-2"></i>
-              Create Class
-            </Button>
           </div>
         </div>
 
         {/* Class Cards Grid */}
-        <Row className="g-4">
-          {classes.map((cls, idx) => (
-            <Col lg="4" md="6" sm="12" key={cls.id} className="mb-4">
-              <Card 
-                className={`shadow-sm h-100 ${newlyCreatedClass?.id === cls.id ? 'border-primary border-3' : ''}`}
-                style={{ 
-                  borderRadius: "16px", 
-                  cursor: "pointer", 
-                  transition: "all 0.3s ease",
-                  transform: newlyCreatedClass?.id === cls.id ? "scale(1.02)" : "scale(1)",
-                  border: newlyCreatedClass?.id === cls.id ? "3px solid #007bff" : "1px solid #e9ecef",
-                  background: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), ${cls.theme}`,
-                }}
-                onClick={() => handleCardClick(cls.code)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = newlyCreatedClass?.id === cls.id ? "scale(1.02)" : "scale(1)";
-                  e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)";
-                }}
-              >
+        <Row className="g-4" key={refreshKey}>
+          {classes.map((cls, idx) => {
+            // Get theme from localStorage if available
+            let themeKey = `classroom_theme_${cls.code}`;
+            let theme = localStorage.getItem(themeKey) || cls.theme;
+            if (theme && theme.startsWith('data:image')) {
+              theme = `url('${theme}')`;
+            }
+            // Debug logging
+            if (!localStorage.getItem(themeKey)) {
+              console.log(`No theme found for key: ${themeKey}, cls.code: ${cls.code}`);
+              Object.keys(localStorage).filter(k => k.startsWith('classroom_theme_')).forEach(k => {
+                console.log('Theme key in localStorage:', k, 'value:', localStorage.getItem(k));
+              });
+            }
+            return (
+              <Col lg="4" md="6" sm="12" key={cls.id} className="mb-4">
+                <Card 
+                  className={`shadow-sm h-100 ${newlyCreatedClass?.id === cls.id ? 'border-primary border-3' : ''}`}
+                  style={{ 
+                    borderRadius: "16px", 
+                    cursor: "pointer", 
+                    transition: "all 0.3s ease",
+                    transform: newlyCreatedClass?.id === cls.id ? "scale(1.02)" : "scale(1)",
+                    border: newlyCreatedClass?.id === cls.id ? "3px solid #007bff" : "1px solid #e9ecef",
+                    background: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), ${theme}`,
+                  }}
+                  onClick={() => handleCardClick(cls.code)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = newlyCreatedClass?.id === cls.id ? "scale(1.02)" : "scale(1)";
+                    e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)";
+                  }}
+                >
                 <div 
                   className="card-img-top" 
                   style={{
                     height: "120px",
-                    background: cls.theme,
+                    background: theme,
                     borderRadius: "16px 16px 0 0",
                     position: "relative",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat"
                   }}
                 >
                   <div className="position-absolute w-100 h-100 d-flex align-items-center justify-content-center">
@@ -228,7 +268,7 @@ const Classroom = () => {
                   </div>
                 </div>
                 
-                <CardBody className="p-4">
+                <CardBody className="p-4" style={{ background: '#fff', borderRadius: '12px' }}>
                   <h5 className="card-title font-weight-bold mb-2" style={{ color: "#2d3748" }}>
                     {cls.name}
                   </h5>
@@ -236,7 +276,7 @@ const Classroom = () => {
                     {cls.section}
                   </p>
                   <div className="mb-3">
-                    <Badge color="primary" className="me-2">
+                    <Badge color="primary" style={{ marginRight: 8 }}>
                       {cls.semester}
                     </Badge>
                     <Badge color="info">
@@ -258,7 +298,8 @@ const Classroom = () => {
                 </CardBody>
               </Card>
             </Col>
-          ))}
+          );
+        })}
         </Row>
 
         {/* Empty State */}

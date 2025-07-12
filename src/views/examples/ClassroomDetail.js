@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { Html5Qrcode } from "html5-qrcode";
 import {
   Card,
   CardBody,
@@ -52,7 +53,7 @@ const themes = [
   { name: "Sunset", value: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", type: "Color Theme" },
   { name: "Deep Blue", value: "linear-gradient(135deg, #232526 0%, #414345 100%)", type: "Color Theme" },
   // SVG Themes
-  { name: "Classroom SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iIzQ0NGI1YSIvPjxyZWN0IHg9IjUwIiB5PSI4MCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iIzE5NzZkMiIvPjxyZWN0IHg9IjE3MCIgeT0iNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiNmOWRjNWMiLz48cmVjdCB4PSIxODAiIHk9Ijc1IiB3aWR0aD0iMjAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNmZmI0YTIiLz48cmVjdCB4PSIyMzAiIHk9IjgwIiB3aWR0aD0iNTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMTk3NmQyIi8+PHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjMyMCIgeT0iNDAiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzNSIgcng9IjUiIGZpbGw9IiM0NDRiNWEiLz48cmVjdCB4PSIzMzAiIHk9IjcwIiB3aWR0aD0iMzAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiMxOTc2ZDIiLz48cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMjAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjlkYzVjIi8+PC9zdmc+')", type: "SVG Theme" },
+  { name: "Classroom SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iIzQ0NGI1YSIvPjxyZWN0IHg9IjUwIiB5PSI4MCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI2U5NzZkMiIvPjxyZWN0IHg9IjE3MCIgeT0iNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiNmOWRjNWMiLz48cmVjdCB4PSIxODAiIHk9Ijc1IiB3aWR0aD0iMjAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNmZmI0YTIiLz48cmVjdCB4PSIyMzAiIHk9IjgwIiB3aWR0aD0iNTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMTk3NmQyIi8+PHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjMyMCIgeT0iNDAiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzNSIgcng9IjUiIGZpbGw9IiM0NDRiNWEiLz48cmVjdCB4PSIzMzAiIHk9IjcwIiB3aWR0aD0iMzAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiMxOTc2ZDIiLz48cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMjAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjlkYzVjIi8+PC9zdmc+')", type: "SVG Theme" },
   { name: "Books SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iNjAiIHk9IjYwIiB3aWR0aD0iMzAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjNGNhZjUwIi8+PHJlY3QgeD0iMTAwIiB5PSI3MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiByeD0iNCIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjE0MCIgeT0iODAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiMxOTc2ZDIiLz48L3N2Zz4=')", type: "SVG Theme" },
   // Existing image/photo themes
   { name: "Night Sky", value: "url('https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80')", type: "Photo" },
@@ -149,28 +150,29 @@ const sampleAssignments = [
 ];
 
 const sampleStudents = [
-  { id: 1, name: "John Doe", email: "john.doe@student.edu", role: "Student", joinedDate: "2024-01-10" },
-  { id: 2, name: "Jane Smith", email: "jane.smith@student.edu", role: "Student", joinedDate: "2024-01-10" },
-  { id: 3, name: "Mike Johnson", email: "mike.johnson@student.edu", role: "Student", joinedDate: "2024-01-11", profile_pic: "https://randomuser.me/api/portraits/men/75.jpg" },
-  { id: 4, name: "Sarah Wilson", email: "sarah.wilson@student.edu", role: "Student", joinedDate: "2024-01-12" },
-  { id: 5, name: "David Brown", email: "david.brown@student.edu", role: "Student", joinedDate: "2024-01-13" },
-  { id: 6, name: "Sarah Lee", email: "sarah.lee@student.edu", role: "Student", joinedDate: "2024-01-14", profile_pic: "https://randomuser.me/api/portraits/women/44.jpg" },
-  { id: 7, name: "David Kim", email: "david.kim@student.edu", role: "Student", joinedDate: "2024-01-15", profile_pic: "https://randomuser.me/api/portraits/men/65.jpg" },
-  { id: 8, name: "Emily Chen", email: "emily.chen@student.edu", role: "Student", joinedDate: "2024-01-16", profile_pic: "https://randomuser.me/api/portraits/women/68.jpg" },
-  { id: 9, name: "Carlos Ramirez", email: "carlos.ramirez@student.edu", role: "Student", joinedDate: "2024-01-17", profile_pic: "https://randomuser.me/api/portraits/men/23.jpg" },
-  { id: 10, name: "Priya Patel", email: "priya.patel@student.edu", role: "Student", joinedDate: "2024-01-18", profile_pic: "https://randomuser.me/api/portraits/women/12.jpg" },
-  { id: 11, name: "Alex Brown", email: "alex.brown@student.edu", role: "Student", joinedDate: "2024-01-19", profile_pic: "https://randomuser.me/api/portraits/men/41.jpg" },
-  { id: 12, name: "Linda Nguyen", email: "linda.nguyen@student.edu", role: "Student", joinedDate: "2024-01-20", profile_pic: "https://randomuser.me/api/portraits/women/29.jpg" },
-  { id: 13, name: "Olivia Garcia", email: "olivia.garcia@student.edu", role: "Student", joinedDate: "2024-01-21", profile_pic: "https://randomuser.me/api/portraits/women/50.jpg" },
-  { id: 14, name: "Ethan Martinez", email: "ethan.martinez@student.edu", role: "Student", joinedDate: "2024-01-22", profile_pic: "https://randomuser.me/api/portraits/men/52.jpg" },
-  { id: 15, name: "Sophia Lee", email: "sophia.lee@student.edu", role: "Student", joinedDate: "2024-01-23", profile_pic: "https://randomuser.me/api/portraits/women/60.jpg" },
-  { id: 16, name: "Benjamin Clark", email: "benjamin.clark@student.edu", role: "Student", joinedDate: "2024-01-24", profile_pic: "https://randomuser.me/api/portraits/men/61.jpg" },
-  { id: 17, name: "Mia Rodriguez", email: "mia.rodriguez@student.edu", role: "Student", joinedDate: "2024-01-25", profile_pic: "https://randomuser.me/api/portraits/women/65.jpg" },
-  { id: 18, name: "William Scott", email: "william.scott@student.edu", role: "Student", joinedDate: "2024-01-26", profile_pic: "https://randomuser.me/api/portraits/men/67.jpg" },
-  { id: 19, name: "Ava Turner", email: "ava.turner@student.edu", role: "Student", joinedDate: "2024-01-27", profile_pic: "https://randomuser.me/api/portraits/women/70.jpg" },
-  { id: 20, name: "James Harris", email: "james.harris@student.edu", role: "Student", joinedDate: "2024-01-28", profile_pic: "https://randomuser.me/api/portraits/men/72.jpg" },
-  { id: 21, name: "Ella Walker", email: "ella.walker@student.edu", role: "Student", joinedDate: "2024-01-29", profile_pic: "https://randomuser.me/api/portraits/women/73.jpg" },
-  { id: 22, name: "Lucas Young", email: "lucas.young@student.edu", role: "Student", joinedDate: "2024-01-30", profile_pic: "https://randomuser.me/api/portraits/men/74.jpg" }
+  { id: "2021305973", name: "ANJELA SOFIA G. SARMIENTO", email: "anjela.sarmiento@student.edu", role: "Student", joinedDate: "2024-01-10", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305974", name: "JOHN MICHAEL A. DELA CRUZ", email: "john.delacruz@student.edu", role: "Student", joinedDate: "2024-01-10", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305975", name: "MARIA ISABEL B. SANTOS", email: "maria.santos@student.edu", role: "Student", joinedDate: "2024-01-11", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305976", name: "CARLOS ANTONIO C. REYES", email: "carlos.reyes@student.edu", role: "Student", joinedDate: "2024-01-12", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305977", name: "ANA LUCIA D. GONZALES", email: "ana.gonzales@student.edu", role: "Student", joinedDate: "2024-01-13", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305978", name: "ROBERTO JOSE E. TORRES", email: "roberto.torres@student.edu", role: "Student", joinedDate: "2024-01-14", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305979", name: "ISABEL CRISTINA F. MORALES", email: "isabel.morales@student.edu", role: "Student", joinedDate: "2024-01-15", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305980", name: "MIGUEL ANGEL G. HERRERA", email: "miguel.herrera@student.edu", role: "Student", joinedDate: "2024-01-16", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305981", name: "SOFIA ELENA H. VARGAS", email: "sofia.vargas@student.edu", role: "Student", joinedDate: "2024-01-17", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305982", name: "ALEJANDRO RAFAEL I. JIMENEZ", email: "alejandro.jimenez@student.edu", role: "Student", joinedDate: "2024-01-18", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305983", name: "VALENTINA MARIA J. RODRIGUEZ", email: "valentina.rodriguez@student.edu", role: "Student", joinedDate: "2024-01-19", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305984", name: "DIEGO SEBASTIAN K. LOPEZ", email: "diego.lopez@student.edu", role: "Student", joinedDate: "2024-01-20", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305985", name: "CAMILA ALEJANDRA L. MARTINEZ", email: "camila.martinez@student.edu", role: "Student", joinedDate: "2024-01-21", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305986", name: "FERNANDO LUIS M. GARCIA", email: "fernando.garcia@student.edu", role: "Student", joinedDate: "2024-01-22", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305987", name: "GABRIELA PAULA N. PEREZ", email: "gabriela.perez@student.edu", role: "Student", joinedDate: "2024-01-23", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305988", name: "ADRIAN CARLOS O. GONZALEZ", email: "adrian.gonzalez@student.edu", role: "Student", joinedDate: "2024-01-24", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305989", name: "NATALIA ANA P. RAMIREZ", email: "natalia.ramirez@student.edu", role: "Student", joinedDate: "2024-01-25", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305990", name: "JAVIER EDUARDO Q. FLORES", email: "javier.flores@student.edu", role: "Student", joinedDate: "2024-01-26", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305991", name: "DANIELA MARIA R. CRUZ", email: "daniela.cruz@student.edu", role: "Student", joinedDate: "2024-01-27", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305992", name: "LUIS FERNANDO S. ORTIZ", email: "luis.ortiz@student.edu", role: "Student", joinedDate: "2024-01-28", program: "Bachelor of Science in Computer Science" },
+  { id: "2021305993", name: "PAULA ANDREA T. SILVA", email: "paula.silva@student.edu", role: "Student", joinedDate: "2024-01-29", program: "Bachelor of Science in Information Technology" },
+  { id: "2021305994", name: "RICARDO MANUEL U. VEGA", email: "ricardo.vega@student.edu", role: "Student", joinedDate: "2024-01-30", program: "Bachelor of Science in Computer Science" },
+  { id: "2024000002", name: "STUDENT NAME", email: "student@student.edu", role: "Student", joinedDate: "2024-01-31", program: "Bachelor of Science in Information Technology" }
 ];
 
 const sampleGrades = [
@@ -210,6 +212,14 @@ const getAvatarForUser = (user) => {
     return getRandomAvatar(user.name);
   }
   return userDefault;
+};
+
+// Helper function to generate Student ID (same as People tab)
+const generateStudentId = (student) => {
+  const year = student.joinedDate ? new Date(student.joinedDate).getFullYear() : '0000';
+  const idNum = typeof student.id === 'number' ? student.id : parseInt(student.id, 10);
+  const randomPart = idNum ? String(idNum).padStart(6, '0') : '000000';
+  return `${year}${randomPart}`;
 };
 
 const findUserByName = (name) => {
@@ -589,6 +599,7 @@ const ClassroomDetail = () => {
   const [quickGradeMenuOpen, setQuickGradeMenuOpen] = useState(null);
   const [selectedQuickGradeId, setSelectedQuickGradeId] = useState(null);
 
+
   // Handler to open/close the menu for a specific card
   const handleQuickGradeMenuOpen = (id) => setQuickGradeMenuOpen(quickGradeMenuOpen === id ? null : id);
 
@@ -633,9 +644,13 @@ const ClassroomDetail = () => {
     // selectedQuickGradeId remains unchanged
   };
 
+  const [voiceType, setVoiceType] = useState('female'); // or 'male' as default
   const [showQRGrading, setShowQRGrading] = useState(false);
   const [showManualGrading, setShowManualGrading] = useState(false);
   const [qrScore, setQRScore] = useState('');
+  const qrScoreRef = useRef();
+  const qrNotesRef = useRef();
+  const qrAttachmentRef = useRef();
   const [qrNotes, setQRNotes] = useState('');
   const [qrAttachment, setQRAttachment] = useState(null);
   const [manualStudent, setManualStudent] = useState('');
@@ -643,12 +658,26 @@ const ClassroomDetail = () => {
   const [manualNotes, setManualNotes] = useState('');
   const [manualAttachment, setManualAttachment] = useState(null);
   const [gradingRows, setGradingRows] = useState([]); // [{studentId, name, avatar, score, attachment, notes, dateGraded}]
+
+  // Add state for editing grading rows 
+  const [editingGradeIdx, setEditingGradeIdx] = useState(null);
+  const [editScore, setEditScore] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editAttachment, setEditAttachment] = useState(null);
   
   // QR and Manual Grading attachment dropdown states
   const [qrAttachmentDropdownOpen, setQRAttachmentDropdownOpen] = useState(false);
   const [manualAttachmentDropdownOpen, setManualAttachmentDropdownOpen] = useState(false);
   const qrFileInputRef = useRef();
   const manualFileInputRef = useRef();
+  
+  // QR Scanner state variables
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+  const [qrScanResult, setQrScanResult] = useState(null);
+  const [qrScanError, setQrScanError] = useState(null);
+  const [scannedPhoto, setScannedPhoto] = useState(null);
+  const [scannedStudent, setScannedStudent] = useState(null);
+  const qrScannerRef = useRef(null);
   
   // Camera functionality states
   const [showCameraModal, setShowCameraModal] = useState(false);
@@ -665,6 +694,14 @@ const ClassroomDetail = () => {
   const mediaRecorderRef = useRef();
   const recordedChunksRef = useRef([]);
 
+// Play grading success audio
+  const playGradingSuccessAudio = () => {
+    const audioFile = voiceType === 'male'
+      ? process.env.PUBLIC_URL + '/grading-success-male.mp3'
+      : process.env.PUBLIC_URL + '/grading-success-female.mp3';
+    const audio = new Audio(audioFile);
+    audio.play();
+  };
 
 // Handler for QR Grading submission (simulate QR scan)
 const handleQRSubmit = () => {
@@ -858,6 +895,217 @@ const handleManualAttachmentType = (type) => {
   setManualAttachmentDropdownOpen(false);
 };
 
+const startQrScanner = async () => {
+  try {
+    setQrScanError(null);
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    qrScannerRef.current = html5QrCode;
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      },
+      (decodedText, decodedResult) => {
+        // Parse QR code with the format:
+        // IDNo: 2021305973
+        // Full Name: ANJELA SOFIA G. SARMIENTO
+        // Program: Bachelor of Science in Information Technology
+
+        try {
+          const lines = decodedText.split('\n');
+          let id = '';
+          let name = '';
+          let program = '';
+
+          lines.forEach(line => {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('IDNo:')) {
+              id = trimmedLine.replace('IDNo:', '').trim();
+            } else if (trimmedLine.startsWith('Full Name:')) {
+              name = trimmedLine.replace('Full Name:', '').trim();
+            } else if (trimmedLine.startsWith('Program:')) {
+              program = trimmedLine.replace('Program:', '').trim();
+            }
+          });
+
+          if (id && name && program) {
+            const scanResult = {
+              id: id,
+              name: name,
+              program: program
+            };
+            setQrScanResult(scanResult);
+
+            // Look up student by ID directly (10-digit student ID)
+            const student = students.find(s => s.id === scanResult.id);
+
+            if (student) {
+              // Set the scanned student to show the "Student Found" div
+              setScannedStudent(student);
+              setQrScanResult(scanResult);
+              
+              const score = qrScore;
+              const notes = qrNotes;
+              const attachment = qrAttachment;
+              
+              if (!score) {
+                setQrScanError("Please enter a score before scanning.");
+                return;
+              }
+              
+              // Check if already graded
+              const alreadyGraded = gradingRows.some(row => row.studentId === student.id);
+              if (alreadyGraded) {
+                setQrScanError("This student has already been recorded");
+                return;
+              }
+              
+              // Add to grading rows
+              setGradingRows(rows => [
+                ...rows,
+                {
+                  studentId: student.id,
+                  name: student.name,
+                  avatar: getAvatarForUser(student),
+                  score: score,
+                  attachment: attachment,
+                  notes: notes,
+                  dateGraded: new Date().toLocaleString(),
+                  scannedPhoto: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                }
+              ]);
+              
+              // Play success audio
+              playGradingSuccessAudio();
+              
+              // Reset form
+              setQRScore('');
+              setQRNotes('');
+              setQRAttachment(null);
+              setQrScanResult(null);
+              // setScannedStudent(null); // <-- Do not clear scannedStudent here
+              setScannedPhoto(null);
+              setQrScanError(null);
+            } else {
+              setQrScanError("Student not found with ID: " + scanResult.id);
+              setScannedStudent(null);
+            }
+          } else {
+            setQrScanError("Invalid QR code format. Expected: IDNo, Full Name, and Program");
+            setScannedStudent(null);
+          }
+        } catch (error) {
+          setQrScanError("Error parsing QR code: " + error.message);
+          setScannedStudent(null);
+        }
+
+        // Stop scanner after successful scan
+        //stopQrScanner();
+      },
+      (errorMessage) => {
+        // Ignore errors during scanning
+        console.log("QR Scanner error:", errorMessage);
+      }
+    );
+  } catch (error) {
+    setQrScanError("Failed to start QR scanner: " + error.message);
+  }
+};
+const stopQrScanner = async () => {
+  if (qrScannerRef.current) {
+    try {
+      await qrScannerRef.current.stop();
+      qrScannerRef.current = null;
+    } catch (error) {
+      console.log("Error stopping QR scanner:", error);
+    }
+  }
+};
+
+const captureQrPhoto = () => {
+  // This would capture a photo from the video stream
+  // For now, we'll use a placeholder
+  setScannedPhoto("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+};
+
+ // Grading rows state
+ const handleEditGrade = idx => {
+  setEditingGradeIdx(idx);
+  setEditScore(gradingRows[idx].score);
+  setEditNotes(gradingRows[idx].notes || '');
+  setEditAttachment(gradingRows[idx].attachment || null);
+};
+
+const handleCancelEditGrade = () => {
+  setEditingGradeIdx(null);
+  setEditScore('');
+  setEditNotes('');
+  setEditAttachment(null);
+};
+
+const handleSaveEditGrade = idx => {
+  setGradingRows(rows => rows.map((row, i) =>
+    i === idx
+      ? {
+          ...row,
+          score: editScore,
+          notes: editNotes,
+          attachment: editAttachment
+        }
+      : row
+  ));
+  handleCancelEditGrade();
+};
+
+const handleDeleteGrade = idx => {
+  setGradingRows(rows => rows.filter((_, i) => i !== idx));
+};
+
+const handleQrScanSubmit = () => {
+  console.log("handleQrScanSubmit called");
+  console.log("scannedStudent:", scannedStudent);
+  console.log("qrScore:", qrScore);
+  console.log("qrNotes:", qrNotes);
+  console.log("qrAttachment:", qrAttachment);
+  
+  if (!scannedStudent || !qrScore) {
+    alert("Please scan a valid student QR code and enter a score!");
+    return;
+  }
+  
+  const newGrade = {
+    studentId: scannedStudent.id,
+    name: scannedStudent.name,
+    avatar: getAvatarForUser(scannedStudent),
+    score: qrScore,
+    attachment: qrAttachment,
+    notes: qrNotes,
+    dateGraded: new Date().toLocaleString(),
+    scannedPhoto: scannedPhoto
+  };
+  
+  console.log("Adding new grade:", newGrade);
+  
+  setGradingRows(rows => {
+    const updatedRows = [...rows, newGrade];
+    console.log("Updated grading rows:", updatedRows);
+    return updatedRows;
+  });
+  
+  // Reset form
+  setQRScore('');
+  setQRNotes('');
+  setQRAttachment(null);
+  setQrScanResult(null);
+  // setScannedStudent(null); // <-- Do not clear scannedStudent here
+  setScannedPhoto(null);
+  setQrScanError(null);
+  //setIsQrScannerOpen(false);
+};
+
 useEffect(() => {
   if (showCameraModal && cameraStream && videoRef.current) {
     videoRef.current.srcObject = cameraStream;
@@ -868,7 +1116,7 @@ useEffect(() => {
   }
 }, [showCameraModal, cameraStream]);
 
-
+  
   // Classwork creation attachment states
   const [createAttachmentDropdownOpen, setCreateAttachmentDropdownOpen] = useState(false);
   const [showCreateLinkModal, setShowCreateLinkModal] = useState(false);
@@ -1006,6 +1254,18 @@ useEffect(() => {
       stopCamera();
     };
   }, []);
+
+  // QR Scanner useEffect
+  useEffect(() => {
+    if (isQrScannerOpen) {
+      startQrScanner();
+    } else {
+      stopQrScanner();
+    }
+    return () => {
+      stopQrScanner();
+    };
+  }, [isQrScannerOpen]);
 
   const handleCopyCode = () => {
     if (classInfo) {
@@ -3651,52 +3911,146 @@ useEffect(() => {
                               maxWidth: '100%',
                               position: 'relative'
                             }}>
-                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Live QR Code Scanner (Simulated)</div>
-                              {/* Replace below with your QR scanner component */}
-                              <input
-                                type="text"
-                                placeholder="Scanned Student Number"
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 220 }}
-                                // onChange={...}
-                              />
-                              <input
-                                type="number"
-                                placeholder="Score"
-                                value={qrScore}
-                                onChange={e => setQRScore(e.target.value)}
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 120 }}
-                              />
-                              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Dropdown isOpen={qrAttachmentDropdownOpen} toggle={() => setQRAttachmentDropdownOpen(!qrAttachmentDropdownOpen)}>
-                                  <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <FaPaperclip />
-                                  </DropdownToggle>
-                                  <DropdownMenu>
-                                    <DropdownItem onClick={() => handleQRAttachmentType("File")}>
-                                      <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
-                                    </DropdownItem>
-                                    <DropdownItem onClick={() => handleQRAttachmentType("Camera")}>
-                                      <FaCamera style={{ marginRight: 8 }} /> Camera
-                                    </DropdownItem>
-                                  </DropdownMenu>
-                                </Dropdown>
-                                <input type="file" style={{ display: 'none' }} ref={qrFileInputRef} onChange={handleQRAttachment} />
-                                {qrAttachment && (
-                                  <span className="text-muted small d-flex align-items-center">
-                                    {qrAttachment.name}
-                                    <Button close className="ml-2 p-0" style={{ fontSize: 16 }} onClick={() => setQRAttachment(null)} />
+                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Live QR Code Scanner</div>
+                              <div style={{ fontSize: 14, color: '#6c757d', marginBottom: 16 }}>
+                                Expected format:<br/>
+                                IDNo: [Student ID]<br/>
+                                Full Name: [Student Name]<br/>
+                                Program: [Program Name]
+                              </div>
+                              
+                              {/* QR Scanner Controls */}
+                              <div style={{ marginBottom: 20 }}>
+                              <div style={{ marginBottom: 12 }}>
+                                <label style={{ marginRight: 8, fontWeight: 600 }}>Voice:</label>
+                                <select
+                                  value={voiceType}
+                                  onChange={e => setVoiceType(e.target.value)}
+                                  style={{ borderRadius: 8, padding: '4px 12px' }}
+                                >
+                                  <option value="female">Female</option>
+                                  <option value="male">Male</option>
+                                </select>
+                              </div>
+                                <button 
+                                  className="btn btn-primary" 
+                                  style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px', marginRight: 12 }}
+                                  onClick={() => setIsQrScannerOpen(!isQrScannerOpen)}
+                                >
+                                  {isQrScannerOpen ? 'Stop Scanner' : 'Start QR Scanner'}
+                                </button>
+                                {isQrScannerOpen && (
+                                  <span style={{ color: '#28a745', fontSize: 14, fontWeight: 600 }}>
+                                    <i className="fa fa-circle" style={{ fontSize: 8, marginRight: 6 }} /> Scanner Active
                                   </span>
                                 )}
                               </div>
-                              <textarea
-                                placeholder="Notes"
-                                value={qrNotes}
-                                onChange={e => setQRNotes(e.target.value)}
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: '100%' }}
+
+                              {/* QR Scanner Container */}
+                              {isQrScannerOpen && (
+                                <div style={{ marginBottom: 20 }}>
+                                  <div id="qr-reader" style={{ width: '100%', maxWidth: 400, height: 300 }} />
+                                  {qrScanError && (
+                                    <div style={{ 
+                                      background: '#f8d7da', 
+                                      color: '#721c24', 
+                                      padding: '8px 12px', 
+                                      borderRadius: 6, 
+                                      marginTop: 8,
+                                      fontSize: 14 
+                                    }}>
+                                      {qrScanError}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Scanned Student Info */}
+                              {scannedStudent && (
+                                <div style={{ 
+                                  background: '#e8f5e8', 
+                                  border: '1px solid #28a745', 
+                                  borderRadius: 8, 
+                                  padding: 16, 
+                                  marginBottom: 16 
+                                }}>
+                                  <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: '#155724' }}>
+                                    Student Found ✓
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <img 
+                                      src={getAvatarForUser(scannedStudent)} 
+                                      alt="avatar" 
+                                      style={{ width: 48, height: 48, borderRadius: '50%' }} 
+                                    />
+                                    <div>
+                                      <div style={{ fontWeight: 600, fontSize: 15 }}>{scannedStudent.name}</div>
+                                      <div style={{ fontSize: 14, color: '#6c757d' }}>ID: {scannedStudent.id}</div>
+                                      <div style={{ fontSize: 14, color: '#6c757d' }}>Program: {qrScanResult?.program}</div>
+                                    </div>
+                                  </div>
+                                  {scannedPhoto && (
+                                    <div style={{ marginTop: 12 }}>
+                                      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Scanned Photo:</div>
+                                      <img 
+                                        src={scannedPhoto} 
+                                        alt="scanned" 
+                                        style={{ 
+                                          width: 80, 
+                                          height: 80, 
+                                          borderRadius: 6, 
+                                          objectFit: 'cover',
+                                          border: '2px solid #28a745'
+                                        }} 
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Grading Form */}
+                              <div style={{ marginBottom: 16 }}>
+                              <input
+                              ref={qrScoreRef}
+                                type="number"
+                                placeholder="Score"
+                                value={qrScore}
+                                onChange={e => {
+                                  setQRScore(e.target.value);
+                                  qrScoreRef.current = e.target.value;
+                                }}
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 120 }}
                               />
-                              <button className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px' }} onClick={handleQRSubmit}>
-                                Add Grade
-                              </button>
+                                <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <Dropdown isOpen={qrAttachmentDropdownOpen} toggle={() => setQRAttachmentDropdownOpen(!qrAttachmentDropdownOpen)}>
+                                    <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <FaPaperclip />
+                                    </DropdownToggle>
+                                    <DropdownMenu>
+                                      <DropdownItem onClick={() => handleQRAttachmentType("File")}>
+                                        <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
+                                      </DropdownItem>
+                                      <DropdownItem onClick={() => handleQRAttachmentType("Camera")}>
+                                        <FaCamera style={{ marginRight: 8 }} /> Camera
+                                      </DropdownItem>
+                                    </DropdownMenu>
+                                  </Dropdown>
+                                  <input type="file" style={{ display: 'none' }} ref={qrFileInputRef} onChange={handleQRAttachment} />
+                                  {qrAttachment && (
+                                    <span className="text-muted small d-flex align-items-center">
+                                      {qrAttachment.name}
+                                      <Button close className="ml-2 p-0" style={{ fontSize: 16 }} onClick={() => setQRAttachment(null)} />
+                                    </span>
+                                  )}
+                                </div>
+                                <textarea
+                                  ref={qrNotesRef}
+                                  placeholder="Notes"
+                                  value={qrNotes}
+                                  onChange={e => setQRNotes(e.target.value)}
+                                  style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: '100%' }}
+                                />
+                              </div>
                             </div>
                           )}
 
@@ -3769,30 +4123,70 @@ useEffect(() => {
                           {/* Grading Table */}
                           <div style={{ width: '100%', overflowX: 'auto' }}>
                             <table className="table" style={{ minWidth: 700, background: '#fff', borderRadius: 12 }}>
-                              <thead>
-                                <tr style={{ background: '#f8fafc' }}>
-                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Avatar</th>
-                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Student Name</th>
-                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Score</th>
-                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Attachment</th>
-                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Notes</th>
-                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Date Graded</th>
-                                </tr>
-                              </thead>
+                            <thead>
+                              <tr style={{ background: '#f8fafc' }}>
+                                <th>Student</th>
+                                <th>Score</th>
+                                <th>Attachment</th>
+                                <th>Notes</th>
+                                <th>Date Graded</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
                               <tbody>
-                                {gradingRows.map((row, idx) => (
+                              {gradingRows.map((row, idx) => (
+                                editingGradeIdx === idx ? (
                                   <tr key={idx}>
-                                    <td>
+                                    <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       <img src={row.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                                      {row.name}
                                     </td>
-                                    <td>{row.name}</td>
+                                    <td>
+                                      <input
+                                        type="number"
+                                        value={editScore}
+                                        onChange={e => setEditScore(e.target.value)}
+                                        style={{ width: 60 }}
+                                      />
+                                    </td>
+                                    <td>
+                                      <input
+                                        type="file"
+                                        onChange={e => setEditAttachment(e.target.files[0])}
+                                      />
+                                      {editAttachment && <span>{editAttachment.name}</span>}
+                                    </td>
+                                    <td>
+                                      <input
+                                        type="text"
+                                        value={editNotes}
+                                        onChange={e => setEditNotes(e.target.value)}
+                                      />
+                                    </td>
+                                    <td>{row.dateGraded}</td>
+                                    <td>
+                                      <Button color="success" size="sm" onClick={() => handleSaveEditGrade(idx)}>Save</Button>
+                                      <Button color="secondary" size="sm" onClick={handleCancelEditGrade} style={{ marginLeft: 8 }}>Cancel</Button>
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  <tr key={idx}>
+                                    <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <img src={row.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                                      {row.name}
+                                    </td>
                                     <td>{row.score}</td>
                                     <td>{row.attachment ? row.attachment.name : ''}</td>
                                     <td>{row.notes}</td>
                                     <td>{row.dateGraded}</td>
+                                    <td>
+                                      <Button color="warning" size="sm" onClick={() => handleEditGrade(idx)}>Edit</Button>
+                                      <Button color="danger" size="sm" onClick={() => handleDeleteGrade(idx)} style={{ marginLeft: 8 }}>Delete</Button>
+                                    </td>
                                   </tr>
-                                ))}
-                              </tbody>
+                                )
+                              ))}
+                            </tbody>          
                             </table>
                           </div>
                         </div>
@@ -3992,7 +4386,7 @@ useEffect(() => {
                             </DropdownItem>
                           </DropdownMenu>
                         </Dropdown>
-                        <input type="file" multiple style={{ display: 'none' }} ref={createFileInputRef} onChange={handleCreateFileChange} />
+                        <input ref={qrAttachmentRef} type="file" multiple style={{ display: 'none' }} onChange={handleCreateFileChange} />
                       </div>
                       
                       {/* Student Assignment Section */}
@@ -4471,12 +4865,7 @@ useEffect(() => {
                         </td>
                         <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>{student.email}</td>
                         <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
-                          {(() => {
-                            const year = student.joinedDate ? new Date(student.joinedDate).getFullYear() : '0000';
-                            const idNum = typeof student.id === 'number' ? student.id : parseInt(student.id, 10);
-                            const randomPart = idNum ? String(idNum).padStart(6, '0') : '000000';
-                            return `${year}${randomPart}`;
-                          })()}
+                          {student.id}
                         </td>
                         <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
                           {student.joinedDate ? new Date(student.joinedDate).toLocaleString() : ''}
@@ -5126,16 +5515,16 @@ useEffect(() => {
                   })
                 )}
               </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
+          </div>
+        </ModalBody>
+        <ModalFooter>
             <Button color="secondary" onClick={() => setShowCreateStudentSelectModal(false)}>
               Cancel
             </Button>
             <Button color="primary" onClick={() => { setSelectedAnnouncementStudents(tempSelectedStudents); setShowStudentSelectModal(false); }}>
               Confirm
             </Button>
-          </ModalFooter>
+        </ModalFooter>
         </div>
       </Modal>
 
@@ -5663,7 +6052,7 @@ useEffect(() => {
                 >
                   Switch Camera
                 </Button>
-              </div>
+        </div>
               {cameraError && (
                 <div style={{ color: 'red', marginBottom: 8, fontWeight: 600 }}>{cameraError}</div>
               )}

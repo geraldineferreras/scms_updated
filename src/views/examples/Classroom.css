@@ -250,3 +250,12 @@
     overscroll-behavior: contain;
   }
 } 
+
+
+/* QR Scanner Styles */
+#qr-reader video {
+  height: 300px !important;   /* Match the qrbox height */
+  max-height: 300px !important;
+  width: auto;
+  object-fit: cover;
+}

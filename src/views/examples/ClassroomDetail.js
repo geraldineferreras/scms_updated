@@ -37,7 +37,7 @@ import {
 import classnames from "classnames";
 import Header from "../../components/Headers/Header";
 import "./Classroom.css";
-import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolder, FaPlus, FaPaperclip, FaSmile, FaRegThumbsUp, FaThumbsUp, FaUserPlus, FaRegFileAlt, FaCheck, FaTimes, FaSearch, FaRegCalendarAlt, FaTrash } from 'react-icons/fa';
+import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolder, FaPlus, FaPaperclip, FaSmile, FaRegThumbsUp, FaThumbsUp, FaUserPlus, FaRegFileAlt, FaCheck, FaTimes, FaSearch, FaRegCalendarAlt, FaTrash, FaCamera } from 'react-icons/fa';
 import userDefault from '../../assets/img/theme/user-default.svg';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage'; // We'll add this helper next
@@ -72,7 +72,11 @@ const sampleAnnouncements = [
     author: "Prof. Smith",
     date: "2024-01-15",
     isPinned: true,
-    reactions: { like: 2, likedBy: ["Prof. Smith", "John Doe"] }
+    reactions: { like: 2, likedBy: ["Prof. Smith", "John Doe"] },
+    comments: [
+      { text: "Looking forward to this semester!", author: "Prof. Smith", date: "2024-01-15T10:30:00.000Z" },
+      { text: "Thank you for the warm welcome!", author: "John Doe", date: "2024-01-15T11:15:00.000Z" }
+    ]
   },
   {
     id: 2,
@@ -81,7 +85,10 @@ const sampleAnnouncements = [
     author: "Prof. Smith",
     date: "2024-01-14",
     isPinned: false,
-    reactions: { like: 0, likedBy: [] }
+    reactions: { like: 0, likedBy: [] },
+    comments: [
+      { text: "Great news! I was having trouble with the submission system.", author: "Jane Smith", date: "2024-01-14T14:20:00.000Z" }
+    ]
   },
   {
     id: 3,
@@ -90,7 +97,10 @@ const sampleAnnouncements = [
     author: "Prof. Smith",
     date: "2024-01-13",
     isPinned: false,
-    reactions: { like: 1, likedBy: ["Jane Smith"] }
+    reactions: { like: 1, likedBy: ["Jane Smith"] },
+    comments: [
+      { text: "This is perfect for getting extra practice!", author: "Prof. Smith", date: "2024-01-13T16:45:00.000Z" }
+    ]
   }
 ];
 
@@ -102,7 +112,10 @@ const sampleAssignments = [
     dueDate: "2024-01-20",
     points: 100,
     status: "active",
-    comments: [],
+    comments: [
+      { text: "Can you clarify question 3?", author: "John Doe", date: "2024-01-12T15:30:00.000Z" },
+      { text: "Sure! Question 3 is about applying the concepts we discussed in class.", author: "Prof. Smith", date: "2024-01-12T16:00:00.000Z" }
+    ],
     date: "2024-01-10T09:00:00.000Z",
     details: "Complete the basic concepts worksheet and upload your answers."
   },
@@ -113,7 +126,9 @@ const sampleAssignments = [
     dueDate: "2024-01-25",
     points: 50,
     status: "active",
-    comments: [],
+    comments: [
+      { text: "How long will the quiz take?", author: "Jane Smith", date: "2024-01-16T12:15:00.000Z" }
+    ],
     date: "2024-01-15T10:00:00.000Z",
     details: "Short quiz covering the introduction chapter."
   },
@@ -124,7 +139,10 @@ const sampleAssignments = [
     dueDate: "2024-02-01",
     points: 200,
     status: "active",
-    comments: [],
+    comments: [
+      { text: "I have an idea for my project. Can I discuss it with you?", author: "Mike Johnson", date: "2024-01-19T14:20:00.000Z" },
+      { text: "Absolutely! Let's schedule a meeting.", author: "Prof. Smith", date: "2024-01-19T15:00:00.000Z" }
+    ],
     date: "2024-01-18T11:00:00.000Z",
     details: "Submit your project proposal for review."
   }
@@ -169,10 +187,6 @@ const avatarUrls = [
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
   "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
   "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=150&h=150&fit=crop&crop=face",
-  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
-  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face",
-  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
   "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop&crop=face"
 ];
 
@@ -190,6 +204,10 @@ const getAvatarForUser = (user) => {
   }
   if (user.id) {
     return getRandomAvatar(user.id);
+  }
+  // If no ID but we have a name, use the name to generate a consistent avatar
+  if (user.name) {
+    return getRandomAvatar(user.name);
   }
   return userDefault;
 };
@@ -482,6 +500,32 @@ const ClassroomDetail = () => {
   // Add state for mp3 playing
   const [mp3Playing, setMp3Playing] = useState(false);
 
+  // Add refs for visualizer
+  const visualizerIntervalRef = useRef(null);
+
+  // Visualizer functions
+  const startVisualizer = () => {
+    const bars = document.querySelectorAll('.visualizer-bar');
+    visualizerIntervalRef.current = setInterval(() => {
+      bars.forEach((bar, index) => {
+        const height = Math.random() * 50 + 10;
+        bar.style.height = height + 'px';
+        bar.style.animationDelay = (index * 0.1) + 's';
+      });
+    }, 100);
+  };
+
+  const stopVisualizer = () => {
+    if (visualizerIntervalRef.current) {
+      clearInterval(visualizerIntervalRef.current);
+      visualizerIntervalRef.current = null;
+      const bars = document.querySelectorAll('.visualizer-bar');
+      bars.forEach(bar => {
+        bar.style.height = '10px';
+      });
+    }
+  };
+
   // 1. Add state for the new announcement title
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState("");
 
@@ -518,10 +562,313 @@ const ClassroomDetail = () => {
   // Add state for expanded classwork
   const [expandedClasswork, setExpandedClasswork] = useState(null);
   
+  // Add state for collapsible comments
+  const [collapsedComments, setCollapsedComments] = useState({});
+  
   // Add state for assignment dropdowns
   const [assignmentDropdowns, setAssignmentDropdowns] = useState({});
   const [editClassworkData, setEditClassworkData] = useState({ title: '', details: '', dueDate: '', points: '', type: 'Assignment' });
   
+  // Add state for quick grade form
+  const [quickGradeForm, setQuickGradeForm] = useState({ type: 'Assignment', title: '', points: '' });
+  const [quickGradeAssessments, setQuickGradeAssessments] = useState([]);
+  const handleQuickGradeFormChange = e => {
+    const { name, value } = e.target;
+    setQuickGradeForm(f => ({ ...f, [name]: value }));
+  };
+  const handleQuickGradeCreate = e => {
+    e.preventDefault();
+    if (!quickGradeForm.title.trim() || !quickGradeForm.points) return;
+    setQuickGradeAssessments(a => [
+      ...a,
+      { ...quickGradeForm, id: Date.now(), createdAt: new Date().toISOString() }
+    ]);
+    setQuickGradeForm({ type: 'Assignment', title: '', points: '' });
+  };
+  // Add with other useState hooks
+  const [quickGradeMenuOpen, setQuickGradeMenuOpen] = useState(null);
+  const [selectedQuickGradeId, setSelectedQuickGradeId] = useState(null);
+
+  // Handler to open/close the menu for a specific card
+  const handleQuickGradeMenuOpen = (id) => setQuickGradeMenuOpen(quickGradeMenuOpen === id ? null : id);
+
+
+
+  // Handler for delete
+  const handleQuickGradeDelete = (id) => {
+    setQuickGradeAssessments(a => a.filter(x => x.id !== id));
+    setQuickGradeMenuOpen(null);
+  };
+
+  // Add state for edit assessment form
+  const [quickGradeEditId, setQuickGradeEditId] = useState(null);
+  const [quickGradeEditForm, setQuickGradeEditForm] = useState({ title: '', points: '' });
+
+  // Handler to start editing
+  const handleQuickGradeEdit = (id) => {
+    const assessment = quickGradeAssessments.find(a => a.id === id);
+    setQuickGradeEditForm({ title: assessment.title, points: assessment.points });
+    setQuickGradeEditId(id);
+    setQuickGradeMenuOpen(null);
+  };
+
+  // Handler for edit form change
+  const handleQuickGradeEditFormChange = e => {
+    const { name, value } = e.target;
+    setQuickGradeEditForm(f => ({ ...f, [name]: value }));
+  };
+
+  // Handler to save edit
+  const handleQuickGradeEditSave = (id) => {
+    setQuickGradeAssessments(a => a.map(x => x.id === id ? { ...x, title: quickGradeEditForm.title, points: quickGradeEditForm.points } : x));
+    setQuickGradeEditId(null);
+    // Preserve the current expanded/collapsed state
+    // selectedQuickGradeId remains unchanged
+  };
+
+  // Handler to cancel edit
+  const handleQuickGradeEditCancel = () => {
+    setQuickGradeEditId(null);
+    // Preserve the current expanded/collapsed state
+    // selectedQuickGradeId remains unchanged
+  };
+
+  const [showQRGrading, setShowQRGrading] = useState(false);
+  const [showManualGrading, setShowManualGrading] = useState(false);
+  const [qrScore, setQRScore] = useState('');
+  const [qrNotes, setQRNotes] = useState('');
+  const [qrAttachment, setQRAttachment] = useState(null);
+  const [manualStudent, setManualStudent] = useState('');
+  const [manualScore, setManualScore] = useState('');
+  const [manualNotes, setManualNotes] = useState('');
+  const [manualAttachment, setManualAttachment] = useState(null);
+  const [gradingRows, setGradingRows] = useState([]); // [{studentId, name, avatar, score, attachment, notes, dateGraded}]
+  
+  // QR and Manual Grading attachment dropdown states
+  const [qrAttachmentDropdownOpen, setQRAttachmentDropdownOpen] = useState(false);
+  const [manualAttachmentDropdownOpen, setManualAttachmentDropdownOpen] = useState(false);
+  const qrFileInputRef = useRef();
+  const manualFileInputRef = useRef();
+  
+  // Camera functionality states
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedVideo, setRecordedVideo] = useState(null);
+  const [cameraMode, setCameraMode] = useState('photo'); // 'photo' or 'video'
+  const [cameraType, setCameraType] = useState('qr'); // 'qr' or 'manual'
+  const [facingMode, setFacingMode] = useState('user'); // 'user' or 'environment'
+  const [cameraError, setCameraError] = useState('');
+  const videoRef = useRef();
+  const canvasRef = useRef();
+  const mediaRecorderRef = useRef();
+  const recordedChunksRef = useRef([]);
+
+
+// Handler for QR Grading submission (simulate QR scan)
+const handleQRSubmit = () => {
+  // Simulate finding student by QR (replace with real QR logic)
+  const student = students[0]; // Replace with actual lookup
+  if (!student) return alert("Student not found!");
+  setGradingRows(rows => [
+    ...rows,
+    {
+      studentId: student.id,
+      name: student.name,
+      avatar: student.avatar,
+      score: qrScore,
+      attachment: qrAttachment,
+      notes: qrNotes,
+      dateGraded: new Date().toLocaleString()
+    }
+  ]);
+  setQRScore('');
+  setQRNotes('');
+  setQRAttachment(null);
+  setShowQRGrading(false);
+};
+
+// Handler for Manual Grading submission
+const handleManualSubmit = () => {
+  const student = students.find(s => s.id === Number(manualStudent));
+  if (!student) return alert("Select a student!");
+  setGradingRows(rows => [
+    ...rows.filter(r => r.studentId !== student.id), // update if exists
+    {
+      studentId: student.id,
+      name: student.name,
+      avatar: student.avatar,
+      score: manualScore,
+      attachment: manualAttachment,
+      notes: manualNotes,
+      dateGraded: new Date().toLocaleString()
+    }
+  ]);
+  setManualStudent('');
+  setManualScore('');
+  setManualNotes('');
+  setManualAttachment(null);
+  setShowManualGrading(false);
+};
+
+// File input handlers
+const handleQRAttachment = e => setQRAttachment(e.target.files[0]);
+const handleManualAttachment = e => setManualAttachment(e.target.files[0]);
+
+// Camera functionality handlers
+const startCamera = async () => {
+  try {
+    setCameraError('');
+    // First check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('getUserMedia is not supported in this browser');
+    }
+    // Try to get camera stream with selected facingMode
+    const constraints = {
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 640, min: 320 },
+        height: { ideal: 480, min: 240 }
+      },
+      audio: cameraMode === 'video'
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    setCameraStream(stream);
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.load();
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current.play().catch(e => setCameraError('Error playing video: ' + e.message));
+      };
+      videoRef.current.onerror = (e) => {
+        setCameraError('Video element error: ' + e.message);
+      };
+    }
+  } catch (error) {
+    setCameraError(error.message);
+    // Fallback
+    try {
+      const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      setCameraStream(fallbackStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = fallbackStream;
+        videoRef.current.load();
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play().catch(e => setCameraError('Error playing fallback video: ' + e.message));
+        };
+      }
+    } catch (fallbackError) {
+      setCameraError('Camera error: ' + fallbackError.message);
+    }
+  }
+};
+
+const stopCamera = () => {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    setCameraStream(null);
+  }
+  setCapturedImage(null);
+  setRecordedVideo(null);
+  setIsRecording(false);
+  recordedChunksRef.current = [];
+};
+
+const capturePhoto = () => {
+  if (videoRef.current && canvasRef.current) {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    
+    canvas.toBlob((blob) => {
+      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setCapturedImage(file);
+    }, 'image/jpeg', 0.8);
+  }
+};
+
+const startRecording = () => {
+  if (cameraStream && videoRef.current) {
+    recordedChunksRef.current = [];
+    const mediaRecorder = new MediaRecorder(cameraStream);
+    mediaRecorderRef.current = mediaRecorder;
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const file = new File([blob], `video_${Date.now()}.webm`, { type: 'video/webm' });
+      setRecordedVideo(file);
+    };
+    
+    mediaRecorder.start();
+    setIsRecording(true);
+  }
+};
+
+const stopRecording = () => {
+  if (mediaRecorderRef.current && isRecording) {
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+  }
+};
+
+const useCapturedMedia = () => {
+  const file = capturedImage || recordedVideo;
+  if (file) {
+    if (cameraType === 'qr') {
+      setQRAttachment(file);
+    } else {
+      setManualAttachment(file);
+    }
+    setShowCameraModal(false);
+    stopCamera();
+  }
+};
+
+// QR and Manual Grading attachment handlers
+const handleQRAttachmentType = (type) => {
+  if (type === "File") {
+    qrFileInputRef.current.click();
+  } else if (type === "Camera") {
+    setCameraType('qr');
+    setCameraMode('photo');
+    setShowCameraModal(true);
+  }
+  setQRAttachmentDropdownOpen(false);
+};
+
+const handleManualAttachmentType = (type) => {
+  if (type === "File") {
+    manualFileInputRef.current.click();
+  } else if (type === "Camera") {
+    setCameraType('manual');
+    setCameraMode('photo');
+    setShowCameraModal(true);
+  }
+  setManualAttachmentDropdownOpen(false);
+};
+
+useEffect(() => {
+  if (showCameraModal && cameraStream && videoRef.current) {
+    videoRef.current.srcObject = cameraStream;
+    videoRef.current.load();
+    videoRef.current.onloadedmetadata = () => {
+      videoRef.current.play().catch(e => setCameraError('Error playing video: ' + e.message));
+    };
+  }
+}, [showCameraModal, cameraStream]);
+
+
   // Classwork creation attachment states
   const [createAttachmentDropdownOpen, setCreateAttachmentDropdownOpen] = useState(false);
   const [showCreateLinkModal, setShowCreateLinkModal] = useState(false);
@@ -628,6 +975,37 @@ const ClassroomDetail = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [emojiPickerOpen]);
+
+  // Cleanup visualizer on unmount
+  useEffect(() => {
+    return () => {
+      if (visualizerIntervalRef.current) {
+        clearInterval(visualizerIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Start camera when modal opens
+  useEffect(() => {
+    if (showCameraModal && !cameraStream) {
+      startCamera();
+    }
+  }, [showCameraModal]);
+
+  // Restart camera when mode changes
+  useEffect(() => {
+    if (showCameraModal && cameraStream) {
+      stopCamera();
+      setTimeout(() => startCamera(), 100);
+    }
+  }, [cameraMode]);
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   const handleCopyCode = () => {
     if (classInfo) {
@@ -1101,35 +1479,61 @@ const ClassroomDetail = () => {
 
   // 2. Edit comment handler
   const handleEditComment = (itemId, idx, text) => {
+    console.log('handleEditComment called with:', { itemId, idx, text });
     setEditingComment({ [itemId]: idx });
-    setEditingCommentText(prev => ({ ...prev, [`${itemId}-${idx}`]: text }));
+    setEditingCommentText(prev => ({ ...prev, [`${itemId}-${idx}`]: text || '' }));
+    console.log('Edit state should be set for:', { itemId, idx });
   };
 
   // Update handleSaveEditComment to work with both announcements and classwork
   const handleSaveEditComment = (itemId, idx) => {
     const text = editingCommentText[`${itemId}-${idx}`] || "";
-    // Check if item is in assignments (classwork)
-    const classworkItem = assignments.find(a => a.id === itemId);
-    if (classworkItem) {
-      setAssignments(prev => prev.map(a =>
-        a.id === itemId
-          ? { ...a, comments: (a.comments || []).map((c, i) => i === idx ? { ...c, text } : c) }
-          : a
-      ));
+    
+    // Force a complete state update with a new array reference
+    if (itemId >= 1 && itemId <= 3) { // These are announcement IDs
+      setAnnouncements(prevAnnouncements => {
+        const newAnnouncements = prevAnnouncements.map(announcement => {
+          if (announcement.id === itemId) {
+            const newComments = announcement.comments.map((comment, commentIdx) => {
+              if (commentIdx === idx) {
+                return { ...comment, text: text };
+              }
+              return comment;
+            });
+            return { ...announcement, comments: newComments };
+          }
+          return announcement;
+        });
+        return newAnnouncements;
+      });
     } else {
-      // Otherwise, update announcements
-      setAnnouncements(prev => prev.map(a =>
-        a.id === itemId
-          ? { ...a, comments: (a.comments || []).map((c, i) => i === idx ? { ...c, text } : c) }
-          : a
-      ));
+      // Handle classwork comments
+      setAssignments(prevAssignments => {
+        const newAssignments = prevAssignments.map(assignment => {
+          if (assignment.id === itemId) {
+            const newComments = assignment.comments.map((comment, commentIdx) => {
+              if (commentIdx === idx) {
+                return { ...comment, text: text };
+              }
+              return comment;
+            });
+            return { ...assignment, comments: newComments };
+          }
+          return assignment;
+        });
+        return newAssignments;
+      });
     }
+    
+    // Clear edit state
     setEditingComment({});
     setEditingCommentText(prev => {
       const newObj = { ...prev };
       delete newObj[`${itemId}-${idx}`];
       return newObj;
     });
+    
+
   };
 
   const handleCancelEditComment = (itemId, idx) => {
@@ -1598,6 +2002,125 @@ const ClassroomDetail = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Background gradients for mp3-container
+  const mp3Backgrounds = [
+    'linear-gradient(135deg, #232526 0%, #414345 100%)', // dark gray to charcoal
+    'linear-gradient(135deg, #141e30 0%, #243b55 100%)', // deep navy to blue
+    'linear-gradient(135deg, #283e51 0%, #485563 100%)', // slate blue to blue-gray
+    'linear-gradient(135deg, #434343 0%, #262626 100%)', // dark gray to black
+    'linear-gradient(135deg, #373b44 0%, #4286f4 100%)', // night blue to indigo
+    'linear-gradient(135deg, #1a2980 0%, #26d0ce 100%)', // midnight blue to soft teal
+    'linear-gradient(135deg, #0f2027 0%, #2c5364 100%)', // deep blue to blue-gray
+  ];
+  const [mp3BgIndex, setMp3BgIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMp3BgIndex(idx => (idx + 1) % mp3Backgrounds.length);
+    }, 30000); // 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  function formatTime(sec) {
+    if (!sec || isNaN(sec)) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  // Add this to the ClassroomDetail component:
+  const [audioUrl, setAudioUrl] = useState(null);
+  useEffect(() => {
+    if (previewAttachment && previewAttachment.file && previewAttachment.file.type.startsWith('audio/')) {
+      const url = URL.createObjectURL(previewAttachment.file);
+      setAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [previewAttachment]);
+
+  // Add these to the ClassroomDetail component:
+  const [volume, setVolume] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  // In a useEffect, sync volume and playbackRate with the audio element:
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [volume, playbackRate]);
+
+  // Audio event listeners for play/pause state management
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+      startVisualizer();
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      stopVisualizer();
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      stopVisualizer();
+    };
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [audioRef.current, audioUrl]); // Re-run when audio element or URL changes
+
+  // At the top of the component:
+  const wavePathRef = useRef(null);
+
+  // Subtle wave animation
+  useEffect(() => {
+    const wave = wavePathRef.current;
+    if (!wave) return;
+    let t = 0;
+    let running = true;
+    let frameId;
+    function animateWave() {
+      if (!running) return;
+      t += 0.02;
+      const amp = 10;
+      const y1 = 40 + Math.sin(t) * amp;
+      const y2 = 40 + Math.cos(t/2) * amp;
+      wave.setAttribute('d', `M0,${y1} Q360,${80-amp} 720,${y2} T1440,${y1} V80 H0 Z`);
+      frameId = requestAnimationFrame(animateWave);
+    }
+    if (isPlaying) {
+      running = true;
+      animateWave();
+    } else {
+      running = false;
+      if (frameId) cancelAnimationFrame(frameId);
+    }
+    return () => {
+      running = false;
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [isPlaying]);
+
+
+
   if (!classInfo) {
     return (
       <div>
@@ -1611,6 +2134,9 @@ const ClassroomDetail = () => {
       </div>
     );
   }
+
+  // Add this at the top of the ClassroomDetail component, before the return statement
+  console.log('Top-level editingComment state:', editingComment);
 
   return (
     <div>
@@ -1881,11 +2407,22 @@ const ClassroomDetail = () => {
           </NavItem>
           <NavItem>
             <NavLink
+              className={classnames({ active: activeTab === "quickgrade" })}
+              onClick={() => setActiveTab("quickgrade")}
+              style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
+            >
+              <i className="fa fa-qrcode mr-1" style={{ color: '#fdcb6e' }}></i>
+              <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e' }}></i>
+              Quick Grade
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
               className={classnames({ active: activeTab === "classwork" })}
               onClick={() => setActiveTab("classwork")}
               style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
             >
-              <i className="ni ni-archive-2 mr-2 text-info"></i> Classwork
+              <i className="ni ni-archive-2 mr-2" style={{ color: '#6c5ce7' }}></i> Classwork
             </NavLink>
           </NavItem>
           <NavItem>
@@ -2545,6 +3082,238 @@ const ClassroomDetail = () => {
                               {/* After the message content, add the comment section: */}
                               {announcement.allowComments !== false && (
                                 <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 12, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
+                                  {/* Comments List */}
+                                  {announcement.comments && announcement.comments.length > 0 && (
+                                    <div style={{ marginBottom: 16 }}>
+                                      <div 
+                                        style={{ 
+                                          fontWeight: 600, 
+                                          fontSize: 13, 
+                                          color: '#111', 
+                                          marginBottom: 12,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px'
+                                        }}
+                                        onClick={() => setCollapsedComments(prev => ({
+                                          ...prev,
+                                          [announcement.id]: !prev[announcement.id]
+                                        }))}
+                                      >
+                                        Comments ({announcement.comments.length})
+                                      </div>
+                                                                              {!collapsedComments[announcement.id] && announcement.comments.map((comment, idx) => {
+                                        const isOwnComment = comment.author === currentUser;
+                                        const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
+                                        
+                                        return (
+                                          <div key={idx} style={{ 
+                                            display: 'flex', 
+                                            gap: 8, 
+                                            marginBottom: 12, 
+                                            padding: '8px 0',
+                                            borderBottom: idx < announcement.comments.length - 1 ? '1px solid #f0f0f0' : 'none'
+                                          }}>
+                                            {/* Avatar */}
+                                            <div style={{ 
+                                              width: 24, 
+                                              height: 24, 
+                                              borderRadius: '50%', 
+                                              background: '#e9ecef', 
+                                              display: 'flex', 
+                                              alignItems: 'center', 
+                                              justifyContent: 'center', 
+                                              overflow: 'hidden',
+                                              flexShrink: 0
+                                            }}>
+                                              <img 
+                                                src={getAvatarForUser({ name: comment.author, id: comment.author })} 
+                                                alt="avatar" 
+                                                style={{ 
+                                                  width: 24, 
+                                                  height: 24, 
+                                                  borderRadius: '50%', 
+                                                  objectFit: 'cover', 
+                                                  display: 'block' 
+                                                }} 
+                                                onError={(e) => {
+                                                  e.target.src = userDefault;
+                                                }}
+                                              />
+                                            </div>
+                                            
+                                            {/* Comment Content */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                                <div style={{ fontWeight: 600, color: '#111', fontSize: 11 }}>{comment.author}</div>
+                                                <small className="text-muted" style={{ fontSize: 9 }}>{formatRelativeTime(comment.date)}</small>
+                                                
+                                                {/* Three-dot menu */}
+                                                {(isOwnComment || isTeacher) && (
+                                                  <div style={{ marginLeft: 'auto', position: 'relative' }}>
+                                                    <button
+                                                      type="button"
+                                                      className="btn btn-link p-0"
+                                                      style={{ 
+                                                        fontSize: 20, 
+                                                        color: '#6c757d', 
+                                                        padding: '2px 2px 2px 4px',
+                                                        border: 'none',
+                                                        background: 'none',
+                                                        cursor: 'pointer',
+                                                        lineHeight: 1,
+                                                        marginRight: '0px !important' // force remove margin right
+                                                      }}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCommentDropdownOpen(commentDropdownOpen === `${announcement.id}-${idx}` ? null : `${announcement.id}-${idx}`);
+                                                      }}
+                                                      aria-label="Open menu"
+                                                    >
+                                                      &#8942;
+                                                    </button>
+                                                    
+                                                    {/* Dropdown Menu */}
+                                                    {commentDropdownOpen === `${announcement.id}-${idx}` && (
+                                                      <div style={{
+                                                        position: 'absolute',
+                                                        top: 28, // fixed offset to prevent shifting
+                                                        right: 0,
+                                                        background: '#fff',
+                                                        border: 'none',
+                                                        borderRadius: 12,
+                                                        boxShadow: '0 8px 24px rgba(44,62,80,0.13)',
+                                                        zIndex: 10,
+                                                        minWidth: 120,
+                                                        padding: '10px 0'
+                                                      }}>
+                                                        {(isOwnComment || isTeacher) && (
+                                                          <button
+                                                            className="btn btn-link p-2 w-100 text-left"
+                                                            style={{ 
+                                                              fontSize: 16,
+                                                              color: '#232b3b', 
+                                                              border: 'none',
+                                                              background: 'none',
+                                                              cursor: 'pointer',
+                                                              display: 'block',
+                                                              width: '100%',
+                                                              textAlign: 'left',
+                                                              padding: '10px 0',
+                                                              fontWeight: 400,
+                                                              marginLeft: 4 // add 4px margin left
+                                                              // no marginRight
+                                                            }}
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              handleEditComment(announcement.id, idx, comment.text);
+                                                              setCommentDropdownOpen(null);
+                                                            }}
+                                                          >
+                                                            Edit
+                                                          </button>
+                                                        )}
+                                                        <button
+                                                          className="btn btn-link p-2 w-100 text-left"
+                                                          style={{ 
+                                                            fontSize: 14, 
+                                                            color: '#232b3b', 
+                                                            border: 'none',
+                                                            background: 'none',
+                                                            cursor: 'pointer',
+                                                            display: 'block',
+                                                            width: '100%',
+                                                            textAlign: 'left',
+                                                            padding: '10px 18px',
+                                                            fontWeight: 400
+                                                          }}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteComment(announcement.id, idx);
+                                                            setCommentDropdownOpen(null);
+                                                          }}
+                                                        >
+                                                          Delete
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                              
+                                              {/* Comment Text */}
+                                              {console.log('Rendering comment:', { 
+                                                announcementId: announcement.id, 
+                                                idx, 
+                                                isEditing: editingComment[announcement.id] === idx,
+                                                editingComment,
+                                                commentText: comment.text
+                                              })}
+
+                                              {/* Test button for debugging */}
+                                              <button 
+                                                onClick={() => {
+                                                  console.log('Test edit button clicked');
+                                                  handleEditComment(announcement.id, idx, comment.text);
+                                                }}
+                                                style={{ 
+                                                  fontSize: 8, 
+                                                  marginBottom: 5, 
+                                                  backgroundColor: 'red', 
+                                                  color: 'white',
+                                                  border: 'none',
+                                                  borderRadius: 3,
+                                                  padding: '2px 4px'
+                                                }}
+                                              >
+                                                TEST EDIT
+                                              </button>
+
+                                              {editingComment[announcement.id] === idx ? (
+                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                  <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    style={{ fontSize: 11, borderRadius: 4, border: '1px solid #bfcfff', background: '#fff', height: '28px', padding: '4px 8px' }}
+                                                    value={editingCommentText[`${announcement.id}-${idx}`] || comment.text}
+                                                    onChange={(e) => setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: e.target.value }))}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') {
+                                                        handleSaveEditComment(announcement.id, idx);
+                                                      } else if (e.key === 'Escape') {
+                                                        handleCancelEditComment(announcement.id, idx);
+                                                      }
+                                                    }}
+                                                    autoFocus
+                                                  />
+                                                  <button
+                                                    className="btn btn-primary btn-sm"
+                                                    style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
+                                                    onClick={() => handleSaveEditComment(announcement.id, idx)}
+                                                  >
+                                                    Save
+                                                  </button>
+                                                  <button
+                                                    className="btn btn-secondary btn-sm"
+                                                    style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
+                                                    onClick={() => handleCancelEditComment(announcement.id, idx)}
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                              ) : (
+                                                <div style={{ fontSize: 11, color: '#2d3748', lineHeight: 1.3 }}>
+                                                  {comment.text}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
                                   {/* Input for new comment */}
                                   <div className="d-flex comment-input-row" style={{ gap: 8, position: 'relative', marginTop: 0, marginBottom: 4 }}>
                                     <input
@@ -2652,190 +3421,6 @@ const ClassroomDetail = () => {
                                       .comment-input-btn-row-mobile { display: none !important; }
                                     }
                                   `}</style>
-                                  
-                                  {/* Comments List */}
-                                  {announcement.comments && announcement.comments.length > 0 && (
-                                    <div style={{ marginTop: 16 }}>
-                                      <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 12 }}>Comments</div>
-                                      {announcement.comments.map((comment, idx) => {
-                                        const isOwnComment = comment.author === currentUser;
-                                        const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
-                                        
-                                        return (
-                                          <div key={idx} style={{ 
-                                            display: 'flex', 
-                                            gap: 8, 
-                                            marginBottom: 12, 
-                                            padding: '8px 0',
-                                            borderBottom: idx < announcement.comments.length - 1 ? '1px solid #f0f0f0' : 'none'
-                                          }}>
-                                            {/* Avatar */}
-                                            <div style={{ 
-                                              width: 24, 
-                                              height: 24, 
-                                              borderRadius: '50%', 
-                                              background: '#e9ecef', 
-                                              display: 'flex', 
-                                              alignItems: 'center', 
-                                              justifyContent: 'center', 
-                                              overflow: 'hidden',
-                                              flexShrink: 0
-                                            }}>
-                                              <img 
-                                                src={getAvatarForUser(comment.author)} 
-                                                alt="avatar" 
-                                                style={{ 
-                                                  width: 24, 
-                                                  height: 24, 
-                                                  borderRadius: '50%', 
-                                                  objectFit: 'cover', 
-                                                  display: 'block' 
-                                                }} 
-                                              />
-                                            </div>
-                                            
-                                            {/* Comment Content */}
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                                                <div style={{ fontWeight: 600, color: '#111', fontSize: 11 }}>{comment.author}</div>
-                                                <small className="text-muted" style={{ fontSize: 9 }}>{formatRelativeTime(comment.date)}</small>
-                                                
-                                                {/* Three-dot menu */}
-                                                {(isOwnComment || isTeacher) && (
-                                                  <div style={{ marginLeft: 'auto', position: 'relative' }}>
-                                                    <button
-                                                      type="button"
-                                                      className="btn btn-link p-0"
-                                                      style={{ 
-                                                        fontSize: 20, 
-                                                        color: '#6c757d', 
-                                                        padding: '2px 2px 2px 4px',
-                                                        border: 'none',
-                                                        background: 'none',
-                                                        cursor: 'pointer',
-                                                        lineHeight: 1,
-                                                        marginRight: '0px !important' // force remove margin right
-                                                      }}
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setCommentDropdownOpen(commentDropdownOpen === `${announcement.id}-${idx}` ? null : `${announcement.id}-${idx}`);
-                                                      }}
-                                                      aria-label="Open menu"
-                                                    >
-                                                      &#8942;
-                                                    </button>
-                                                    
-                                                    {/* Dropdown Menu */}
-                                                    {commentDropdownOpen === `${announcement.id}-${idx}` && (
-                                                      <div style={{
-                                                        position: 'absolute',
-                                                        top: 28, // fixed offset to prevent shifting
-                                                        right: 0,
-                                                        background: '#fff',
-                                                        border: 'none',
-                                                        borderRadius: 12,
-                                                        boxShadow: '0 8px 24px rgba(44,62,80,0.13)',
-                                                        zIndex: 10,
-                                                        minWidth: 120,
-                                                        padding: '10px 0'
-                                                      }}>
-                                                        {isOwnComment && (
-                                                          <button
-                                                            className="btn btn-link p-2 w-100 text-left"
-                                                            style={{ 
-                                                              fontSize: 16,
-                                                              color: '#232b3b', 
-                                                              border: 'none',
-                                                              background: 'none',
-                                                              cursor: 'pointer',
-                                                              display: 'block',
-                                                              width: '100%',
-                                                              textAlign: 'left',
-                                                              padding: '10px 0',
-                                                              fontWeight: 400,
-                                                              marginLeft: 4 // add 4px margin left
-                                                              // no marginRight
-                                                            }}
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              handleEditComment(announcement.id, idx, comment.text);
-                                                              setCommentDropdownOpen(null);
-                                                            }}
-                                                          >
-                                                            Edit
-                                                          </button>
-                                                        )}
-                                                        <button
-                                                          className="btn btn-link p-2 w-100 text-left"
-                                                          style={{ 
-                                                            fontSize: 14, 
-                                                            color: '#232b3b', 
-                                                            border: 'none',
-                                                            background: 'none',
-                                                            cursor: 'pointer',
-                                                            display: 'block',
-                                                            width: '100%',
-                                                            textAlign: 'left',
-                                                            padding: '10px 18px',
-                                                            fontWeight: 400
-                                                          }}
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteComment(announcement.id, idx);
-                                                            setCommentDropdownOpen(null);
-                                                          }}
-                                                        >
-                                                          Delete
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-                                              </div>
-                                              
-                                              {/* Comment Text */}
-                                              {editingComment[announcement.id] === idx ? (
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                  <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ fontSize: 11, borderRadius: 4, border: '1px solid #bfcfff', background: '#fff', height: '28px', padding: '4px 8px' }}
-                                                    value={editingCommentText[`${announcement.id}-${idx}`] || comment.text}
-                                                    onChange={(e) => setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: e.target.value }))}
-                                                    onKeyDown={(e) => {
-                                                      if (e.key === 'Enter') {
-                                                        handleSaveEditComment(announcement.id, idx);
-                                                      } else if (e.key === 'Escape') {
-                                                        handleCancelEditComment(announcement.id, idx);
-                                                      }
-                                                    }}
-                                                  />
-                                                  <button
-                                                    className="btn btn-primary btn-sm"
-                                                    style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
-                                                    onClick={() => handleSaveEditComment(announcement.id, idx)}
-                                                  >
-                                                    Save
-                                                  </button>
-                                                  <button
-                                                    className="btn btn-secondary btn-sm"
-                                                    style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
-                                                    onClick={() => handleCancelEditComment(announcement.id, idx)}
-                                                  >
-                                                    Cancel
-                                                  </button>
-                                                </div>
-                                              ) : (
-                                                <div style={{ fontSize: 11, color: '#2d3748', lineHeight: 1.3 }}>
-                                                  {comment.text}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
                                 </div>
                               )}
                             </>
@@ -2844,6 +3429,376 @@ const ClassroomDetail = () => {
                       </Card>
                     );
                   })}
+                </div>
+              </CardBody>
+            </Card>
+          </TabPane>
+
+          {/* Quick Grade Tab */}
+          <TabPane tabId="quickgrade">
+            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
+              <CardBody>
+                <h4 className="mb-4" style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1 }}>
+                  <i className="fa fa-qrcode mr-2" style={{ color: '#fdcb6e' }} />
+                  <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e' }} />
+                  Quick Grade
+                </h4>
+                {/* Quick Grade Setup Form - full width, stream style */}
+                <form onSubmit={handleQuickGradeCreate} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
+                  <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
+                      <select name="type" value={quickGradeForm.type} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }}>
+                        <option>Assignment</option>
+                        <option>Quiz</option>
+                        <option>Activity</option>
+                        <option>Project</option>
+                        <option>Exam</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 2, minWidth: 260 }}>
+                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assessment Title</label>
+                      <input name="title" value={quickGradeForm.title} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter assessment title..." required />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
+                      <input name="points" type="number" min="1" value={quickGradeForm.points} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter the total points.." required />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <button type="submit" className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '8px 24px', marginTop: 24, boxShadow: '0 2px 8px #324cdd22' }}>
+                        <i className="fa fa-plus mr-2" /> Create
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                {/* Assessment Cards */}
+                <div style={{ width: '100%' }}>
+                  {quickGradeAssessments.map(a => (
+                    <div
+                      key={a.id}
+                      className="shadow-sm"
+                      style={{
+                        background: selectedQuickGradeId === a.id ? '#f8fafc' : '#fff',
+                        borderRadius: 14,
+                        padding: '1.25rem 2rem',
+                        marginBottom: 18,
+                        width: '100%',
+                        minWidth: 320,
+                        boxShadow: '0 2px 8px #324cdd11',
+                        transition: 'box-shadow 0.15s, border 0.15s, background 0.15s',
+                        position: 'relative',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%', cursor: 'pointer' }}
+                       onClick={() => setSelectedQuickGradeId(selectedQuickGradeId === a.id ? null : a.id)}>
+                        {/* Avatar */}
+                        <div style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          background: '#ffd86b',
+                          color: '#232b3b',
+                          fontWeight: 800,
+                          fontSize: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 14,
+                          flexShrink: 0
+                        }}>
+                          {a.title?.[0]?.toUpperCase() || 'A'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          {quickGradeEditId === a.id ? (
+                            <form style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340 }} onSubmit={e => { e.preventDefault(); handleQuickGradeEditSave(a.id); }} onClick={e => e.stopPropagation()}>
+                              <input
+                                name="title"
+                                value={quickGradeEditForm.title}
+                                onChange={handleQuickGradeEditFormChange}
+                                className="form-control"
+                                style={{ fontWeight: 700, fontSize: 18, color: '#111', borderRadius: 8, marginBottom: 6, background: '#f8fafc' }}
+                                placeholder="Assessment Title"
+                                required
+                                onClick={e => e.stopPropagation()}
+                              />
+                              <input
+                                name="points"
+                                value={quickGradeEditForm.points}
+                                onChange={handleQuickGradeEditFormChange}
+                                className="form-control"
+                                style={{ fontSize: 15, borderRadius: 8, background: '#f8fafc' }}
+                                placeholder="Points"
+                                type="number"
+                                min="1"
+                                required
+                                onClick={e => e.stopPropagation()}
+                              />
+                              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                                <button
+                                  type="submit"
+                                  className="btn btn-primary btn-sm"
+                                  style={{
+                                    borderRadius: 8,
+                                    fontWeight: 600,
+                                    minWidth: 70,
+                                    background: '#2DCE89',
+                                    borderColor: '#2DCE89'
+                                  }}
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-link btn-sm"
+                                  style={{
+                                    background: '#fff',
+                                    color: '#111',
+                                    fontWeight: 600,
+                                    borderRadius: 8,
+                                    boxShadow: '0 5px 8px #e9ecef',
+                                    padding: '6px 24px',
+                                    marginLeft: 8
+                                  }}
+                                  onClick={e => { e.stopPropagation(); handleQuickGradeEditCancel(); }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                <div style={{ fontWeight: 700, fontSize: 16, color: '#111', marginBottom: 2 }}>{a.title}</div>
+                                <div style={{ position: 'relative', marginLeft: 'auto' }} onClick={e => e.stopPropagation()}>
+                                  <button
+                                    className="btn btn-link p-0"
+                                    style={{ color: '#6c757d', fontSize: 16, padding: 2, border: 'none', background: 'none', cursor: 'pointer' }}
+                                    onClick={e => { e.stopPropagation(); handleQuickGradeMenuOpen(a.id); }}
+                                  >
+                                    <i className="fa fa-ellipsis-v" />
+                                  </button>
+                                  {quickGradeMenuOpen === a.id && (
+                                    <div style={{ position: 'absolute', top: 24, right: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 10, boxShadow: '0 4px 16px #324cdd22', zIndex: 10, minWidth: 120 }}>
+                                      <button className="dropdown-item" style={{ fontWeight: 500, fontSize: 15, color: '#232b3b', background: 'none', border: 'none', width: '100%', textAlign: 'left', padding: '10px 18px' }} onClick={() => handleQuickGradeEdit(a.id)}>Edit</button>
+                                      <button className="dropdown-item" style={{ fontWeight: 500, fontSize: 15, color: '#232b3b', background: 'none', border: 'none', width: '100%', textAlign: 'left', padding: '10px 18px' }} onClick={() => handleQuickGradeDelete(a.id)}>Delete</button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 14, color: '#6c757d', marginBottom: 2 }}>{a.type} • {a.points} pts</div>
+                              <div style={{ fontSize: 13, color: '#b2bec3' }}>{new Date(a.id).toLocaleString()}</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {selectedQuickGradeId === a.id && (
+                        <div style={{ margin: '32px 0 0 0' }}>
+                          <div style={{ display: 'flex', gap: 18, marginBottom: 24 }}>
+                            <button
+                              className="btn btn-light"
+                              style={{
+                                borderRadius: 8,
+                                fontWeight: 700,
+                                fontSize: 16,
+                                padding: '10px 28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                border: '1.5px solid #e9ecef',
+                                color: '#222222',
+                                background: '#fff'
+                              }}
+                              onClick={() => {
+                                setShowQRGrading(v => !v);
+                                setShowManualGrading(false);
+                              }}
+                            >
+                              <i className="fa fa-qrcode mr-2" style={{ color: '#fdcb6e', fontSize: 20 }} /> QR Grading
+                            </button>
+                            <button
+                              className="btn btn-light"
+                              style={{
+                                borderRadius: 8,
+                                fontWeight: 700,
+                                fontSize: 16,
+                                padding: '10px 28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                border: '1.5px solid #e9ecef',
+                                color: '#222222',
+                                background: '#fff'
+                              }}
+                              onClick={() => {
+                                setShowManualGrading(v => !v);
+                                setShowQRGrading(false);
+                              }}
+                            >
+                              <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e', fontSize: 20 }} /> Manual Grading
+                            </button>
+                          </div>
+
+                          {/* QR Grading Collapsible */}
+                          {showQRGrading && (
+                            <div style={{
+                              background: '#fff',
+                              borderRadius: 16,
+                              boxShadow: '0 2px 12px #324cdd11',
+                              border: '1.5px solid #e9ecef',
+                              padding: '1.5rem 1.5rem 1rem',
+                              marginBottom: 24,
+                              maxWidth: '100%',
+                              position: 'relative'
+                            }}>
+                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Live QR Code Scanner (Simulated)</div>
+                              {/* Replace below with your QR scanner component */}
+                              <input
+                                type="text"
+                                placeholder="Scanned Student Number"
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 220 }}
+                                // onChange={...}
+                              />
+                              <input
+                                type="number"
+                                placeholder="Score"
+                                value={qrScore}
+                                onChange={e => setQRScore(e.target.value)}
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 120 }}
+                              />
+                              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Dropdown isOpen={qrAttachmentDropdownOpen} toggle={() => setQRAttachmentDropdownOpen(!qrAttachmentDropdownOpen)}>
+                                  <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FaPaperclip />
+                                  </DropdownToggle>
+                                  <DropdownMenu>
+                                    <DropdownItem onClick={() => handleQRAttachmentType("File")}>
+                                      <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
+                                    </DropdownItem>
+                                    <DropdownItem onClick={() => handleQRAttachmentType("Camera")}>
+                                      <FaCamera style={{ marginRight: 8 }} /> Camera
+                                    </DropdownItem>
+                                  </DropdownMenu>
+                                </Dropdown>
+                                <input type="file" style={{ display: 'none' }} ref={qrFileInputRef} onChange={handleQRAttachment} />
+                                {qrAttachment && (
+                                  <span className="text-muted small d-flex align-items-center">
+                                    {qrAttachment.name}
+                                    <Button close className="ml-2 p-0" style={{ fontSize: 16 }} onClick={() => setQRAttachment(null)} />
+                                  </span>
+                                )}
+                              </div>
+                              <textarea
+                                placeholder="Notes"
+                                value={qrNotes}
+                                onChange={e => setQRNotes(e.target.value)}
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: '100%' }}
+                              />
+                              <button className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px' }} onClick={handleQRSubmit}>
+                                Add Grade
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Manual Grading Collapsible */}
+                          {showManualGrading && (
+                            <div style={{
+                              background: '#fff',
+                              borderRadius: 16,
+                              boxShadow: '0 2px 12px #324cdd11',
+                              border: '1.5px solid #e9ecef',
+                              padding: '1.5rem 1.5rem 1rem',
+                              marginBottom: 24,
+                              maxWidth: '100%',
+                              position: 'relative'
+                            }}>
+                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Manual Grading</div>
+                              <select
+                                value={manualStudent}
+                                onChange={e => setManualStudent(e.target.value)}
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 220 }}
+                              >
+                                <option value="">Select Student</option>
+                                {students.map(s => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                type="number"
+                                placeholder="Score"
+                                value={manualScore}
+                                onChange={e => setManualScore(e.target.value)}
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 120 }}
+                              />
+                              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Dropdown isOpen={manualAttachmentDropdownOpen} toggle={() => setManualAttachmentDropdownOpen(!manualAttachmentDropdownOpen)}>
+                                  <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FaPaperclip />
+                                  </DropdownToggle>
+                                  <DropdownMenu>
+                                    <DropdownItem onClick={() => handleManualAttachmentType("File")}>
+                                      <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
+                                    </DropdownItem>
+                                    <DropdownItem onClick={() => handleManualAttachmentType("Camera")}>
+                                      <FaCamera style={{ marginRight: 8 }} /> Camera
+                                    </DropdownItem>
+                                  </DropdownMenu>
+                                </Dropdown>
+                                <input type="file" style={{ display: 'none' }} ref={manualFileInputRef} onChange={handleManualAttachment} />
+                                {manualAttachment && (
+                                  <span className="text-muted small d-flex align-items-center">
+                                    {manualAttachment.name}
+                                    <Button close className="ml-2 p-0" style={{ fontSize: 16 }} onClick={() => setManualAttachment(null)} />
+                                  </span>
+                                )}
+                              </div>
+                              <textarea
+                                placeholder="Notes"
+                                value={manualNotes}
+                                onChange={e => setManualNotes(e.target.value)}
+                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: '100%' }}
+                              />
+                              <button className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px' }} onClick={handleManualSubmit}>
+                                Add Grade
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Grading Table */}
+                          <div style={{ width: '100%', overflowX: 'auto' }}>
+                            <table className="table" style={{ minWidth: 700, background: '#fff', borderRadius: 12 }}>
+                              <thead>
+                                <tr style={{ background: '#f8fafc' }}>
+                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Avatar</th>
+                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Student Name</th>
+                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Score</th>
+                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Attachment</th>
+                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Notes</th>
+                                  <th style={{ fontWeight: 700, color: '#495057', fontSize: 15 }}>Date Graded</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {gradingRows.map((row, idx) => (
+                                  <tr key={idx}>
+                                    <td>
+                                      <img src={row.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                                    </td>
+                                    <td>{row.name}</td>
+                                    <td>{row.score}</td>
+                                    <td>{row.attachment ? row.attachment.name : ''}</td>
+                                    <td>{row.notes}</td>
+                                    <td>{row.dateGraded}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </CardBody>
             </Card>
@@ -3308,33 +4263,78 @@ const ClassroomDetail = () => {
                                     {/* Comments Section */}
                                     <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 16, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
                                       {assignment.comments && assignment.comments.length > 0 && (
-                                      <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 16 }}>Comments</div>
-                                    )}
+                                        <div 
+                                          style={{ 
+                                            fontWeight: 600, 
+                                            fontSize: 13, 
+                                            color: '#111', 
+                                            marginBottom: 16,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                          }}
+                                          onClick={() => setCollapsedComments(prev => ({
+                                            ...prev,
+                                            [`classwork-${assignment.id}`]: !prev[`classwork-${assignment.id}`]
+                                          }))}
+                                        >
+                                          Comments ({assignment.comments.length})
+                                        </div>
+                                      )}
                                       
                                     {/* List comments */}
-                                      {assignment.comments && assignment.comments.length > 0 && (
+                                      {assignment.comments && assignment.comments.length > 0 && !collapsedComments[`classwork-${assignment.id}`] && (
                                       <div style={{ marginBottom: 8 }}>
                                           {assignment.comments.map((c, idx) => {
                                             const commentUser = findUserByName(c.author);
                                             const commentAvatar = getAvatarForUser(commentUser);
                                             const isEditing = editingComment[assignment.id] === idx;
-                                          const isOwn = c.author === "Prof. Smith";
+                                            console.log('Rendering assignment:', assignment.id, 'comment idx:', idx, 'editingComment:', editingComment, 'isEditing:', isEditing);
+                                          const isOwn = c.author === currentUser;
+                                          const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
                                             
                                           return (
                                             <div key={c.id || `${c.author}-${c.date}-${idx}`} className="d-flex align-items-start" style={{ marginBottom: 6, gap: 10, padding: '4px 0', borderBottom: '1px solid #e9ecef', fontSize: 13, color: '#2d3748', position: 'relative', alignItems: 'stretch', width: '100%' }}>
                                               <div style={{ width: 24, height: 24, minWidth: 24, minHeight: 24, maxWidth: 24, maxHeight: 24, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                                                  <img src={commentAvatar} alt="avatar" style={{ width: 20, height: 20, minWidth: 20, minHeight: 20, maxWidth: 20, maxHeight: 20, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                                                  <img 
+                                                    src={commentAvatar} 
+                                                    alt="avatar" 
+                                                    style={{ 
+                                                      width: 20, 
+                                                      height: 20, 
+                                                      minWidth: 20, 
+                                                      minHeight: 20, 
+                                                      maxWidth: 20, 
+                                                      maxHeight: 20, 
+                                                      borderRadius: '50%', 
+                                                      objectFit: 'cover', 
+                                                      display: 'block' 
+                                                    }}
+                                                    onError={(e) => {
+                                                      e.target.src = userDefault;
+                                                    }}
+                                                  />
                                               </div>
                                               <div style={{ flex: 1, minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                                                 {/* Three-dot menu absolutely positioned at top right */}
-                                                {isOwn && (
+                                                {(isOwn || isTeacher) && (
                                                   <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}>
                                                       <Dropdown isOpen={commentDropdownOpen === `${assignment.id}-${idx}`} toggle={() => setCommentDropdownOpen(commentDropdownOpen === `${assignment.id}-${idx}` ? null : `${assignment.id}-${idx}`)}>
                                                       <DropdownToggle tag="span" style={{ cursor: 'pointer', padding: 0, border: 'none', background: 'none' }} onClick={e => e.stopPropagation()}>
                                                         <FaEllipsisV size={14} />
                                                       </DropdownToggle>
                                                       <DropdownMenu right onClick={e => e.stopPropagation()}>
-                                                          <DropdownItem onClick={(e) => { e.stopPropagation(); handleEditComment(assignment.id, idx, c.text); setCommentDropdownOpen(null); }}>Edit</DropdownItem>
+                                                          <DropdownItem
+                                                            onClick={e => {
+                                                              e.stopPropagation();
+                                                              console.log('DEBUG EDIT clicked:', { assignmentId: assignment.id, idx, commentText: c.text });
+                                                              handleEditComment(assignment.id, idx, c.text);
+                                                              setTimeout(() => setCommentDropdownOpen(null), 50); // Delay closing
+                                                            }}
+                                                          >
+                                                            Edit
+                                                          </DropdownItem>
                                                           <DropdownItem onClick={(e) => { e.stopPropagation(); handleDeleteComment(assignment.id, idx); }}>Delete</DropdownItem>
                                                       </DropdownMenu>
                                                     </Dropdown>
@@ -3364,6 +4364,26 @@ const ClassroomDetail = () => {
                                                 ) : (
                                                   <div style={{ marginLeft: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
                                                     <span>{c.text}</span>
+                                                    {/* DEBUG BUTTON - REMOVE AFTER TESTING */}
+                                                    <button 
+                                                      style={{ 
+                                                        background: 'red', 
+                                                        color: 'white', 
+                                                        border: 'none', 
+                                                        borderRadius: '4px', 
+                                                        padding: '2px 8px', 
+                                                        fontSize: '10px',
+                                                        cursor: 'pointer'
+                                                      }}
+                                                      onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        console.log('DEBUG EDIT clicked:', { assignmentId: assignment.id, idx, commentText: c.text });
+                                                        handleEditComment(assignment.id, idx, c.text); 
+                                                        setCommentDropdownOpen(null); 
+                                                      }}
+                                                    >
+                                                      DEBUG EDIT
+                                                    </button>
                                                   </div>
                                                 )}
                                               </div>
@@ -3407,6 +4427,122 @@ const ClassroomDetail = () => {
               </CardBody>
             </Card>
           </TabPane>
+
+          {/* People Tab */}
+          <TabPane tabId="people">
+            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
+              <CardBody>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h4 className="mb-0" style={{ fontWeight: 800, color: '#111111', letterSpacing: 1 }}>People <i className="ni ni-single-02 text-success ml-2" /></h4>
+                  <Button size="sm" style={{ borderRadius: "8px", backgroundColor: "#7B8CFF", borderColor: "#7B8CFF", color: "white" }} onClick={() => setShowInviteModal(true)}>
+                    <i className="fa fa-user-plus mr-1" style={{ color: "white" }}></i> Invite
+                  </Button>
+                </div>
+                
+                <Table responsive>
+                  <thead>
+                    <tr>
+                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Name</th>
+                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Email</th>
+                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Student ID</th>
+                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Joined</th>
+                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map((student) => (
+                      <tr key={student.id} style={{ minHeight: '32px', height: '36px' }}>
+                        <td style={{ paddingTop: '6px', paddingBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <img 
+                              src={getAvatarForUser(student)} 
+                              alt={student.name}
+                              style={{ 
+                                width: '40px', 
+                                height: '40px', 
+                                borderRadius: '50%', 
+                                objectFit: 'cover',
+                                border: '2px solid #e9ecef',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
+                            />
+                            <span style={{ fontWeight: 600, color: '#232b3b', fontSize: '14px' }}>{student.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>{student.email}</td>
+                        <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
+                          {(() => {
+                            const year = student.joinedDate ? new Date(student.joinedDate).getFullYear() : '0000';
+                            const idNum = typeof student.id === 'number' ? student.id : parseInt(student.id, 10);
+                            const randomPart = idNum ? String(idNum).padStart(6, '0') : '000000';
+                            return `${year}${randomPart}`;
+                          })()}
+                        </td>
+                        <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
+                          {student.joinedDate ? new Date(student.joinedDate).toLocaleString() : ''}
+                        </td>
+                        <td style={{ verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
+                          <Button color="link" size="sm" className="p-0 mr-2">
+                            <i className="ni ni-single-02"></i>
+                          </Button>
+                          <Button color="link" size="sm" className="p-0 text-danger">
+                            <i className="ni ni-fat-remove"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>  
+                </Table>
+              </CardBody>
+            </Card>
+          </TabPane>
+
+          {/* Grades Tab */}
+          <TabPane tabId="grades">
+            <Card className="mb-4" style={{ borderRadius: 14, boxShadow: '0 2px 8px rgba(44,62,80,0.07)' }}>
+              <CardBody>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h4 className="mb-0">Grades</h4>
+                  <Button color="primary" size="sm" style={{ borderRadius: "8px" }} onClick={() => setShowAddGradeModal(true)}>
+                    <i className="ni ni-fat-add mr-1"></i> Add Grade
+                  </Button>
+                </div>
+                
+                <Table responsive>
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Assignment #1</th>
+                      <th>Quiz #1</th>
+                      <th>Project #1</th>
+                      <th>Average</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grades.map((grade) => (
+                      <tr key={grade.studentId}>
+                        <td>{grade.studentName}</td>
+                        <td>{grade.assignment1}</td>
+                        <td>{grade.quiz1}</td>
+                        <td>{grade.project1}</td>
+                        <td>
+                          <Badge color={grade.average >= 90 ? "success" : grade.average >= 80 ? "primary" : "warning"}>
+                            {grade.average.toFixed(1)}
+                          </Badge>
+                        </td>
+                        <td>
+                          <Button color="link" size="sm" className="p-0 mr-2">
+                            <i className="ni ni-ruler-pencil"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </CardBody>
+            </Card>
+          </TabPane>
         </TabContent>
       </div>
 
@@ -3433,28 +4569,45 @@ const ClassroomDetail = () => {
                   Your browser does not support the video tag.
                 </video>
               ) : previewAttachment.file && previewAttachment.file.type.startsWith('audio/') ? (
-                <div style={{ 
+                <div 
+                  id="mp3-container"
+                  style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
                   alignItems: 'center', 
-                  padding: '40px 20px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '30px 15px',
+                  background: mp3Backgrounds[mp3BgIndex],
                   borderRadius: '16px',
-                  color: 'white'
-                }}>
-                  {/* Animated Disk */}
+                  color: 'white',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 2s cubic-bezier(0.4,0,0.2,1)',
+                  boxShadow: isPlaying 
+                    ? '0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(255,255,255,0.1)' 
+                    : '0 8px 32px rgba(0,0,0,0.2)',
+                  maxHeight: '600px'
+                  }}
+                >
+
+
+                  {/* Enhanced Animated Disk - scales up and rotates faster when playing */}
                   <div 
                     id="mp3-disk"
                     style={{
-                      width: '200px',
-                      height: '200px',
+                      width: '120px',
+                      height: '120px',
                       borderRadius: '50%',
                       background: 'conic-gradient(from 0deg, #333 0deg, #666 90deg, #333 180deg, #666 270deg, #333 360deg)',
-                      border: '8px solid #fff',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                      marginBottom: '30px',
+                      border: '6px solid #fff',
+                      boxShadow: isPlaying 
+                        ? '0 8px 32px rgba(0,0,0,0.5), 0 0 15px rgba(255,255,255,0.2)' 
+                        : '0 6px 24px rgba(0,0,0,0.3)',
+                      marginBottom: '20px',
                       position: 'relative',
-                      transition: 'transform 0.3s ease'
+                      transition: 'all 0.3s ease',
+                      zIndex: 2,
+                      transform: isPlaying ? 'scale(1.1)' : 'scale(1)',
+                      animation: isPlaying ? 'rotate 2s linear infinite' : 'none'
                     }}
                   >
                     {/* Disk Center */}
@@ -3463,18 +4616,18 @@ const ClassroomDetail = () => {
                       top: '50%',
                       left: '50%',
                       transform: 'translate(-50%, -50%)',
-                      width: '40px',
-                      height: '40px',
+                      width: '24px',
+                      height: '24px',
                       borderRadius: '50%',
                       background: '#fff',
-                      border: '3px solid #333',
+                      border: '2px solid #333',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
                       <div style={{
-                        width: '12px',
-                        height: '12px',
+                        width: '8px',
+                        height: '8px',
                         borderRadius: '50%',
                         background: '#333'
                       }} />
@@ -3485,85 +4638,201 @@ const ClassroomDetail = () => {
                       top: '50%',
                       left: '50%',
                       transform: 'translate(-50%, -50%)',
-                      width: '160px',
-                      height: '160px',
+                      width: '96px',
+                      height: '96px',
                       borderRadius: '50%',
                       background: 'repeating-conic-gradient(from 0deg, transparent 0deg, transparent 2deg, rgba(255,255,255,0.1) 2deg, rgba(255,255,255,0.1) 4deg)'
                     }} />
                   </div>
+
+                  {/* Audio Visualizer - 20 animated bars that respond to music playback */}
+                  <div id="audio-visualizer" style={{
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    gap: '2px',
+                    height: '40px',
+                    marginBottom: '15px',
+                    opacity: isPlaying ? 1 : 0,
+                    transition: 'opacity 0.3s ease',
+                    zIndex: 2
+                  }}>
+                    {[...Array(20)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="visualizer-bar"
+                        style={{
+                          width: '3px',
+                          background: 'rgba(255, 255, 255, 0.8)',
+                          borderRadius: '1.5px',
+                          height: '8px',
+                          transition: 'height 0.1s ease',
+                          boxShadow: '0 0 6px 1px rgba(255,255,255,0.3)'
+                        }}
+                      />
+                    ))}
+                  </div>
+
                   {/* Audio Player */}
-                  <div style={{ width: '100%', maxWidth: '400px' }}>
+                  <div style={{ width: '100%', maxWidth: '500px', zIndex: 2, position: 'relative' }}>
                     <audio 
+                      ref={audioRef}
                       id="mp3-player"
                       controls 
+                      src={audioUrl || ''}
                       style={{ 
                         width: '100%',
-                        height: '50px',
-                        borderRadius: '25px',
-                        background: 'rgba(255,255,255,0.1)',
-                        border: 'none',
-                        outline: 'none'
-                      }}
-                      onPlay={() => {
-                        const disk = document.getElementById('mp3-disk');
-                        if (disk) {
-                          disk.style.animation = 'rotate 3s linear infinite';
-                        }
-                      }}
-                      onPause={() => {
-                        const disk = document.getElementById('mp3-disk');
-                        if (disk) {
-                          disk.style.animation = 'none';
-                        }
-                      }}
-                      onEnded={() => {
-                        const disk = document.getElementById('mp3-disk');
-                        if (disk) {
-                          disk.style.animation = 'none';
-                        }
+                        borderRadius: '20px'
                       }}
                     >
-                      <source src={URL.createObjectURL(previewAttachment.file)} type={previewAttachment.file.type} />
+                      <source src={audioUrl || ''} type={previewAttachment?.file?.type || 'audio/mp3'} />
                       Your browser does not support the audio tag.
                     </audio>
+
                   </div>
-                  {/* File Info - reverted to original style and position */}
+
+                  {/* File Info */}
                   <div style={{ 
-                    marginTop: '20px', 
+                    marginTop: '6px',
                     textAlign: 'center',
-                    background: '#ffe4ec',
-                    padding: '22px 24px 16px 24px',
-                    borderRadius: '16px',
-                    boxShadow: '0 2px 12px #fbb6ce44',
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(10px)',
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    boxShadow: '0 6px 24px rgba(0,0,0,0.1)',
                     width: '100%',
-                    maxWidth: '480px',
+                    maxWidth: '500px',
                     fontWeight: 500,
-                    position: 'relative'
+                    position: 'relative',
+                    zIndex: 2,
+                    transition: 'all 0.3s ease'
                   }}>
-                    {/* Minimalist Music Note SVG */}
-                    <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '8px' }}>
-                      <circle cx="19" cy="19" r="19" fill="#fff"/>
-                      <path d="M25 10V25.5C25 27.433 23.433 29 21.5 29C19.567 29 18 27.433 18 25.5C18 23.567 19.567 22 21.5 22C22.3284 22 23.0784 22.3358 23.5858 22.8787C23.8358 23.1287 24 23.4886 24 23.8787V13H14V25.5C14 27.433 12.433 29 10.5 29C8.567 29 7 27.433 7 25.5C7 23.567 8.567 22 10.5 22C11.3284 22 12.0784 22.3358 12.5858 22.8787C12.8358 23.1287 13 23.4886 13 23.8787V10C13 9.44772 13.4477 9 14 9H24C24.5523 9 25 9.44772 25 10Z" fill="#ff6f91"/>
+                    {/* Enhanced Music Note SVG */}
+                    <div style={{ margin: 0, padding: 0, height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transition: 'all 2s cubic-bezier(0.4,0,0.2,1)' }}>
+                        <circle cx="24" cy="24" r="24" fill={`url(#music-gradient-${mp3BgIndex})`} style={{ transition: 'fill 2s cubic-bezier(0.4,0,0.2,1)' }} />
+                        <defs>
+                          {mp3Backgrounds.map((gradient, idx) => (
+                            <linearGradient id={`music-gradient-${idx}`} key={idx} x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                              {/* Parse the gradient string to extract colors */}
+                              {(() => {
+                                // Extract color stops from the gradient string
+                                const stops = gradient.match(/#([0-9a-fA-F]{6,8})/g);
+                                if (!stops) return null;
+                                return stops.map((color, i) => (
+                                  <stop key={i} offset={i / (stops.length - 1)} stopColor={color} />
+                                ));
+                              })()}
+                            </linearGradient>
+                          ))}
+                        </defs>
+                        <path d="M32 12V30.5C32 33.5376 29.5376 36 26.5 36C23.4624 36 21 33.5376 21 30.5C21 27.4624 23.4624 25 26.5 25C27.8807 25 29.0784 25.3358 29.5858 25.8787C29.8358 26.1287 30 26.4886 30 26.8787V16H18V30.5C18 33.5376 15.5376 36 12.5 36C9.46243 36 7 33.5376 7 30.5C7 27.4624 9.46243 25 12.5 25C13.8807 25 15.0784 25.3358 15.5858 25.8787C15.8358 26.1287 16 26.4886 16 26.8787V12C16 11.4477 16.4477 11 17 11H31C31.5523 11 32 11.4477 32 12Z" fill="white"/>
                     </svg>
-                    <div style={{ fontWeight: '600', fontSize: '18px', marginBottom: '6px', color: '#d72660' }}>
+                    </div>
+                    <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '3px', color: '#2c3e50' }}>
                       {previewAttachment.name}
                     </div>
-                    <div style={{ fontSize: '15px', opacity: '0.92', color: '#a23e48' }}>
+                    <div style={{ fontSize: '13px', opacity: '0.8', color: '#7f8c8d' }}>
                       MP3 Audio File
                     </div>
                   </div>
-                  {/* CSS Animation */}
+
+                  {/* Enhanced CSS Animations */}
                   <style>
                     {`
                       @keyframes rotate {
                         from { transform: rotate(0deg); }
                         to { transform: rotate(360deg); }
                       }
+                      
+                      @keyframes float {
+                        0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.6; }
+                        50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+                      }
+                      
+                      @keyframes pulse {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.05); }
+                      }
+                      
                       #mp3-disk:hover {
-                        transform: scale(1.05);
+                        transform: scale(1.1);
+                        box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+                      }
+                      
+                      .particle {
+                        animation-delay: calc(var(--i) * -0.5s);
+                      }
+                      
+                      .visualizer-bar {
+                        animation: visualizerPulse 0.5s ease-in-out infinite alternate;
+                      }
+                      
+                      @keyframes visualizerPulse {
+                        from { height: 10px; }
+                        to { height: 40px; }
+                      }
+                      
+                      /* Enhanced hover effects */
+                      #mp3-disk:hover {
+                        transform: scale(1.1);
+                        box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+                      }
+                      
+                      /* Smooth transitions for all interactive elements */
+                      * {
+                        transition: all 0.3s ease;
                       }
                     `}
                   </style>
+
+                  {/* Animated Floating Particles - 20 particles that appear when music plays */}
+                  <div id="particles-container" style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                    opacity: isPlaying ? 1 : 0,
+                    transition: 'opacity 0.5s ease',
+                  }}>
+                    {[...Array(20)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="particle"
+                        style={{
+                          position: 'absolute',
+                          width: `${Math.random() * 8 + 4}px`,
+                          height: `${Math.random() * 8 + 4}px`,
+                          background: 'rgba(255, 255, 255, 0.7)',
+                          borderRadius: '50%',
+                          left: `${Math.random() * 90 + 5}%`,
+                          top: `${Math.random() * 80 + 10}%`,
+                          boxShadow: '0 0 12px 2px rgba(255,255,255,0.3)',
+                          animation: isPlaying ? `float ${3 + Math.random() * 4}s ease-in-out infinite` : 'none',
+                          animationDelay: `${Math.random() * 2}s`,
+                          transform: `rotate(${Math.random() * 360}deg)`,
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Subtle Animated Wave at Bottom */}
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    bottom: 0,
+                    width: '100%',
+                    height: '80px',
+                    zIndex: 1,
+                    pointerEvents: 'none',
+                    overflow: 'hidden',
+                  }}>
+                    <svg width="100%" height="100%" viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+                      <path ref={wavePathRef} d="M0,40 Q360,80 720,40 T1440,40 V80 H0 Z" fill="rgba(255,255,255,0.10)" />
+                    </svg>
+                  </div>
                 </div>
               ) : previewAttachment.file && previewAttachment.file.type === 'application/pdf' ? (
                 <div style={{ width: '100%', height: '600px', border: '1px solid #e9ecef', borderRadius: '8px' }}>
@@ -3822,7 +5091,7 @@ const ClassroomDetail = () => {
                           aria-label={`Select ${s.name}`}
                           onClick={e => e.stopPropagation()}
                         />
-                    </div>
+                      </div>
                     );
                   })
                     )}
@@ -3833,7 +5102,7 @@ const ClassroomDetail = () => {
                   <div style={{ width: '100%', height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30, textAlign: 'center', gridColumn: '1 / -1', margin: '0 auto' }}>
                     <FaUserPlus size={14} style={{ marginBottom: 2 }} />
                     <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
-                </div>
+                  </div>
                 ) : (
                   tempSelectedStudents.map(id => {
                     const s = students.find(stu => stu.id === id);
@@ -3857,16 +5126,16 @@ const ClassroomDetail = () => {
                   })
                 )}
               </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
+            </div>
+          </ModalBody>
+          <ModalFooter>
             <Button color="secondary" onClick={() => setShowCreateStudentSelectModal(false)}>
               Cancel
             </Button>
             <Button color="primary" onClick={() => { setSelectedAnnouncementStudents(tempSelectedStudents); setShowStudentSelectModal(false); }}>
               Confirm
             </Button>
-        </ModalFooter>
+          </ModalFooter>
         </div>
       </Modal>
 
@@ -4334,6 +5603,157 @@ const ClassroomDetail = () => {
               Confirm
             </Button>
           </ModalFooter>
+        </div>
+      </Modal>
+
+      {/* Invite Student Modal */}
+      <Modal isOpen={showInviteModal} toggle={() => setShowInviteModal(false)} centered contentClassName="modal-content" style={{ borderRadius: 16 }}>
+        <div style={modalHeaderStyle('linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)')}>
+          <i className="ni ni-single-02" style={iconStyle}></i>
+          <span style={{ fontWeight: 700, fontSize: 20 }}>Invite Student</span>
+        </div>
+        <Form onSubmit={handleInviteSubmit} style={modalBodyStyle}>
+          <ModalBody style={{ background: 'transparent', padding: 0 }}>
+            <FormGroup>
+              <Label for="name" style={{ fontWeight: 600 }}>Name</Label>
+              <Input name="name" id="name" value={inviteForm.name} onChange={handleInviteChange} required style={{ borderRadius: 10, padding: '0.75rem' }} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="email" style={{ fontWeight: 600 }}>Email</Label>
+              <Input type="email" name="email" id="email" value={inviteForm.email} onChange={handleInviteChange} required style={{ borderRadius: 10, padding: '0.75rem' }} />
+            </FormGroup>
+          </ModalBody>
+          <ModalFooter style={{ border: 'none', background: 'transparent' }}>
+            <Button color="secondary" onClick={() => setShowInviteModal(false)} style={{ borderRadius: 10, fontWeight: 600 }}>Cancel</Button>
+            <Button color="primary" type="submit" style={{ borderRadius: 10, fontWeight: 600, boxShadow: '0 2px 8px #43e97b55' }}>Invite</Button>
+          </ModalFooter>
+        </Form>
+      </Modal>
+
+      {/* Camera Modal */}
+      <Modal isOpen={showCameraModal} toggle={() => { setShowCameraModal(false); stopCamera(); }} centered size="lg" contentClassName="border-0">
+        <div style={{ borderRadius: 20, background: '#fff', padding: 0, boxShadow: '0 8px 32px rgba(44,62,80,.12)' }}>
+          <ModalHeader toggle={() => { setShowCameraModal(false); stopCamera(); }} style={{ border: 'none', paddingBottom: 0, fontWeight: 700, fontSize: 18, background: 'transparent' }}>
+            Camera Capture
+          </ModalHeader>
+          <ModalBody style={{ padding: 24 }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <Button 
+                  color={cameraMode === 'photo' ? 'primary' : 'secondary'} 
+                  size="sm"
+                  onClick={() => setCameraMode('photo')}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  <i className="ni ni-camera-compact mr-1" /> Photo
+                </Button>
+                <Button 
+                  color={cameraMode === 'video' ? 'primary' : 'secondary'} 
+                  size="sm"
+                  onClick={() => setCameraMode('video')}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  <i className="ni ni-video-camera-2 mr-1" /> Video
+                </Button>
+                <Button
+                  color="info"
+                  size="sm"
+                  onClick={() => setFacingMode(facingMode === 'user' ? 'environment' : 'user')}
+                  style={{ borderRadius: 8, fontWeight: 600 }}
+                >
+                  Switch Camera
+                </Button>
+              </div>
+              {cameraError && (
+                <div style={{ color: 'red', marginBottom: 8, fontWeight: 600 }}>{cameraError}</div>
+              )}
+              <div style={{ position: 'relative', width: '100%', height: 400, background: '#000', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                {!cameraStream ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#fff' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <i className="ni ni-camera-compact" style={{ fontSize: 48, marginBottom: 16 }} />
+                      <div>Camera not started</div>
+                      <div style={{ fontSize: 12, marginTop: 8, color: '#ccc' }}>
+                        Click "Start Camera" to begin
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onLoadedData={() => console.log('Video data loaded')}
+                      onCanPlay={() => console.log('Video can play')}
+                      onError={(e) => console.error('Video element error:', e)}
+                    />
+                    <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  </>
+                )}
+                
+                {capturedImage && (
+                  <div style={{ position: 'absolute', top: 16, right: 16, background: '#fff', borderRadius: 8, padding: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                    <img 
+                      src={URL.createObjectURL(capturedImage)} 
+                      alt="Captured" 
+                      style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }} 
+                    />
+                  </div>
+                )}
+                
+                {recordedVideo && (
+                  <div style={{ position: 'absolute', top: 16, right: 16, background: '#fff', borderRadius: 8, padding: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                    <video 
+                      src={URL.createObjectURL(recordedVideo)} 
+                      style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }} 
+                      controls
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                {!cameraStream ? (
+                  <Button color="primary" onClick={startCamera} style={{ borderRadius: 8, fontWeight: 600 }}>
+                    <i className="ni ni-camera-compact mr-2" /> Start Camera
+                  </Button>
+                ) : (
+                  <>
+                    {cameraMode === 'photo' ? (
+                      <Button color="success" onClick={capturePhoto} style={{ borderRadius: 8, fontWeight: 600 }}>
+                        <i className="ni ni-camera-compact mr-2" /> Capture Photo
+                      </Button>
+                    ) : (
+                      <>
+                        {!isRecording ? (
+                          <Button color="danger" onClick={startRecording} style={{ borderRadius: 8, fontWeight: 600 }}>
+                            <i className="ni ni-video-camera-2 mr-2" /> Start Recording
+                          </Button>
+                        ) : (
+                          <Button color="warning" onClick={stopRecording} style={{ borderRadius: 8, fontWeight: 600 }}>
+                            <i className="ni ni-button-pause mr-2" /> Stop Recording
+                          </Button>
+                        )}
+                      </>
+                    )}
+                    
+                    {(capturedImage || recordedVideo) && (
+                      <Button color="primary" onClick={useCapturedMedia} style={{ borderRadius: 8, fontWeight: 600 }}>
+                        <i className="ni ni-check-bold mr-2" /> Use {cameraMode === 'photo' ? 'Photo' : 'Video'}
+                      </Button>
+                    )}
+                    
+                    <Button color="secondary" onClick={stopCamera} style={{ borderRadius: 8, fontWeight: 600 }}>
+                      <i className="ni ni-button-power mr-2" /> Stop Camera
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </ModalBody>
         </div>
       </Modal>
     </div>

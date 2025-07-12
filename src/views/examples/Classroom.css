@@ -240,5 +240,13 @@
 .d-flex.align-items-start {
   overflow: visible !important;
   position: relative;
-  z-index: 2000;
+}
+
+@media (max-width: 600px) {
+  .dropdown-menu.show {
+    max-height: 200px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 } 

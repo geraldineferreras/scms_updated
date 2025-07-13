@@ -56,6 +56,13 @@ import CreateSection from "views/examples/CreateSection.js";
 import AttendanceLog from "views/examples/AttendanceLog.js";
 import GradesLog from "views/examples/GradesLog.js";
 import AuditLog from "views/examples/AuditLog.js";
+import StudentClassroom from "views/examples/StudentClassroom.js";
+import ToDoStudent from "views/examples/ToDoStudent.js";
+import ClassroomDetailStudent from "views/examples/ClassroomDetailStudent.js";
+import AssignmentDetailStudent from "views/examples/AssignmentDetailStudent.js";
+import StudentAttendance from "views/examples/StudentAttendance.js";
+import StudentExcuseLetter from "views/examples/StudentExcuseLetter.js";
+import StudentNotifications from "views/examples/StudentNotifications.js";
 
 var routes = [
   {
@@ -241,6 +248,26 @@ var routes = [
     layout: "/teacher",
   },
   {
+    path: "/classroom",
+    name: "Classroom",
+    icon: "ni ni-hat-3 text-info",
+    component: <StudentClassroom />,
+    layout: "/student",
+  },
+  {
+    path: "/video-conferencing",
+    name: "Video Conferencing",
+    icon: "ni ni-camera-compact text-purple",
+    component: <TeacherVideoConferencing />,
+    layout: "/teacher",
+  },
+  {
+    path: "/video-conference/:sessionId",
+    name: "Live Video Conference",
+    component: <VideoConferencePage />,
+    layout: "/video-conference",
+  },
+  {
     path: "/video-conference/:sessionId",
     name: "Live Video Conference",
     component: <VideoConferencePage />,
@@ -282,6 +309,13 @@ var routes = [
     layout: "/teacher",
   },
   {
+    path: "/attendance",
+    name: "Attendance",
+    icon: "ni ni-check-bold text-green",
+    component: <StudentAttendance />,
+    layout: "/student",
+  },
+  {
     path: "/grades",
     name: "Recitation & Grades",
     icon: "ni ni-chart-bar-32 text-yellow",
@@ -300,6 +334,12 @@ var routes = [
     name: "Classroom Detail",
     component: <ClassroomDetail />,
     layout: "/teacher",
+  },
+  {
+    path: "/classroom/:code",
+    name: "Student Classroom Detail",
+    component: <ClassroomDetailStudent />,
+    layout: "/student",
   },
   {
     path: "/access-control",
@@ -346,6 +386,62 @@ var routes = [
     name: "Audit Log",
     component: <AuditLog />,
     layout: "/admin",
+  },
+  {
+    path: "/assigned/:classCode",
+    name: "To-Do Assigned",
+    component: <ToDoStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/assigned",
+    name: "To-Do Assigned",
+    component: <ToDoStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/missing/:classCode",
+    name: "To-Do Missing",
+    component: <ToDoStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/missing",
+    name: "To-Do Missing",
+    component: <ToDoStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/done/:classCode",
+    name: "To-Do Done",
+    component: <ToDoStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/done",
+    name: "To-Do Done",
+    component: <ToDoStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/classroom/:classCode/assignment/:assignmentId",
+    name: "Student Assignment Detail",
+    component: <AssignmentDetailStudent />,
+    layout: "/student",
+  },
+  {
+    path: "/excuse-letters",
+    name: "Excuse Letters",
+    icon: "ni ni-single-copy-04 text-pink",
+    component: <StudentExcuseLetter />,
+    layout: "/student",
+  },
+  {
+    path: "/notifications",
+    name: "Notifications",
+    icon: "ni ni-notification-70 text-info",
+    component: <StudentNotifications />,
+    layout: "/student",
   },
 ];
 export default routes;

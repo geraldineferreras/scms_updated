@@ -747,6 +747,8 @@ const UserManagement = () => {
     <>
       <style>{userManagementStyles}</style>
       <Header compact={false} showStats={false} customClass="pb-8 pt-8" />
+      {/* Header Background */}
+      <div className="header pb-6 pt-4 pt-md-7"></div>
       <Container className="section-content-container" fluid>
         {/* Table */}
         <Row>

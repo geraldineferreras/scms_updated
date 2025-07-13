@@ -49,6 +49,9 @@ const Student = (props) => {
   };
 
   const getBrandText = (path) => {
+    if (path.startsWith('/student/assigned')) return 'TO-DO ASSIGNED';
+    if (path.startsWith('/student/missing')) return 'TO-DO MISSING';
+    if (path.startsWith('/student/done')) return 'TO-DO DONE';
     for (let i = 0; i < routes.length; i++) {
       if (
         path.indexOf(routes[i].layout + routes[i].path) !==

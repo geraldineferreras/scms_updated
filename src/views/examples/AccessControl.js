@@ -194,6 +194,8 @@ export default function AccessControl() {
     <>
       <style>{accessControlStyles}</style>
       <Header showStats={false} />
+      {/* Header Background */}
+      <div className="header pb-6 pt-4 pt-md-7"></div>
       <div className="section-content-container">
         <Card className="shadow-sm rounded-lg section-content-card">
           <CardHeader style={{ background: "#fff", color: "#22336b", fontWeight: 700, fontSize: 22, letterSpacing: 1, borderRadius: "0.5rem 0.5rem 0 0" }}>

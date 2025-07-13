@@ -125,6 +125,8 @@ export default function SubjectManagement() {
     <>
       <style>{subjectManagementStyles}</style>
       <Header showStats={false} />
+      {/* Header Background */}
+      <div className="header pb-6 pt-4 pt-md-7"></div>
       <div className="section-content-container">
         <Card className="shadow-sm rounded mb-4 section-content-card">
           <CardBody>

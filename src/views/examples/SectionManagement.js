@@ -541,6 +541,8 @@ const SectionManagement = () => {
     <>
       <style>{sectionManagementStyles}</style>
       {!isMobile && <Header showStats={false} />}
+      {/* Header Background */}
+      <div className="header pb-6 pt-4 pt-md-7"></div>
       <Container className="section-content-container" fluid>
         <Row>
           <div className="col">

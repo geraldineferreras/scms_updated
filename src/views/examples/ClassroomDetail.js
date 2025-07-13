@@ -53,7 +53,7 @@ const themes = [
   { name: "Sunset", value: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", type: "Color Theme" },
   { name: "Deep Blue", value: "linear-gradient(135deg, #232526 0%, #414345 100%)", type: "Color Theme" },
   // SVG Themes
-  { name: "Classroom SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iIzQ0NGI1YSIvPjxyZWN0IHg9IjUwIiB5PSI4MCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI2U5NzZkMiIvPjxyZWN0IHg9IjE3MCIgeT0iNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiNmOWRjNWMiLz48cmVjdCB4PSIxODAiIHk9Ijc1IiB3aWR0aD0iMjAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNmZmI0YTIiLz48cmVjdCB4PSIyMzAiIHk9IjgwIiB3aWR0aD0iNTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMTk3NmQyIi8+PHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjMyMCIgeT0iNDAiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzNSIgcng9IjUiIGZpbGw9IiM0NDRiNWEiLz48cmVjdCB4PSIzMzAiIHk9IjcwIiB3aWR0aD0iMzAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiMxOTc2ZDIiLz48cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMjAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjlkYzVjIi8+PC9zdmc+')", type: "SVG Theme" },
+  { name: "Classroom SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iIzQ0NGI1YSIvPjxyZWN0IHg9IjUwIiB5PSI4MCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI2U5NzZkMiIvPjxyZWN0IHg9IjE3MCIgeT0iNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiMzOWY5ZjEiLz48cmVjdCB4PSIxODAiIHk9Ijc1IiB3aWR0aD0iMjAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNmZmI0YTIiLz48cmVjdCB4PSIyMzAiIHk9IjgwIiB3aWR0aD0iNTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMTk3NmQyIi8+PHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjMyMCIgeT0iNDAiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzNSIgcng9IjUiIGZpbGw9IiM0NDRiNWEiLz48cmVjdCB4PSIzMzAiIHk9IjcwIiB3aWR0aD0iMzAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiMxOTc2ZDIiLz48cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMjAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjlkYzVjIi8+PC9zdmc+')", type: "SVG Theme" },
   { name: "Books SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iNjAiIHk9IjYwIiB3aWR0aD0iMzAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjNGNhZjUwIi8+PHJlY3QgeD0iMTAwIiB5PSI3MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiByeD0iNCIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjE0MCIgeT0iODAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiMxOTc2ZDIiLz48L3N2Zz4=')", type: "SVG Theme" },
   // Existing image/photo themes
   { name: "Night Sky", value: "url('https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80')", type: "Photo" },
@@ -150,6 +150,7 @@ const sampleAssignments = [
 ];
 
 const sampleStudents = [
+  { id: "2021304995", name: "GERALDINE P. FERRERAS", email: "2021304995@student.edu", role: "Student", joinedDate: "2024-01-10", program: "Bachelor of Science in Information Technology" },
   { id: "2021305973", name: "ANJELA SOFIA G. SARMIENTO", email: "anjela.sarmiento@student.edu", role: "Student", joinedDate: "2024-01-10", program: "Bachelor of Science in Information Technology" },
   { id: "2021305974", name: "JOHN MICHAEL A. DELA CRUZ", email: "john.delacruz@student.edu", role: "Student", joinedDate: "2024-01-10", program: "Bachelor of Science in Computer Science" },
   { id: "2021305975", name: "MARIA ISABEL B. SANTOS", email: "maria.santos@student.edu", role: "Student", joinedDate: "2024-01-11", program: "Bachelor of Science in Information Technology" },
@@ -574,6 +575,20 @@ const ClassroomDetail = () => {
   
   // Add state for collapsible comments
   const [collapsedComments, setCollapsedComments] = useState({});
+
+  // Add CSS for pulse animation
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
   
   // Add state for assignment dropdowns
   const [assignmentDropdowns, setAssignmentDropdowns] = useState({});
@@ -589,10 +604,16 @@ const ClassroomDetail = () => {
   const handleQuickGradeCreate = e => {
     e.preventDefault();
     if (!quickGradeForm.title.trim() || !quickGradeForm.points) return;
+    const newAssessmentId = Date.now();
     setQuickGradeAssessments(a => [
       ...a,
-      { ...quickGradeForm, id: Date.now(), createdAt: new Date().toISOString() }
+      { ...quickGradeForm, id: newAssessmentId, createdAt: new Date().toISOString() }
     ]);
+    // Initialize empty grading data for this assessment
+    setGradingRows(prev => ({
+      ...prev,
+      [newAssessmentId]: []
+    }));
     setQuickGradeForm({ type: 'Assignment', title: '', points: '' });
   };
   // Add with other useState hooks
@@ -608,6 +629,12 @@ const ClassroomDetail = () => {
   // Handler for delete
   const handleQuickGradeDelete = (id) => {
     setQuickGradeAssessments(a => a.filter(x => x.id !== id));
+    // Remove grading data for this assessment
+    setGradingRows(prev => {
+      const newGradingRows = { ...prev };
+      delete newGradingRows[id];
+      return newGradingRows;
+    });
     setQuickGradeMenuOpen(null);
   };
 
@@ -648,7 +675,7 @@ const ClassroomDetail = () => {
   const [showQRGrading, setShowQRGrading] = useState(false);
   const [showManualGrading, setShowManualGrading] = useState(false);
   const [qrScore, setQRScore] = useState('');
-  const qrScoreRef = useRef();
+  const qrScoreRef = useRef('');
   const qrNotesRef = useRef();
   const qrAttachmentRef = useRef();
   const [qrNotes, setQRNotes] = useState('');
@@ -657,7 +684,7 @@ const ClassroomDetail = () => {
   const [manualScore, setManualScore] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [manualAttachment, setManualAttachment] = useState(null);
-  const [gradingRows, setGradingRows] = useState([]); // [{studentId, name, avatar, score, attachment, notes, dateGraded}]
+  const [gradingRows, setGradingRows] = useState({}); // {assessmentId: [{studentId, name, avatar, score, attachment, notes, dateGraded}]}
 
   // Add state for editing grading rows 
   const [editingGradeIdx, setEditingGradeIdx] = useState(null);
@@ -678,7 +705,7 @@ const ClassroomDetail = () => {
   const [scannedPhoto, setScannedPhoto] = useState(null);
   const [scannedStudent, setScannedStudent] = useState(null);
   const qrScannerRef = useRef(null);
-  
+
   // Camera functionality states
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
@@ -694,6 +721,10 @@ const ClassroomDetail = () => {
   const mediaRecorderRef = useRef();
   const recordedChunksRef = useRef([]);
 
+  // Add refs for last scanned student and time
+  const lastScannedStudentIdRef = useRef(null);
+  const lastScanTimeRef = useRef(0);
+
 // Play grading success audio
   const playGradingSuccessAudio = () => {
     const audioFile = voiceType === 'male'
@@ -708,18 +739,29 @@ const handleQRSubmit = () => {
   // Simulate finding student by QR (replace with real QR logic)
   const student = students[0]; // Replace with actual lookup
   if (!student) return alert("Student not found!");
-  setGradingRows(rows => [
-    ...rows,
-    {
-      studentId: student.id,
-      name: student.name,
-      avatar: student.avatar,
-      score: qrScore,
-      attachment: qrAttachment,
-      notes: qrNotes,
-      dateGraded: new Date().toLocaleString()
-    }
-  ]);
+  
+  // Get the currently selected assessment
+  const currentAssessment = quickGradeAssessments.find(a => a.id === selectedQuickGradeId);
+  if (!currentAssessment) {
+    alert("Please select an assessment first!");
+    return;
+  }
+  
+  setGradingRows(prev => ({
+    ...prev,
+    [selectedQuickGradeId]: [
+      ...(prev[selectedQuickGradeId] || []),
+      {
+        studentId: student.id,
+        name: student.name,
+        avatar: student.avatar,
+        score: qrScore,
+        attachment: qrAttachment,
+        notes: qrNotes,
+        dateGraded: new Date().toLocaleString()
+      }
+    ]
+  }));
   setQRScore('');
   setQRNotes('');
   setQRAttachment(null);
@@ -728,25 +770,41 @@ const handleQRSubmit = () => {
 
 // Handler for Manual Grading submission
 const handleManualSubmit = () => {
-  const student = students.find(s => s.id === Number(manualStudent));
+  const student = students.find(s => String(s.id) === String(manualStudent));
   if (!student) return alert("Select a student!");
-  setGradingRows(rows => [
-    ...rows.filter(r => r.studentId !== student.id), // update if exists
-    {
-      studentId: student.id,
-      name: student.name,
-      avatar: student.avatar,
-      score: manualScore,
-      attachment: manualAttachment,
-      notes: manualNotes,
-      dateGraded: new Date().toLocaleString()
-    }
-  ]);
+  
+  // Get the currently selected assessment
+  const currentAssessment = quickGradeAssessments.find(a => a.id === selectedQuickGradeId);
+  if (!currentAssessment) {
+    alert("Please select an assessment first!");
+    return;
+  }
+  
+  const points = currentAssessment.points; // Use the assessment's points
+  const newGrade = {
+    studentId: student.id,
+    name: student.name,
+    avatar: getAvatarForUser(student),
+    score: manualScore,
+    points,
+    attachment: manualAttachment,
+    notes: manualNotes,
+    dateGraded: new Date().toLocaleString()
+  };
+  setGradingRows(prev => {
+    const currentRows = prev[selectedQuickGradeId] || [];
+    const filteredRows = currentRows.filter(r => String(r.studentId) !== String(student.id));
+    return {
+      ...prev,
+      [selectedQuickGradeId]: [...filteredRows, newGrade]
+    };
+  });
   setManualStudent('');
   setManualScore('');
   setManualNotes('');
   setManualAttachment(null);
-  setShowManualGrading(false);
+  // Do not close manual grading form
+  // setShowManualGrading(false);
 };
 
 // File input handlers
@@ -871,7 +929,7 @@ const useCapturedMedia = () => {
     stopCamera();
   }
 };
-
+  
 // QR and Manual Grading attachment handlers
 const handleQRAttachmentType = (type) => {
   if (type === "File") {
@@ -943,11 +1001,18 @@ const startQrScanner = async () => {
             const student = students.find(s => s.id === scanResult.id);
 
             if (student) {
+              // Debounce: Only play audio if new student or enough time has passed (using refs)
+              const now = Date.now();
+              if (lastScannedStudentIdRef.current !== student.id || now - lastScanTimeRef.current > 2000) {
+                playGradingSuccessAudio();
+                lastScannedStudentIdRef.current = student.id;
+                lastScanTimeRef.current = now;
+              }
               // Set the scanned student to show the "Student Found" div
-              setScannedStudent(student);
+              setScannedStudent({ ...student, program: scanResult.program }); // Attach program
               setQrScanResult(scanResult);
               
-              const score = qrScore;
+              const score = qrScoreRef.current;
               const notes = qrNotes;
               const attachment = qrAttachment;
               
@@ -956,30 +1021,41 @@ const startQrScanner = async () => {
                 return;
               }
               
-              // Check if already graded
-              const alreadyGraded = gradingRows.some(row => row.studentId === student.id);
-              if (alreadyGraded) {
-                setQrScanError("This student has already been recorded");
+              // Get the currently selected assessment
+              const currentAssessment = quickGradeAssessments.find(a => a.id === selectedQuickGradeId);
+              if (!currentAssessment) {
+                setQrScanError("Please select an assessment first!");
                 return;
               }
               
-              // Add to grading rows
-              setGradingRows(rows => [
-                ...rows,
-                {
-                  studentId: student.id,
-                  name: student.name,
-                  avatar: getAvatarForUser(student),
-                  score: score,
-                  attachment: attachment,
-                  notes: notes,
-                  dateGraded: new Date().toLocaleString(),
-                  scannedPhoto: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-                }
-              ]);
+              // Check if already graded for this assessment
+              const currentRows = gradingRows[selectedQuickGradeId] || [];
+              const alreadyGraded = currentRows.some(row => row.studentId === student.id);
+              if (alreadyGraded) {
+                setQrScanError("This student has already been recorded for this assessment");
+                return;
+              }
               
-              // Play success audio
-              playGradingSuccessAudio();
+              // Add to grading rows for this assessment
+              const points = currentAssessment.points;
+              setGradingRows(prev => {
+                const currentAssessmentRows = prev[selectedQuickGradeId] || [];
+                const filteredRows = currentAssessmentRows.filter(r => String(r.studentId) !== String(student.id));
+                return {
+                  ...prev,
+                  [selectedQuickGradeId]: [...filteredRows, {
+                    studentId: student.id,
+                    name: student.name,
+                    avatar: getAvatarForUser(student),
+                    score: score,
+                    points,
+                    attachment: attachment,
+                    notes: notes,
+                    dateGraded: new Date().toLocaleString(),
+                    scannedPhoto: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                  }]
+                };
+              });
               
               // Reset form
               setQRScore('');
@@ -1002,8 +1078,8 @@ const startQrScanner = async () => {
           setScannedStudent(null);
         }
 
-        // Stop scanner after successful scan
-        //stopQrScanner();
+        // Keep scanner open for continuous scanning
+        // stopQrScanner(); // Removed to keep scanner open
       },
       (errorMessage) => {
         // Ignore errors during scanning
@@ -1033,10 +1109,11 @@ const captureQrPhoto = () => {
 
  // Grading rows state
  const handleEditGrade = idx => {
+  const currentRows = gradingRows[selectedQuickGradeId] || [];
   setEditingGradeIdx(idx);
-  setEditScore(gradingRows[idx].score);
-  setEditNotes(gradingRows[idx].notes || '');
-  setEditAttachment(gradingRows[idx].attachment || null);
+  setEditScore(currentRows[idx].score);
+  setEditNotes(currentRows[idx].notes || '');
+  setEditAttachment(currentRows[idx].attachment || null);
 };
 
 const handleCancelEditGrade = () => {
@@ -1047,21 +1124,29 @@ const handleCancelEditGrade = () => {
 };
 
 const handleSaveEditGrade = idx => {
-  setGradingRows(rows => rows.map((row, i) =>
-    i === idx
-      ? {
-          ...row,
-          score: editScore,
-          notes: editNotes,
-          attachment: editAttachment
-        }
-      : row
-  ));
+  const currentRows = gradingRows[selectedQuickGradeId] || [];
+  setGradingRows(prev => ({
+    ...prev,
+    [selectedQuickGradeId]: currentRows.map((row, i) =>
+      i === idx
+        ? {
+            ...row,
+            score: editScore,
+            notes: editNotes,
+            attachment: editAttachment
+          }
+        : row
+    )
+  }));
   handleCancelEditGrade();
 };
 
 const handleDeleteGrade = idx => {
-  setGradingRows(rows => rows.filter((_, i) => i !== idx));
+  const currentRows = gradingRows[selectedQuickGradeId] || [];
+  setGradingRows(prev => ({
+    ...prev,
+    [selectedQuickGradeId]: currentRows.filter((_, i) => i !== idx)
+  }));
 };
 
 const handleQrScanSubmit = () => {
@@ -1076,11 +1161,19 @@ const handleQrScanSubmit = () => {
     return;
   }
   
+  // Get the currently selected assessment
+  const currentAssessment = quickGradeAssessments.find(a => a.id === selectedQuickGradeId);
+  if (!currentAssessment) {
+    alert("Please select an assessment first!");
+    return;
+  }
+  
   const newGrade = {
     studentId: scannedStudent.id,
     name: scannedStudent.name,
     avatar: getAvatarForUser(scannedStudent),
     score: qrScore,
+    points: currentAssessment.points,
     attachment: qrAttachment,
     notes: qrNotes,
     dateGraded: new Date().toLocaleString(),
@@ -1089,10 +1182,13 @@ const handleQrScanSubmit = () => {
   
   console.log("Adding new grade:", newGrade);
   
-  setGradingRows(rows => {
-    const updatedRows = [...rows, newGrade];
-    console.log("Updated grading rows:", updatedRows);
-    return updatedRows;
+  setGradingRows(prev => {
+    const currentRows = prev[selectedQuickGradeId] || [];
+    const filteredRows = currentRows.filter(r => String(r.studentId) !== String(newGrade.studentId));
+    return {
+      ...prev,
+      [selectedQuickGradeId]: [...filteredRows, newGrade]
+    };
   });
   
   // Reset form
@@ -2379,7 +2475,14 @@ useEffect(() => {
     };
   }, [isPlaying]);
 
+  // Add state for toggling Live Setup in Quick Grade
+  const [showLiveSetup, setShowLiveSetup] = useState(false);
 
+  // Add state for toggling Online Setup in Quick Grade
+  const [showOnlineSetup, setShowOnlineSetup] = useState(false);
+
+  // Add state for Online Setup assigned students
+  const [onlineAssignedStudents, setOnlineAssignedStudents] = useState([]);
 
   if (!classInfo) {
     return (
@@ -2963,7 +3066,7 @@ useEffect(() => {
                               <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); fileInputRef.current.click(); }}>File</DropdownItem>
                               <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowLinkModal(true); }}>Link</DropdownItem>
                               <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowYouTubeModal(true); }}>YouTube</DropdownItem>
-                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); /* TODO: Google Drive logic */ }}>Google Drive</DropdownItem>
+                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowCreateDriveModal(true); }}>Google Drive</DropdownItem>
                       </DropdownMenu>
                     </Dropdown>
                     <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
@@ -3300,114 +3403,114 @@ useEffect(() => {
                             </>
                           ) : (
                             <>
-                              {announcement.title && announcement.title.trim() !== "" && (
-                                <h6 className="mb-1 font-weight-bold" style={{ color: '#111', fontSize: 14, letterSpacing: 0.1, marginBottom: 6 }}>
-                                  {announcement.title}
-                                </h6>
-                              )}
-                              <p className="mb-2" style={{ fontSize: 14, color: '#2d3748', marginBottom: 2, lineHeight: 1.2 }}>{announcement.content}</p>
+                          {announcement.title && announcement.title.trim() !== "" && (
+                            <h6 className="mb-1 font-weight-bold" style={{ color: '#111', fontSize: 14, letterSpacing: 0.1, marginBottom: 6 }}>
+                              {announcement.title}
+                            </h6>
+                          )}
+                          <p className="mb-2" style={{ fontSize: 14, color: '#2d3748', marginBottom: 2, lineHeight: 1.2 }}>{announcement.content}</p>
                               {!isEditing && announcement.attachments && announcement.attachments.length > 0 && (
-                                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                                  {announcement.attachments.map((att, idx) => {
-                                    const { preview, type, color } = getFileTypeIconOrPreview(att);
-                                    const url = att.file ? URL.createObjectURL(att.file) : undefined;
-                                    const isLink = att.type === "Link" || att.type === "YouTube";
-                                    const displayName = isLink ? att.url : att.name;
+                            <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                              {announcement.attachments.map((att, idx) => {
+                                const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                const url = att.file ? URL.createObjectURL(att.file) : undefined;
+                                const isLink = att.type === "Link" || att.type === "YouTube";
+                                const displayName = isLink ? att.url : att.name;
+                                return (
+                                  <div
+                                    key={idx}
+                                    onClick={() => {
+                                      if (isLink && att.url) {
+                                        window.open(att.url, '_blank', 'noopener,noreferrer');
+                                      } else {
+                                        handlePreviewAttachment(att);
+                                      }
+                                    }}
+                                    style={{ background: '#f8fafd', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                                  >
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                      <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                        {type}
+                                        {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
+                                        {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {/* After the message content, add the comment section: */}
+                          {announcement.allowComments !== false && (
+                            <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 12, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
+                              {/* Comments List */}
+                              {announcement.comments && announcement.comments.length > 0 && (
+                                <div style={{ marginBottom: 16 }}>
+                                  <div 
+                                    style={{ 
+                                      fontWeight: 600, 
+                                      fontSize: 13, 
+                                      color: '#111', 
+                                      marginBottom: 12,
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px'
+                                    }}
+                                    onClick={() => setCollapsedComments(prev => ({
+                                      ...prev,
+                                      [announcement.id]: !prev[announcement.id]
+                                    }))}
+                                  >
+                                    Comments ({announcement.comments.length})
+                                  </div>
+                                                                          {!collapsedComments[announcement.id] && announcement.comments.map((comment, idx) => {
+                                    const isOwnComment = comment.author === currentUser;
+                                    const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
+                                    
                                     return (
-                                      <div
-                                        key={idx}
-                                        onClick={() => {
-                                          if (isLink && att.url) {
-                                            window.open(att.url, '_blank', 'noopener,noreferrer');
-                                          } else {
-                                            handlePreviewAttachment(att);
-                                          }
-                                        }}
-                                        style={{ background: '#f8fafd', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
-                                      >
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                          <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                            {type}
-                                            {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                            {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              {/* After the message content, add the comment section: */}
-                              {announcement.allowComments !== false && (
-                                <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 12, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
-                                  {/* Comments List */}
-                                  {announcement.comments && announcement.comments.length > 0 && (
-                                    <div style={{ marginBottom: 16 }}>
-                                      <div 
-                                        style={{ 
-                                          fontWeight: 600, 
-                                          fontSize: 13, 
-                                          color: '#111', 
-                                          marginBottom: 12,
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '8px'
-                                        }}
-                                        onClick={() => setCollapsedComments(prev => ({
-                                          ...prev,
-                                          [announcement.id]: !prev[announcement.id]
-                                        }))}
-                                      >
-                                        Comments ({announcement.comments.length})
-                                      </div>
-                                                                              {!collapsedComments[announcement.id] && announcement.comments.map((comment, idx) => {
-                                        const isOwnComment = comment.author === currentUser;
-                                        const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
-                                        
-                                        return (
-                                          <div key={idx} style={{ 
-                                            display: 'flex', 
-                                            gap: 8, 
-                                            marginBottom: 12, 
-                                            padding: '8px 0',
-                                            borderBottom: idx < announcement.comments.length - 1 ? '1px solid #f0f0f0' : 'none'
-                                          }}>
-                                            {/* Avatar */}
-                                            <div style={{ 
+                                      <div key={idx} style={{ 
+                                        display: 'flex', 
+                                        gap: 8, 
+                                        marginBottom: 12, 
+                                        padding: '8px 0',
+                                        borderBottom: idx < announcement.comments.length - 1 ? '1px solid #f0f0f0' : 'none'
+                                      }}>
+                                        {/* Avatar */}
+                                        <div style={{ 
+                                          width: 24, 
+                                          height: 24, 
+                                          borderRadius: '50%', 
+                                          background: '#e9ecef', 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          justifyContent: 'center', 
+                                          overflow: 'hidden',
+                                          flexShrink: 0
+                                        }}>
+                                          <img 
+                                            src={getAvatarForUser({ name: comment.author, id: comment.author })} 
+                                            alt="avatar" 
+                                            style={{ 
                                               width: 24, 
                                               height: 24, 
                                               borderRadius: '50%', 
-                                              background: '#e9ecef', 
-                                              display: 'flex', 
-                                              alignItems: 'center', 
-                                              justifyContent: 'center', 
-                                              overflow: 'hidden',
-                                              flexShrink: 0
-                                            }}>
-                                              <img 
-                                                src={getAvatarForUser({ name: comment.author, id: comment.author })} 
-                                                alt="avatar" 
-                                                style={{ 
-                                                  width: 24, 
-                                                  height: 24, 
-                                                  borderRadius: '50%', 
-                                                  objectFit: 'cover', 
-                                                  display: 'block' 
-                                                }} 
-                                                onError={(e) => {
-                                                  e.target.src = userDefault;
-                                                }}
-                                              />
-                                            </div>
-                                            
-                                            {/* Comment Content */}
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                                                <div style={{ fontWeight: 600, color: '#111', fontSize: 11 }}>{comment.author}</div>
-                                                <small className="text-muted" style={{ fontSize: 9 }}>{formatRelativeTime(comment.date)}</small>
+                                              objectFit: 'cover', 
+                                              display: 'block' 
+                                            }} 
+                                            onError={(e) => {
+                                              e.target.src = userDefault;
+                                            }}
+                                          />
+                                        </div>
+                                        
+                                        {/* Comment Content */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                            <div style={{ fontWeight: 600, color: '#111', fontSize: 11 }}>{comment.author}</div>
+                                            <small className="text-muted" style={{ fontSize: 9 }}>{formatRelativeTime(comment.date)}</small>
                                                 
                                                 {/* Three-dot menu */}
                                                 {(isOwnComment || isTeacher) && (
@@ -3500,16 +3603,16 @@ useEffect(() => {
                                                     )}
                                                   </div>
                                                 )}
-                                              </div>
-                                              
-                                              {/* Comment Text */}
-                                              {console.log('Rendering comment:', { 
-                                                announcementId: announcement.id, 
-                                                idx, 
-                                                isEditing: editingComment[announcement.id] === idx,
-                                                editingComment,
-                                                commentText: comment.text
-                                              })}
+                                          </div>
+                                          
+                                          {/* Comment Text */}
+                                          {console.log('Rendering comment:', { 
+                                            announcementId: announcement.id, 
+                                            idx, 
+                                            isEditing: editingComment[announcement.id] === idx,
+                                            editingComment,
+                                            commentText: comment.text
+                                          })}
 
                                               {/* Test button for debugging */}
                                               <button 
@@ -3530,158 +3633,158 @@ useEffect(() => {
                                                 TEST EDIT
                                               </button>
 
-                                              {editingComment[announcement.id] === idx ? (
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                  <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    style={{ fontSize: 11, borderRadius: 4, border: '1px solid #bfcfff', background: '#fff', height: '28px', padding: '4px 8px' }}
-                                                    value={editingCommentText[`${announcement.id}-${idx}`] || comment.text}
-                                                    onChange={(e) => setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: e.target.value }))}
-                                                    onKeyDown={(e) => {
-                                                      if (e.key === 'Enter') {
-                                                        handleSaveEditComment(announcement.id, idx);
-                                                      } else if (e.key === 'Escape') {
-                                                        handleCancelEditComment(announcement.id, idx);
-                                                      }
-                                                    }}
-                                                    autoFocus
-                                                  />
-                                                  <button
-                                                    className="btn btn-primary btn-sm"
-                                                    style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
-                                                    onClick={() => handleSaveEditComment(announcement.id, idx)}
-                                                  >
-                                                    Save
-                                                  </button>
-                                                  <button
-                                                    className="btn btn-secondary btn-sm"
-                                                    style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
-                                                    onClick={() => handleCancelEditComment(announcement.id, idx)}
-                                                  >
-                                                    Cancel
-                                                  </button>
-                                                </div>
-                                              ) : (
-                                                <div style={{ fontSize: 11, color: '#2d3748', lineHeight: 1.3 }}>
-                                                  {comment.text}
-                                                </div>
-                                              )}
+                                          {editingComment[announcement.id] === idx ? (
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                              <input
+                                                type="text"
+                                                className="form-control"
+                                                style={{ fontSize: 11, borderRadius: 4, border: '1px solid #bfcfff', background: '#fff', height: '28px', padding: '4px 8px' }}
+                                                value={editingCommentText[`${announcement.id}-${idx}`] || comment.text}
+                                                onChange={(e) => setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: e.target.value }))}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    handleSaveEditComment(announcement.id, idx);
+                                                  } else if (e.key === 'Escape') {
+                                                    handleCancelEditComment(announcement.id, idx);
+                                                  }
+                                                }}
+                                                autoFocus
+                                              />
+                                              <button
+                                                className="btn btn-primary btn-sm"
+                                                style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
+                                                onClick={() => handleSaveEditComment(announcement.id, idx)}
+                                              >
+                                                Save
+                                              </button>
+                                              <button
+                                                className="btn btn-secondary btn-sm"
+                                                style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
+                                                onClick={() => handleCancelEditComment(announcement.id, idx)}
+                                              >
+                                                Cancel
+                                              </button>
                                             </div>
-                                          </div>
-                                        );
-                                      })}
+                                          ) : (
+                                            <div style={{ fontSize: 11, color: '#2d3748', lineHeight: 1.3 }}>
+                                              {comment.text}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* Input for new comment */}
+                              <div className="d-flex comment-input-row" style={{ gap: 8, position: 'relative', marginTop: 0, marginBottom: 4 }}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  style={{ fontSize: 10, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff', height: '32px', padding: '4px 8px' }}
+                                  placeholder="Add a comment..."
+                                  value={commentInputs[announcement.id] || ""}
+                                  onChange={e => setCommentInputs(inputs => ({ ...inputs, [announcement.id]: e.target.value }))}
+                                  onKeyDown={e => { if (e.key === 'Enter') handlePostComment(announcement.id); }}
+                                />
+                                {/* Desktop only: emoji and post button */}
+                                <div className="comment-emoji-btn-desktop-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary comment-emoji-btn-desktop"
+                                    style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      if (openEmojiPickerId === announcement.id) {
+                                        setOpenEmojiPickerId(null);
+                                      } else {
+                                        setTimeout(() => setOpenEmojiPickerId(announcement.id), 0);
+                                      }
+                                    }}
+                                  >
+                                    <FaSmile style={{ fontSize: 14 }} />
+                                  </button>
+                                  {/* Desktop dropdown */}
+                                  {openEmojiPickerId === announcement.id && (
+                                    <div
+                                      className="comment-emoji-dropdown-desktop"
+                                      ref={el => { if (el && openEmojiPickerId === announcement.id) emojiDropdownRefs.current[announcement.id] = el; }}
+                                      style={{ position: 'absolute', top: 40, left: -180, background: '#fff', border: '1px solid #e9ecef', borderRadius: 6, boxShadow: '0 2px 8px #324cdd22', zIndex: 10, width: 200, minWidth: 200, maxWidth: 200, maxHeight: 150, overflowY: 'auto', marginTop: 8, padding: 6 }}
+                                    >
+                                      {emojiList.map(emoji => (
+                                        <span key={emoji} style={{ fontSize: 18, cursor: 'pointer', margin: 2, display: 'inline-block' }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
+                                      ))}
                                     </div>
                                   )}
-                                  
-                                  {/* Input for new comment */}
-                                  <div className="d-flex comment-input-row" style={{ gap: 8, position: 'relative', marginTop: 0, marginBottom: 4 }}>
-                                    <input
-                                      type="text"
-                                      className="form-control"
-                                      style={{ fontSize: 10, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff', height: '32px', padding: '4px 8px' }}
-                                      placeholder="Add a comment..."
-                                      value={commentInputs[announcement.id] || ""}
-                                      onChange={e => setCommentInputs(inputs => ({ ...inputs, [announcement.id]: e.target.value }))}
-                                      onKeyDown={e => { if (e.key === 'Enter') handlePostComment(announcement.id); }}
-                                    />
-                                    {/* Desktop only: emoji and post button */}
-                                    <div className="comment-emoji-btn-desktop-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <button
-                                        type="button"
-                                        className="btn btn-secondary comment-emoji-btn-desktop"
-                                        style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        onClick={e => {
-                                          e.stopPropagation();
-                                          if (openEmojiPickerId === announcement.id) {
-                                            setOpenEmojiPickerId(null);
-                                          } else {
-                                            setTimeout(() => setOpenEmojiPickerId(announcement.id), 0);
-                                          }
-                                        }}
-                                      >
-                                        <FaSmile style={{ fontSize: 14 }} />
-                                      </button>
-                                      {/* Desktop dropdown */}
-                                      {openEmojiPickerId === announcement.id && (
-                                        <div
-                                          className="comment-emoji-dropdown-desktop"
-                                          ref={el => { if (el && openEmojiPickerId === announcement.id) emojiDropdownRefs.current[announcement.id] = el; }}
-                                          style={{ position: 'absolute', top: 40, left: -180, background: '#fff', border: '1px solid #e9ecef', borderRadius: 6, boxShadow: '0 2px 8px #324cdd22', zIndex: 10, width: 200, minWidth: 200, maxWidth: 200, maxHeight: 150, overflowY: 'auto', marginTop: 8, padding: 6 }}
-                                        >
-                                          {emojiList.map(emoji => (
-                                            <span key={emoji} style={{ fontSize: 18, cursor: 'pointer', margin: 2, display: 'inline-block' }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
-                                          ))}
-                                        </div>
-                                      )}
-                                      <style>{`
-                                        @media (min-width: 601px) {
-                                          .comment-emoji-dropdown-desktop { display: block !important; }
-                                        }
-                                        @media (max-width: 600px) {
-                                          .comment-emoji-dropdown-desktop { display: none !important; }
-                                        }
-                                      `}</style>
-                                      <button
-                                        className="btn btn-primary btn-sm comment-post-btn-desktop"
-                                        style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', minWidth: '36px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        onClick={() => handlePostComment(announcement.id)}
-                                        disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
-                                      >
-                                        <i className="ni ni-send" style={{ fontSize: 14 }} />
-                                      </button>
-                                    </div>
-                                    {/* Mobile only: emoji dropdown at left of comment box */}
-                                    {openEmojiPickerId === announcement.id && (
-                                      <div className="comment-emoji-dropdown-mobile" style={{ display: 'none', position: 'absolute', top: '100%', left: -45, background: '#fff', border: '1px solid #e9ecef', borderRadius: 6, boxShadow: '0 2px 8px #324cdd22', padding: 6, zIndex: 10, width: 160, minWidth: 160, maxWidth: 160, maxHeight: 150, overflowY: 'auto', marginTop: 55 }}>
-                                        {emojiList.map(emoji => (
-                                          <span key={emoji} style={{ fontSize: 18, cursor: 'pointer', margin: 2, display: 'inline-block' }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
-                                        ))}
-                                      </div>
-                                    )}
-                                    <style>{`
-                                      @media (max-width: 600px) {
-                                        .comment-emoji-dropdown-mobile {
-                                          display: block !important;
-                                          min-width: 160px !important;
-                                          max-width: 160px !important;
-                                          width: 160px !important;
-                                        }
-                                      }
-                                      @media (min-width: 601px) {
-                                        .comment-emoji-dropdown-mobile { display: none !important; }
-                                      }
-                                    `}</style>
-                                  </div>
-                                  {/* Mobile only: emoji and post button below input */}
-                                  <div className="d-flex comment-input-btn-row-mobile" style={{ display: 'none', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
-                                    <button
-                                      type="button"
-                                      className="btn btn-secondary"
-                                      style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
-                                      onClick={e => { e.stopPropagation(); setOpenEmojiPickerId(openEmojiPickerId === announcement.id ? null : announcement.id); }}
-                                    >
-                                      <FaSmile style={{ fontSize: 14 }} />
-                                    </button>
-                                    <button
-                                      className="btn btn-primary btn-sm"
-                                      style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', minWidth: '36px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
-                                      onClick={() => handlePostComment(announcement.id)}
-                                      disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
-                                    >
-                                      <i className="ni ni-send" style={{ fontSize: 14 }} />
-                                    </button>
-                                  </div>
                                   <style>{`
-                                    @media (max-width: 600px) {
-                                      .comment-emoji-btn-desktop, .comment-post-btn-desktop { display: none !important; }
-                                      .comment-input-btn-row-mobile { display: flex !important; }
-                                    }
                                     @media (min-width: 601px) {
-                                      .comment-input-btn-row-mobile { display: none !important; }
+                                      .comment-emoji-dropdown-desktop { display: block !important; }
+                                    }
+                                    @media (max-width: 600px) {
+                                      .comment-emoji-dropdown-desktop { display: none !important; }
                                     }
                                   `}</style>
+                                  <button
+                                    className="btn btn-primary btn-sm comment-post-btn-desktop"
+                                    style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', minWidth: '36px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    onClick={() => handlePostComment(announcement.id)}
+                                    disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
+                                  >
+                                    <i className="ni ni-send" style={{ fontSize: 14 }} />
+                                  </button>
                                 </div>
+                                {/* Mobile only: emoji dropdown at left of comment box */}
+                                {openEmojiPickerId === announcement.id && (
+                                  <div className="comment-emoji-dropdown-mobile" style={{ display: 'none', position: 'absolute', top: '100%', left: -45, background: '#fff', border: '1px solid #e9ecef', borderRadius: 6, boxShadow: '0 2px 8px #324cdd22', padding: 6, zIndex: 10, width: 160, minWidth: 160, maxWidth: 160, maxHeight: 150, overflowY: 'auto', marginTop: 55 }}>
+                                    {emojiList.map(emoji => (
+                                      <span key={emoji} style={{ fontSize: 18, cursor: 'pointer', margin: 2, display: 'inline-block' }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                <style>{`
+                                  @media (max-width: 600px) {
+                                    .comment-emoji-dropdown-mobile {
+                                      display: block !important;
+                                      min-width: 160px !important;
+                                      max-width: 160px !important;
+                                      width: 160px !important;
+                                    }
+                                  }
+                                  @media (min-width: 601px) {
+                                    .comment-emoji-dropdown-mobile { display: none !important; }
+                                  }
+                                `}</style>
+                              </div>
+                              {/* Mobile only: emoji and post button below input */}
+                              <div className="d-flex comment-input-btn-row-mobile" style={{ display: 'none', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
+                                  onClick={e => { e.stopPropagation(); setOpenEmojiPickerId(openEmojiPickerId === announcement.id ? null : announcement.id); }}
+                                >
+                                  <FaSmile style={{ fontSize: 14 }} />
+                                </button>
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', minWidth: '36px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
+                                  onClick={() => handlePostComment(announcement.id)}
+                                  disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
+                                >
+                                  <i className="ni ni-send" style={{ fontSize: 14 }} />
+                                </button>
+                              </div>
+                              <style>{`
+                                @media (max-width: 600px) {
+                                  .comment-emoji-btn-desktop, .comment-post-btn-desktop { display: none !important; }
+                                  .comment-input-btn-row-mobile { display: flex !important; }
+                                }
+                                @media (min-width: 601px) {
+                                  .comment-input-btn-row-mobile { display: none !important; }
+                                }
+                              `}</style>
+                            </div>
                               )}
                             </>
                           )}
@@ -3703,34 +3806,192 @@ useEffect(() => {
                   <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e' }} />
                   Quick Grade
                 </h4>
+                {/* Add Live Setup and Online Setup buttons below header */}
+                <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
+                  <button
+                    type="button"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      border: '1.2px solid #222',
+                      background: showLiveSetup ? '#e9ecef' : '#fff',
+                      color: '#222',
+                      borderRadius: 8,
+                      fontWeight: 500,
+                      fontSize: 13,
+                      padding: '5px 14px',
+                      minHeight: 'auto',
+                      lineHeight: 1.1,
+                      boxShadow: '0 1px 4px #324cdd11',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onClick={() => { setShowLiveSetup(v => !v); setShowOnlineSetup(false); }}
+                  >
+                    <i className="fa fa-users" style={{ fontSize: 13, marginRight: 5 }} /> Live Setup
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      border: '1.2px solid #222',
+                      background: showOnlineSetup ? '#e9ecef' : '#fff',
+                      color: '#222',
+                      borderRadius: 8,
+                      fontWeight: 500,
+                      fontSize: 13,
+                      padding: '5px 14px',
+                      minHeight: 'auto',
+                      lineHeight: 1.1,
+                      boxShadow: '0 1px 4px #324cdd11',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onClick={() => { setShowOnlineSetup(v => !v); setShowLiveSetup(false); }}
+                  >
+                    <i className="fa fa-globe" style={{ fontSize: 13, marginRight: 5 }} /> Online Setup
+                  </button>
+                </div>
+                {/* Online Setup Form for Assignment */}
+                {showOnlineSetup && quickGradeForm.type === 'Assignment' && (
+                  <form style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
+                    <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
+                        <select name="type" value={quickGradeForm.type} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }}>
+                          <option>Assignment</option>
+                          <option>Quiz</option>
+                          <option>Activity</option>
+                          <option>Project</option>
+                          <option>Exam</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
+                        <input name="points" type="number" min="1" value={quickGradeForm.points} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter the total points.." required />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 160 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Due Date</label>
+                        <input name="dueDate" type="date" className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <button type="submit" className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '8px 24px', marginTop: 24, boxShadow: '0 2px 8px #324cdd22' }}>
+                          <i className="fa fa-plus mr-2" /> Create
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Instructions</label>
+                      <textarea className="form-control" style={{ minHeight: 80, borderRadius: 8, fontSize: 14, background: '#fff' }} placeholder="Instructions (optional)" />
+                    </div>
+                    <div className="d-flex flex-row flex-wrap" style={{ gap: 24, marginBottom: 0, width: '100%' }}>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assign to</label>
+                        <div style={{ marginBottom: 10, marginTop: 2 }}>
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{
+                              borderRadius: 8,
+                              fontWeight: 600,
+                              width: 'auto',
+                              textAlign: 'center',
+                              padding: '8px 18px',
+                              border: '1px solid #bfc5cc',
+                              background: '#e3e6ea',
+                              color: '#444',
+                              fontSize: 14,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              boxShadow: 'none',
+                              transition: 'background 0.15s, color 0.15s',
+                            }}
+                            onClick={() => setShowCreateStudentSelectModal(true)}
+                          >
+                            <i className="fa fa-plus" style={{ fontSize: 13 }} /> Add students
+                          </button>
+                        </div>
+                        {onlineAssignedStudents.length > 0 && (
+                          <div style={{ minHeight: 50, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: onlineAssignedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef', marginTop: 0, maxHeight: 260, overflowY: 'auto' }}>
+                            {onlineAssignedStudents.map(studentId => {
+                              const student = students.find(s => s.id === studentId);
+                              return student ? (
+                                <span key={studentId} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e9ecef', borderRadius: 9, padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#2d3748', minHeight: 22, position: 'relative' }}>
+                                  <span
+                                    style={{ position: 'absolute', top: -8, right: -8, cursor: 'pointer', color: '#888', fontSize: 15, background: '#fff', borderRadius: '50%', boxShadow: '0 1px 4px #bbb', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, transition: 'color 0.15s' }}
+                                    onClick={() => setOnlineAssignedStudents(onlineAssignedStudents.filter(id => id !== studentId))}
+                                    onMouseEnter={e => (e.currentTarget.style.color = '#e74c3c')}
+                                    onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+                                    title="Remove student"
+                                  >
+                                    <i className="fa fa-times" />
+                                  </span>
+                                  <img src={getAvatarForUser(student)} alt={student.name} style={{ width: 14, height: 14, borderRadius: '50%', marginRight: 4, objectFit: 'cover', border: '1px solid #fff' }} />
+                                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 5, lineHeight: 1.1 }}>
+                                    <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748' }}>{student.name}</span>
+                                    <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 9 }}>{student.email}</span>
+                                  </span>
+                                  <span style={{ flex: 1 }} />
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Attach</label>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }}>
+                            <i className="ni ni-cloud-upload-96 mr-1" /> Upload
+                          </button>
+                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }}>
+                            <i className="ni ni-world-2 mr-1" /> Link
+                          </button>
+                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }}>
+                            <i className="ni ni-video-camera-2 mr-1" /> YouTube
+                          </button>
+                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }} onClick={() => setShowCreateDriveModal(true)}>
+                            <i className="ni ni-folder-17 mr-1" /> Google Drive
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                )}
                 {/* Quick Grade Setup Form - full width, stream style */}
-                <form onSubmit={handleQuickGradeCreate} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
-                  <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
-                      <select name="type" value={quickGradeForm.type} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }}>
-                        <option>Assignment</option>
-                        <option>Quiz</option>
-                        <option>Activity</option>
-                        <option>Project</option>
-                        <option>Exam</option>
-                      </select>
+                {showLiveSetup && (
+                  <form onSubmit={handleQuickGradeCreate} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
+                    <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
+                        <select name="type" value={quickGradeForm.type} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }}>
+                          <option>Assignment</option>
+                          <option>Quiz</option>
+                          <option>Activity</option>
+                          <option>Project</option>
+                          <option>Exam</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 2, minWidth: 260 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assessment Title</label>
+                        <input name="title" value={quickGradeForm.title} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter assessment title..." required />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
+                        <input name="points" type="number" min="1" value={quickGradeForm.points} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter the total points.." required />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <button type="submit" className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '8px 24px', marginTop: 24, boxShadow: '0 2px 8px #324cdd22' }}>
+                          <i className="fa fa-plus mr-2" /> Create
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ flex: 2, minWidth: 260 }}>
-                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assessment Title</label>
-                      <input name="title" value={quickGradeForm.title} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter assessment title..." required />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 120 }}>
-                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
-                      <input name="points" type="number" min="1" value={quickGradeForm.points} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter the total points.." required />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                      <button type="submit" className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '8px 24px', marginTop: 24, boxShadow: '0 2px 8px #324cdd22' }}>
-                        <i className="fa fa-plus mr-2" /> Create
-                      </button>
-                    </div>
-                  </div>
-                </form>
+                  </form>
+                )}
                 {/* Assessment Cards */}
                 <div style={{ width: '100%' }}>
                   {quickGradeAssessments.map(a => (
@@ -3921,17 +4182,6 @@ useEffect(() => {
                               
                               {/* QR Scanner Controls */}
                               <div style={{ marginBottom: 20 }}>
-                              <div style={{ marginBottom: 12 }}>
-                                <label style={{ marginRight: 8, fontWeight: 600 }}>Voice:</label>
-                                <select
-                                  value={voiceType}
-                                  onChange={e => setVoiceType(e.target.value)}
-                                  style={{ borderRadius: 8, padding: '4px 12px' }}
-                                >
-                                  <option value="female">Female</option>
-                                  <option value="male">Male</option>
-                                </select>
-                              </div>
                                 <button 
                                   className="btn btn-primary" 
                                   style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px', marginRight: 12 }}
@@ -3950,6 +4200,28 @@ useEffect(() => {
                               {isQrScannerOpen && (
                                 <div style={{ marginBottom: 20 }}>
                                   <div id="qr-reader" style={{ width: '100%', maxWidth: 400, height: 300 }} />
+                                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                    <button 
+                                      className="btn btn-danger" 
+                                      style={{ borderRadius: 8, fontWeight: 600, padding: '6px 16px', fontSize: 14 }}
+                                      onClick={stopQrScanner}
+                                    >
+                                      Stop Scanner
+                                    </button>
+                                    <div style={{ 
+                                      background: '#d4edda', 
+                                      color: '#155724', 
+                                      padding: '6px 12px', 
+                                      borderRadius: 6,
+                                      fontSize: 14,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 6
+                                    }}>
+                                      <i className="fa fa-circle" style={{ fontSize: 8, color: '#28a745' }} />
+                                      Scanner Active - Ready for next scan
+                                    </div>
+                                  </div>
                                   {qrScanError && (
                                     <div style={{ 
                                       background: '#f8d7da', 
@@ -3986,7 +4258,7 @@ useEffect(() => {
                                     <div>
                                       <div style={{ fontWeight: 600, fontSize: 15 }}>{scannedStudent.name}</div>
                                       <div style={{ fontSize: 14, color: '#6c757d' }}>ID: {scannedStudent.id}</div>
-                                      <div style={{ fontSize: 14, color: '#6c757d' }}>Program: {qrScanResult?.program}</div>
+                                      <div style={{ fontSize: 14, color: '#6c757d' }}>Program: {scannedStudent.program}</div>
                                     </div>
                                   </div>
                                   {scannedPhoto && (
@@ -4010,17 +4282,18 @@ useEffect(() => {
 
                               {/* Grading Form */}
                               <div style={{ marginBottom: 16 }}>
-                              <input
-                              ref={qrScoreRef}
-                                type="number"
-                                placeholder="Score"
-                                value={qrScore}
-                                onChange={e => {
-                                  setQRScore(e.target.value);
-                                  qrScoreRef.current = e.target.value;
-                                }}
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 120 }}
-                              />
+                                <div style={{ marginBottom: 12 }}>
+                                  <input
+                                    type="number"
+                                    placeholder="Score"
+                                    value={qrScore}
+                                    onChange={e => {
+                                      setQRScore(e.target.value);
+                                      qrScoreRef.current = e.target.value;
+                                    }}
+                                    style={{ borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 200 }}
+                                  />
+                                </div>
                                 <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <Dropdown isOpen={qrAttachmentDropdownOpen} toggle={() => setQRAttachmentDropdownOpen(!qrAttachmentDropdownOpen)}>
                                     <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -4079,13 +4352,15 @@ useEffect(() => {
                                   </option>
                                 ))}
                               </select>
-                              <input
-                                type="number"
-                                placeholder="Score"
-                                value={manualScore}
-                                onChange={e => setManualScore(e.target.value)}
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 120 }}
-                              />
+                              <div style={{ marginBottom: 12 }}>
+                                <input
+                                  type="number"
+                                  placeholder="Score"
+                                  value={manualScore}
+                                  onChange={e => setManualScore(e.target.value)}
+                                  style={{ borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 200 }}
+                                />
+                              </div>
                               <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Dropdown isOpen={manualAttachmentDropdownOpen} toggle={() => setManualAttachmentDropdownOpen(!manualAttachmentDropdownOpen)}>
                                   <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -4121,20 +4396,21 @@ useEffect(() => {
                           )}
 
                           {/* Grading Table */}
-                          <div style={{ width: '100%', overflowX: 'auto' }}>
-                            <table className="table" style={{ minWidth: 700, background: '#fff', borderRadius: 12 }}>
-                            <thead>
-                              <tr style={{ background: '#f8fafc' }}>
-                                <th>Student</th>
-                                <th>Score</th>
-                                <th>Attachment</th>
-                                <th>Notes</th>
-                                <th>Date Graded</th>
-                                <th>Actions</th>
-                              </tr>
-                            </thead>
-                              <tbody>
-                              {gradingRows.map((row, idx) => (
+                          {(gradingRows[selectedQuickGradeId] && gradingRows[selectedQuickGradeId].length > 0) ? (
+                            <div style={{ width: '100%', overflowX: 'auto' }}>
+                              <table className="table" style={{ minWidth: 700, background: '#fff', borderRadius: 12 }}>
+                              <thead>
+                                <tr style={{ background: '#f8fafc' }}>
+                                  <th>Student</th>
+                                  <th>Score</th>
+                                  <th>Attachment</th>
+                                  <th>Notes</th>
+                                  <th>Date Graded</th>
+                                  <th>Actions</th>
+                                </tr>
+                              </thead>
+                                <tbody>
+                                {(gradingRows[selectedQuickGradeId] || []).map((row, idx) => (
                                 editingGradeIdx === idx ? (
                                   <tr key={idx}>
                                     <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -4175,7 +4451,7 @@ useEffect(() => {
                                       <img src={row.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
                                       {row.name}
                                     </td>
-                                    <td>{row.score}</td>
+                                    <td>{row.score} / {row.points || 50}</td>
                                     <td>{row.attachment ? row.attachment.name : ''}</td>
                                     <td>{row.notes}</td>
                                     <td>{row.dateGraded}</td>
@@ -4189,6 +4465,13 @@ useEffect(() => {
                             </tbody>          
                             </table>
                           </div>
+                          ) : (
+                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+                              <i className="ni ni-chart-bar-32" style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.5 }} />
+                              <div style={{ fontSize: '16px', fontWeight: 600 }}>No Grades Yet</div>
+                              <div style={{ fontSize: '14px', marginTop: '8px' }}>Start grading students using QR or Manual grading above</div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -5418,12 +5701,12 @@ useEffect(() => {
                 {(() => {
                   const filtered = students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase()));
                   const allSelected = filtered.length > 0 && filtered.every(s => tempSelectedStudents.includes(s.id));
-              return (
+                  return (
                     <button
                       type="button"
                       className="unselect-all-btn"
                       style={{ background: 'none', border: 'none', color: '#5e72e4', fontWeight: 500, fontSize: 12, cursor: 'pointer', padding: '1px 6px', margin: 0 }}
-                  onClick={() => {
+                      onClick={() => {
                         if (allSelected) {
                           setTempSelectedStudents(prev => prev.filter(id => !filtered.map(s => s.id).includes(id)));
                         } else {
@@ -5450,12 +5733,12 @@ useEffect(() => {
                         onClick={e => {
                           // Prevent toggling twice if checkbox is clicked
                           if (e.target.type === 'checkbox') return;
-                    if (isSelected) {
+                          if (isSelected) {
                             setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                    } else {
+                          } else {
                             setTempSelectedStudents(prev => [...prev, s.id]);
-                    }
-                  }}
+                          }
+                        }}
                       >
                         <img
                           src={getAvatarForUser(s)}
@@ -5465,7 +5748,7 @@ useEffect(() => {
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: 15, color: '#2d3748' }}>{s.name}</div>
                           <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email}</div>
-                    </div>
+                        </div>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -5483,8 +5766,8 @@ useEffect(() => {
                       </div>
                     );
                   })
-                    )}
-                  </div>
+                )}
+              </div>
               {/* Selected students pills in modal */}
               <div style={{ minHeight: 50, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: tempSelectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef', marginTop: 12 }}>
                 {tempSelectedStudents.length === 0 ? (
@@ -5515,16 +5798,24 @@ useEffect(() => {
                   })
                 )}
               </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
+            </div>
+          </ModalBody>
+          <ModalFooter>
             <Button color="secondary" onClick={() => setShowCreateStudentSelectModal(false)}>
               Cancel
             </Button>
-            <Button color="primary" onClick={() => { setSelectedAnnouncementStudents(tempSelectedStudents); setShowStudentSelectModal(false); }}>
+            <Button color="primary" onClick={() => {
+              if (showOnlineSetup) {
+                setOnlineAssignedStudents(tempSelectedStudents);
+                setShowCreateStudentSelectModal(false);
+              } else {
+                setSelectedAnnouncementStudents(tempSelectedStudents);
+                setShowStudentSelectModal(false);
+              }
+            }}>
               Confirm
             </Button>
-        </ModalFooter>
+          </ModalFooter>
         </div>
       </Modal>
 

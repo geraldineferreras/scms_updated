@@ -22,6 +22,31 @@ const StudentNavbar = (props) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const isUserManagement = location.pathname === "/student/user-management";
+
+  // Responsive fix for dropdown menu on mobile
+  if (typeof window !== 'undefined') {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @media (max-width: 600px) {
+        .dropdown-menu-arrow.dropdown-menu.show {
+          position: fixed !important;
+          top: 70px !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          width: 90vw !important;
+          max-width: 350px !important;
+          z-index: 3000 !important;
+          background: #fff !important;
+          color: #222 !important;
+          box-shadow: 0 2px 16px rgba(44,62,80,0.15) !important;
+          border-radius: 12px !important;
+          overflow: visible !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   return (
     <>
       <Navbar
@@ -40,7 +65,8 @@ const StudentNavbar = (props) => {
       >
         <Container fluid>
           <Link
-            className="h4 mb-0 text-white text-uppercase d-none d-lg-inline-block"
+            className="h4 mb-0 text-white text-uppercase"
+            style={{ marginLeft: 16 }}
             to="/"
           >
             {props.brandText}

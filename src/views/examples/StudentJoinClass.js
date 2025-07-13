@@ -13,6 +13,8 @@ import {
   Col
 } from "reactstrap";
 
+const defaultAvatar = require("../../assets/img/theme/user-default.svg");
+
 export default function StudentJoinClass() {
   const [classCode, setClassCode] = useState("");
   const [error, setError] = useState("");
@@ -20,14 +22,25 @@ export default function StudentJoinClass() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
 
+  // Get user info from localStorage
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("scms_logged_in_user"));
+  } catch (e) {
+    user = null;
+  }
+  const userName = user?.full_name || user?.name || "Student User";
+  const userEmail = user?.email || "student@email.com";
+  const userAvatar = user?.profile_pic || defaultAvatar;
+
   React.useEffect(() => {
     if (inputRef.current) inputRef.current.focus();
   }, []);
 
-  const validateCode = (code) => /^[a-z0-9]{6,10}$/.test(code);
+  const validateCode = (code) => /^[a-zA-Z0-9]{5,8}$/.test(code);
 
   const handleInput = (e) => {
-    let val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    let val = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
     setClassCode(val);
     setError("");
     setSuccess("");
@@ -42,7 +55,7 @@ export default function StudentJoinClass() {
       return;
     }
     if (!validateCode(classCode)) {
-      setError("Class code must be 6–10 alphanumeric characters (lowercase).");
+      setError("Class code must be 5–8 alphanumeric characters, no spaces or symbols.");
       return;
     }
     setLoading(true);
@@ -63,69 +76,76 @@ export default function StudentJoinClass() {
   };
 
   return (
-    <>
-      <div className="header bg-gradient-info pb-6 pt-5 pt-md-7" />
-      <div className="container mt--7">
-        {/* Centered Form Card */}
-        <Row className="justify-content-center">
-          <Col xs={12} sm={10} md={8} lg={6} xl={5}>
-            <Card className="shadow-sm rounded p-0 animate__animated animate__fadeIn">
-              <CardBody className="p-4">
-                {error && <Alert color="danger" fade>{error}</Alert>}
-                {success && <Alert color="success" fade>{success}</Alert>}
-                <Form onSubmit={handleSubmit} autoComplete="off">
-                  <FormGroup>
-                    <Label htmlFor="classCode">Class Code</Label>
-                    <Input
-                      id="classCode"
-                      name="classCode"
-                      type="text"
-                      placeholder="e.g., b7p3r9"
-                      value={classCode}
-                      onChange={handleInput}
-                      autoFocus
-                      innerRef={inputRef}
-                      maxLength={10}
-                      minLength={6}
-                      required
-                      className={error ? "is-invalid" : ""}
-                    />
-                    <small className="form-text text-muted">
-                      6–10 lowercase letters or numbers. Example: <b>b7p3r9</b>
-                    </small>
-                  </FormGroup>
-                  <Button
-                    color="primary"
-                    type="submit"
-                    className="w-100 mt-2"
-                    disabled={loading}
-                    style={{ fontWeight: 600, fontSize: 17 }}
-                  >
-                    {loading ? <Spinner size="sm" className="me-2" /> : null}
-                    Join Class
-                  </Button>
-                  <Button
-                    type="button"
-                    color="link"
-                    className="d-block w-100 text-center mt-2"
-                    onClick={() => (window.location.href = "/student/index")}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                </Form>
-              </CardBody>
-            </Card>
-            {/* Optional: Recent Activity */}
-            <div className="text-center mt-4">
-              <div className="text-muted small mb-1">
-                Last joined: <b>OOP – BSIT 3A</b> on June 26, 2025
-              </div>
-              <a href="/student/index#my-classes" className="btn btn-link p-0">View My Classes</a>
+    <div className="container mt-5 mb-5" style={{ maxWidth: 480 }}>
+      <h3 className="mb-4" style={{ fontWeight: 600, fontSize: 20 }}>Join class</h3>
+      <Card className="mb-4" style={{ borderRadius: 12, border: '1px solid #e0e0e0' }}>
+        <CardBody className="d-flex align-items-center" style={{ padding: 24 }}>
+          <img
+            src={userAvatar}
+            alt="avatar"
+            style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", marginRight: 20, border: '1px solid #e0e0e0' }}
+          />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{userName}</div>
+            <div style={{ color: '#666', fontSize: 13 }}>{userEmail}</div>
+          </div>
+          <Button color="secondary" outline style={{ borderRadius: 24, fontWeight: 500, fontSize: 13, padding: '6px 18px' }} onClick={() => window.location.href = '/auth/login'}>
+            Switch account
+          </Button>
+        </CardBody>
+      </Card>
+      <Card className="mb-4" style={{ borderRadius: 12, border: '1px solid #e0e0e0' }}>
+        <CardBody style={{ padding: 24 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Class code</div>
+          <div style={{ color: '#666', fontSize: 13, marginBottom: 18 }}>Ask your teacher for the class code, then enter it here.</div>
+          {error && <Alert color="danger" fade>{error}</Alert>}
+          {success && <Alert color="success" fade>{success}</Alert>}
+          <Form onSubmit={handleSubmit} autoComplete="off">
+            <FormGroup>
+              <Input
+                id="classCode"
+                name="classCode"
+                type="text"
+                placeholder="Class code"
+                value={classCode}
+                onChange={handleInput}
+                autoFocus
+                innerRef={inputRef}
+                maxLength={8}
+                minLength={5}
+                required
+                style={{ fontSize: 16, padding: '14px 16px', borderRadius: 8, border: '1px solid #bdbdbd', marginBottom: 0 }}
+                className={error ? "is-invalid" : ""}
+              />
+            </FormGroup>
+            <div className="d-flex justify-content-end mt-3">
+              <Button
+                type="button"
+                color="link"
+                style={{ fontWeight: 500, fontSize: 14, color: '#1976d2', textDecoration: 'none' }}
+                onClick={() => (window.location.href = "/student/index")}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                color="primary"
+                type="submit"
+                style={{ fontWeight: 600, fontSize: 14, borderRadius: 8, marginLeft: 8, minWidth: 80 }}
+                disabled={loading}
+              >
+                {loading ? <Spinner size="sm" className="me-2" /> : null}
+                Join
+              </Button>
             </div>
-          </Col>
-        </Row>
-      </div>
-    </>
+          </Form>
+        </CardBody>
+      </Card>
+      <div className="mb-2" style={{ color: '#222', fontWeight: 500, fontSize: 13 }}>To sign in with a class code</div>
+      <ul style={{ color: '#444', fontSize: 13, marginBottom: 8, paddingLeft: 22 }}>
+        <li>Use an authorized account</li>
+        <li>Use a class code with 5-8 letters or numbers, and no spaces or symbols</li>
+      </ul>
+    </div>
   );
 } 

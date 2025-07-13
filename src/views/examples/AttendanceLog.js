@@ -562,6 +562,8 @@ const AttendanceLog = () => {
     <>
       <style>{attendanceDetailsHeaderStyle}</style>
       <Header showStats={false} />
+      {/* Header Background */}
+      <div className="header pb-8 pt-4 pt-md-7"></div>
       <Container className="mt-4" fluid>
         <Row style={{marginTop: '-14rem'}}>
           <Col md="12">

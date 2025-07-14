@@ -53,7 +53,7 @@ const themes = [
   { name: "Sunset", value: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", type: "Color Theme" },
   { name: "Deep Blue", value: "linear-gradient(135deg, #232526 0%, #414345 100%)", type: "Color Theme" },
   // SVG Themes
-  { name: "Classroom SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iIzQ0NGI1YSIvPjxyZWN0IHg9IjUwIiB5PSI4MCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI2U5NzZkMiIvPjxyZWN0IHg9IjE3MCIgeT0iNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiMzOWY5ZjEiLz48cmVjdCB4PSIxODAiIHk9Ijc1IiB3aWR0aD0iMjAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNmZmI0YTIiLz48cmVjdCB4PSIyMzAiIHk9IjgwIiB3aWR0aD0iNTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMTk3NmQyIi8+PHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjMyMCIgeT0iNDAiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzNSIgcng9IjUiIGZpbGw9IiM0NDRiNWEiLz48cmVjdCB4PSIzMzAiIHk9IjcwIiB3aWR0aD0iMzAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiMxOTc2ZDIiLz48cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMjAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjlkYzVjIi8+PC9zdmc+')", type: "SVG Theme" },
+  { name: "Classroom SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iIzQ0NGI1YSIvPjxyZWN0IHg9IjUwIiB5PSI4MCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI2U5NzZkMiIvPjxyZWN0IHg9IjE3MCIgeT0iNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiMzOWY5ZjEiLz48cmVjdCB4PSIyMzAiIHk9IjgwIiB3aWR0aD0iNTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMTk3NmQyIi8+PHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjMyMCIgeT0iNDAiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzNSIgcng9IjUiIGZpbGw9IiM0NDRiNWEiLz48cmVjdCB4PSIzMzAiIHk9IjcwIiB3aWR0aD0iMzAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiMxOTc2ZDIiLz48cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMjAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjlkYzVjIi8+PC9zdmc+')", type: "SVG Theme" },
   { name: "Books SVG", value: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDQwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iNjAiIHk9IjYwIiB3aWR0aD0iMzAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjNGNhZjUwIi8+PHJlY3QgeD0iMTAwIiB5PSI3MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjMwIiByeD0iNCIgZmlsbD0iI2Y5ZGM1YyIvPjxyZWN0IHg9IjE0MCIgeT0iODAiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiMxOTc2ZDIiLz48L3N2Zz4=')", type: "SVG Theme" },
   // Existing image/photo themes
   { name: "Night Sky", value: "url('https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80')", type: "Photo" },
@@ -605,39 +605,20 @@ const ClassroomDetail = () => {
     e.preventDefault();
     if (!quickGradeForm.title.trim() || !quickGradeForm.points) return;
     const newAssessmentId = Date.now();
+    // Only save to quickGradeAssessments as a Live Setup (no online fields)
     setQuickGradeAssessments(a => [
       ...a,
-      { ...quickGradeForm, id: newAssessmentId, createdAt: new Date().toISOString() }
+      { ...quickGradeForm, id: newAssessmentId, createdAt: new Date().toISOString(), isOnline: false }
     ]);
     // Initialize empty grading data for this assessment
     setGradingRows(prev => ({
       ...prev,
       [newAssessmentId]: []
     }));
+    // Only reset Live Setup form fields
     setQuickGradeForm({ type: 'Assignment', title: '', points: '' });
+    // Do NOT reset onlineAssignedStudents or onlineAttachments here
   };
-  // Add with other useState hooks
-  const [quickGradeMenuOpen, setQuickGradeMenuOpen] = useState(null);
-  const [selectedQuickGradeId, setSelectedQuickGradeId] = useState(null);
-
-
-  // Handler to open/close the menu for a specific card
-  const handleQuickGradeMenuOpen = (id) => setQuickGradeMenuOpen(quickGradeMenuOpen === id ? null : id);
-
-
-
-  // Handler for delete
-  const handleQuickGradeDelete = (id) => {
-    setQuickGradeAssessments(a => a.filter(x => x.id !== id));
-    // Remove grading data for this assessment
-    setGradingRows(prev => {
-      const newGradingRows = { ...prev };
-      delete newGradingRows[id];
-      return newGradingRows;
-    });
-    setQuickGradeMenuOpen(null);
-  };
-
   // Add state for edit assessment form
   const [quickGradeEditId, setQuickGradeEditId] = useState(null);
   const [quickGradeEditForm, setQuickGradeEditForm] = useState({ title: '', points: '' });
@@ -2484,6 +2465,108 @@ useEffect(() => {
   // Add state for Online Setup assigned students
   const [onlineAssignedStudents, setOnlineAssignedStudents] = useState([]);
 
+  // === Quick Grade Online Setup Attachments State and Handlers ===
+  const [onlineAttachments, setOnlineAttachments] = useState([]);
+  const [showOnlineLinkModal, setShowOnlineLinkModal] = useState(false);
+  const [showOnlineYouTubeModal, setShowOnlineYouTubeModal] = useState(false);
+  const [showOnlineDriveModal, setShowOnlineDriveModal] = useState(false);
+  const [onlineLinkInput, setOnlineLinkInput] = useState("");
+  const [onlineYouTubeInput, setOnlineYouTubeInput] = useState("");
+  const [onlineDriveInput, setOnlineDriveInput] = useState("");
+  const onlineFileInputRef = useRef();
+
+  const handleOnlineFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      setOnlineAttachments((prev) => [
+        ...prev,
+        ...files.map((file) => ({ type: "File", file, name: file.name }))
+      ]);
+    }
+    if (onlineFileInputRef.current) onlineFileInputRef.current.value = "";
+  };
+
+  const handleOnlineAddLink = () => {
+    if (onlineLinkInput.trim()) {
+      setOnlineAttachments((prev) => [
+        ...prev,
+        { type: "Link", url: onlineLinkInput.trim() }
+      ]);
+      setOnlineLinkInput("");
+      setShowOnlineLinkModal(false);
+    }
+  };
+
+  const handleOnlineAddYouTube = () => {
+    if (onlineYouTubeInput.trim()) {
+      setOnlineAttachments((prev) => [
+        ...prev,
+        { type: "YouTube", url: onlineYouTubeInput.trim() }
+      ]);
+      setOnlineYouTubeInput("");
+      setShowOnlineYouTubeModal(false);
+    }
+  };
+
+  const handleOnlineAddDrive = () => {
+    if (onlineDriveInput.trim()) {
+      setOnlineAttachments((prev) => [
+        ...prev,
+        { type: "Google Drive", url: onlineDriveInput.trim() }
+      ]);
+      setOnlineDriveInput("");
+      setShowOnlineDriveModal(false);
+    }
+  };
+
+  const handleRemoveOnlineAttachment = (idx) => {
+    setOnlineAttachments((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleOnlineSetupCreate = (e) => {
+    e.preventDefault();
+    if (!quickGradeForm.type || !quickGradeForm.points) return;
+    
+    const newAssessmentId = Date.now();
+    const newAssessment = {
+      ...quickGradeForm,
+      id: newAssessmentId,
+      createdAt: new Date().toISOString(),
+      assignedStudents: onlineAssignedStudents,
+      attachments: onlineAttachments,
+      isOnline: true
+    };
+    
+    setQuickGradeAssessments(a => [...a, newAssessment]);
+    
+    // Initialize empty grading data for this assessment
+    setGradingRows(prev => ({
+      ...prev,
+      [newAssessmentId]: []
+    }));
+    
+    // Only reset Online Setup form fields
+    setQuickGradeForm({ type: 'Assignment', title: '', points: '' });
+    setOnlineAssignedStudents([]);
+    setOnlineAttachments([]);
+    setShowOnlineSetup(false);
+    // Do NOT reset any Live Setup state here
+  };
+
+  // === Quick Grade State Variables ===
+  const [selectedQuickGradeId, setSelectedQuickGradeId] = useState(null);
+  const [quickGradeMenuOpen, setQuickGradeMenuOpen] = useState(null);
+
+  const handleQuickGradeMenuOpen = (id) => {
+    setQuickGradeMenuOpen(quickGradeMenuOpen === id ? null : id);
+  };
+
+  const handleQuickGradeDelete = (id) => {
+    // Add your delete logic here
+    console.log('Deleting quick grade:', id);
+    setQuickGradeMenuOpen(null);
+  };
+
   if (!classInfo) {
     return (
       <div>
@@ -3605,7 +3688,6 @@ useEffect(() => {
                                                 )}
                                           </div>
                                           
-                                          {/* Comment Text */}
                                           {console.log('Rendering comment:', { 
                                             announcementId: announcement.id, 
                                             idx, 
@@ -3857,7 +3939,7 @@ useEffect(() => {
                 </div>
                 {/* Online Setup Form for Assignment */}
                 {showOnlineSetup && quickGradeForm.type === 'Assignment' && (
-                  <form style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
+                  <form onSubmit={handleOnlineSetupCreate} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
                     <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
                       <div style={{ flex: 1, minWidth: 180 }}>
                         <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
@@ -3868,6 +3950,10 @@ useEffect(() => {
                           <option>Project</option>
                           <option>Exam</option>
                         </select>
+                      </div>
+                      <div style={{ flex: 2, minWidth: 260 }}>
+                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Title</label>
+                        <input name="title" value={quickGradeForm.title} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter assessment title..." required />
                       </div>
                       <div style={{ flex: 1, minWidth: 120 }}>
                         <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
@@ -3888,9 +3974,10 @@ useEffect(() => {
                       <textarea className="form-control" style={{ minHeight: 80, borderRadius: 8, fontSize: 14, background: '#fff' }} placeholder="Instructions (optional)" />
                     </div>
                     <div className="d-flex flex-row flex-wrap" style={{ gap: 24, marginBottom: 0, width: '100%' }}>
+                      {/* Assign to section */}
                       <div style={{ flex: 1, minWidth: 180 }}>
                         <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assign to</label>
-                        <div style={{ marginBottom: 10, marginTop: 2 }}>
+                        <div style={{ marginBottom: 10, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}>
                           <button
                             type="button"
                             className="btn"
@@ -3900,10 +3987,10 @@ useEffect(() => {
                               width: 'auto',
                               textAlign: 'center',
                               padding: '8px 18px',
-                              border: '1px solid #bfc5cc',
-                              background: '#e3e6ea',
+                              border: 'none',
+                              background: 'none',
                               color: '#444',
-                              fontSize: 14,
+                              fontSize: 18,
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 6,
@@ -3911,55 +3998,153 @@ useEffect(() => {
                               transition: 'background 0.15s, color 0.15s',
                             }}
                             onClick={() => setShowCreateStudentSelectModal(true)}
+                            aria-label="Add students"
                           >
-                            <i className="fa fa-plus" style={{ fontSize: 13 }} /> Add students
+                            <i className="fa fa-user-plus" style={{ fontSize: 20 }} />
                           </button>
+                          {onlineAssignedStudents.length > 0 && (
+                            <span style={{ background: '#e3eafe', color: '#324cdd', borderRadius: '50%', padding: '2px 12px', fontWeight: 700, fontSize: 18, minWidth: 32, minHeight: 32, textAlign: 'center', boxShadow: '0 2px 8px #324cdd11', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {onlineAssignedStudents.length}
+                            </span>
+                          )}
                         </div>
-                        {onlineAssignedStudents.length > 0 && (
-                          <div style={{ minHeight: 50, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: onlineAssignedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef', marginTop: 0, maxHeight: 260, overflowY: 'auto' }}>
-                            {onlineAssignedStudents.map(studentId => {
-                              const student = students.find(s => s.id === studentId);
-                              return student ? (
-                                <span key={studentId} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e9ecef', borderRadius: 9, padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#2d3748', minHeight: 22, position: 'relative' }}>
-                                  <span
-                                    style={{ position: 'absolute', top: -8, right: -8, cursor: 'pointer', color: '#888', fontSize: 15, background: '#fff', borderRadius: '50%', boxShadow: '0 1px 4px #bbb', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, transition: 'color 0.15s' }}
-                                    onClick={() => setOnlineAssignedStudents(onlineAssignedStudents.filter(id => id !== studentId))}
-                                    onMouseEnter={e => (e.currentTarget.style.color = '#e74c3c')}
-                                    onMouseLeave={e => (e.currentTarget.style.color = '#888')}
-                                    title="Remove student"
-                                  >
-                                    <i className="fa fa-times" />
-                                  </span>
-                                  <img src={getAvatarForUser(student)} alt={student.name} style={{ width: 14, height: 14, borderRadius: '50%', marginRight: 4, objectFit: 'cover', border: '1px solid #fff' }} />
-                                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 5, lineHeight: 1.1 }}>
-                                    <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748' }}>{student.name}</span>
-                                    <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 9 }}>{student.email}</span>
-                                  </span>
-                                  <span style={{ flex: 1 }} />
-                                </span>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
                       </div>
-                      <div style={{ flex: 1, minWidth: 180 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Attach</label>
-                        <div style={{ display: 'flex', gap: 12 }}>
-                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }}>
-                            <i className="ni ni-cloud-upload-96 mr-1" /> Upload
+                      {/* Attach section (large round buttons) */}
+                      <div style={{ flex: 1, minWidth: 180, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 24, marginTop: 2, justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-light"
+                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#324cdd', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
+                            title="Upload"
+                            onClick={() => onlineFileInputRef.current.click()}
+                            onMouseOver={e => { e.currentTarget.style.background = '#e3eafe'; e.currentTarget.style.color = '#222'; }}
+                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#324cdd'; }}
+                          >
+                            <i className="ni ni-cloud-upload-96" style={{ fontSize: 28, marginBottom: 2 }} />
+                            <span style={{ fontSize: 11, fontWeight: 600 }}>Upload</span>
                           </button>
-                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }}>
-                            <i className="ni ni-world-2 mr-1" /> Link
+                          <input type="file" style={{ display: 'none' }} ref={onlineFileInputRef} onChange={handleOnlineFileChange} />
+                          <button
+                            type="button"
+                            className="btn btn-light"
+                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#1976D2', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
+                            title="Link"
+                            onClick={() => setShowOnlineLinkModal(true)}
+                            onMouseOver={e => { e.currentTarget.style.background = '#e3eafe'; e.currentTarget.style.color = '#222'; }}
+                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#1976D2'; }}
+                          >
+                            <i className="ni ni-world-2" style={{ fontSize: 28, marginBottom: 2 }} />
+                            <span style={{ fontSize: 11, fontWeight: 600 }}>Link</span>
                           </button>
-                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }}>
-                            <i className="ni ni-video-camera-2 mr-1" /> YouTube
+                          <button
+                            type="button"
+                            className="btn btn-light"
+                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#FF0000', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
+                            title="YouTube"
+                            onClick={() => setShowOnlineYouTubeModal(true)}
+                            onMouseOver={e => { e.currentTarget.style.background = '#ffeaea'; e.currentTarget.style.color = '#b71c1c'; }}
+                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#FF0000'; }}
+                          >
+                            <i className="ni ni-video-camera-2" style={{ fontSize: 28, marginBottom: 2 }} />
+                            <span style={{ fontSize: 11, fontWeight: 600 }}>YouTube</span>
                           </button>
-                          <button type="button" className="btn btn-light" style={{ borderRadius: 10, fontWeight: 600, background: '#bfc5cc', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 120, fontSize: 15, boxShadow: 'none', padding: '6px 18px' }} onClick={() => setShowCreateDriveModal(true)}>
-                            <i className="ni ni-folder-17 mr-1" /> Google Drive
+                          <button
+                            type="button"
+                            className="btn btn-light"
+                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#4285F4', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
+                            title="Google Drive"
+                            onClick={() => setShowOnlineDriveModal(true)}
+                            onMouseOver={e => { e.currentTarget.style.background = '#e3f0fe'; e.currentTarget.style.color = '#222'; }}
+                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#4285F4'; }}
+                          >
+                            <i className="ni ni-folder-17" style={{ fontSize: 28, marginBottom: 2 }} />
+                            <span style={{ fontSize: 11, fontWeight: 600 }}>Drive</span>
                           </button>
                         </div>
                       </div>
                     </div>
+                    {onlineAttachments.length > 0 && (
+                      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                        {onlineAttachments.map((att, idx) => {
+                          const { preview, type, color } = getFileTypeIconOrPreview(att);
+                          const url = att.file ? URL.createObjectURL(att.file) : att.url;
+                          const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                          const displayName = isLink ? att.url : att.name;
+                          return (
+                            <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                  {type}
+                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
+                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                </div>
+                              </div>
+                              <button onClick={() => handleRemoveOnlineAttachment(idx)} style={{ fontSize: 18, marginLeft: 4, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>×</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <Modal isOpen={showOnlineLinkModal} toggle={() => setShowOnlineLinkModal(false)} centered>
+                      <ModalHeader toggle={() => setShowOnlineLinkModal(false)}>Add Link</ModalHeader>
+                      <ModalBody>
+                        <FormGroup>
+                          <Label>Link URL</Label>
+                          <Input
+                            type="url"
+                            value={onlineLinkInput}
+                            onChange={e => setOnlineLinkInput(e.target.value)}
+                            placeholder="https://example.com"
+                            onKeyDown={e => { if (e.key === 'Enter') handleOnlineAddLink(); }}
+                          />
+                        </FormGroup>
+                      </ModalBody>
+                      <ModalFooter>
+                        <Button color="secondary" onClick={() => setShowOnlineLinkModal(false)}>Cancel</Button>
+                        <Button color="primary" onClick={handleOnlineAddLink}>Add Link</Button>
+                      </ModalFooter>
+                    </Modal>
+                    <Modal isOpen={showOnlineYouTubeModal} toggle={() => setShowOnlineYouTubeModal(false)} centered>
+                      <ModalHeader toggle={() => setShowOnlineYouTubeModal(false)}>Add YouTube Video</ModalHeader>
+                      <ModalBody>
+                        <FormGroup>
+                          <Label>YouTube URL or Video ID</Label>
+                          <Input
+                            type="text"
+                            value={onlineYouTubeInput}
+                            onChange={e => setOnlineYouTubeInput(e.target.value)}
+                            placeholder="https://www.youtube.com/watch?v=VIDEO_ID or VIDEO_ID"
+                            onKeyDown={e => { if (e.key === 'Enter') handleOnlineAddYouTube(); }}
+                          />
+                        </FormGroup>
+                      </ModalBody>
+                      <ModalFooter>
+                        <Button color="secondary" onClick={() => setShowOnlineYouTubeModal(false)}>Cancel</Button>
+                        <Button color="primary" onClick={handleOnlineAddYouTube}>Add Video</Button>
+                      </ModalFooter>
+                    </Modal>
+                    <Modal isOpen={showOnlineDriveModal} toggle={() => setShowOnlineDriveModal(false)} centered>
+                      <ModalHeader toggle={() => setShowOnlineDriveModal(false)}>Add Google Drive File</ModalHeader>
+                      <ModalBody>
+                        <FormGroup>
+                          <Label>Google Drive URL</Label>
+                          <Input
+                            type="url"
+                            value={onlineDriveInput}
+                            onChange={e => setOnlineDriveInput(e.target.value)}
+                            placeholder="https://drive.google.com/file/d/..."
+                            onKeyDown={e => { if (e.key === 'Enter') handleOnlineAddDrive(); }}
+                          />
+                        </FormGroup>
+                      </ModalBody>
+                      <ModalFooter>
+                        <Button color="secondary" onClick={() => setShowOnlineDriveModal(false)}>Cancel</Button>
+                        <Button color="primary" onClick={handleOnlineAddDrive}>Add File</Button>
+                      </ModalFooter>
+                    </Modal>
                   </form>
                 )}
                 {/* Quick Grade Setup Form - full width, stream style */}
@@ -3994,7 +4179,12 @@ useEffect(() => {
                 )}
                 {/* Assessment Cards */}
                 <div style={{ width: '100%' }}>
-                  {quickGradeAssessments.map(a => (
+                  {(showLiveSetup
+                    ? quickGradeAssessments.filter(a => !a.isOnline)
+                    : showOnlineSetup
+                      ? quickGradeAssessments.filter(a => a.isOnline)
+                      : quickGradeAssessments
+                  ).map(a => (
                     <div
                       key={a.id}
                       className="shadow-sm"
@@ -4750,7 +4940,7 @@ useEffect(() => {
                                 padding: '8px 0',
                                 borderRadius: 8,
                                 transition: 'background-color 0.2s'
-                              }}
+                              }} 
                               onMouseOver={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
                               onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
                               onClick={() => setExpandedClasswork(expandedClasswork === assignment.id ? null : assignment.id)}
@@ -4932,10 +5122,10 @@ useEffect(() => {
                                                 {student.name}
                                               </Badge>
                                             ) : null;
-                                        })}
+                                          })}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
                                     
                                     {/* Comments Section */}
                                     <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 16, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
@@ -5229,7 +5419,7 @@ useEffect(() => {
               {previewAttachment.file && previewAttachment.file.type.startsWith('image/') ? (
                 <img 
                   src={URL.createObjectURL(previewAttachment.file)} 
-                  alt={previewAttachment.name} 
+                  alt={previewAttachment.name}
                   style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
                 />
               ) : previewAttachment.file && previewAttachment.file.type.startsWith('video/') ? (
@@ -5561,7 +5751,7 @@ useEffect(() => {
                       Download File
                   </Button>
                 </div>
-                </div>
+              </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <i className="ni ni-single-copy-04" style={{ fontSize: '48px', color: '#ccc', marginBottom: '16px' }} />
@@ -5578,10 +5768,10 @@ useEffect(() => {
                     }}
                   >
                     Download File
-                          </Button>
-      </div>
+                  </Button>
+                </div>
               )}
-        </div>
+            </div>
           )}
         </ModalBody>
       </Modal>
@@ -5861,59 +6051,6 @@ useEffect(() => {
           <Button color="secondary" onClick={() => setCropModalOpen(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
-      {/* Link Attachment Modal */}
-      <Modal isOpen={showLinkModal} toggle={() => setShowLinkModal(false)} centered>
-        <ModalHeader toggle={() => setShowLinkModal(false)} style={{ border: 'none' }}>Add Link</ModalHeader>
-        <ModalBody>
-          <FormGroup>
-            <Label for="linkInput">Link URL</Label>
-            <Input
-              id="linkInput"
-              type="text"
-              value={linkInput}
-              onChange={e => setLinkInput(e.target.value)}
-              placeholder="Paste your link here"
-              autoFocus
-            />
-            {linkError && <div style={{ color: 'red', marginTop: 6 }}>{linkError}</div>}
-          </FormGroup>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowLinkModal(false)}>
-            Cancel
-          </Button>
-          <Button color="primary" onClick={handleAddLink}>
-            Add Link
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Edit Link Attachment Modal */}
-      <Modal isOpen={showEditLinkModal} toggle={() => setShowEditLinkModal(false)} centered>
-        <ModalHeader toggle={() => setShowEditLinkModal(false)} style={{ border: 'none' }}>Add Link</ModalHeader>
-        <ModalBody>
-          <FormGroup>
-            <Label for="editLinkInput">Link URL</Label>
-            <Input
-              id="editLinkInput"
-              type="text"
-              value={editLinkInput}
-              onChange={e => setEditLinkInput(e.target.value)}
-              placeholder="Paste your link here"
-              autoFocus
-            />
-            {editLinkError && <div style={{ color: 'red', marginTop: 6 }}>{editLinkError}</div>}
-          </FormGroup>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowEditLinkModal(false)}>
-            Cancel
-          </Button>
-          <Button color="primary" onClick={handleEditAddLink}>
-            Add Link
-          </Button>
-        </ModalFooter>
-      </Modal>
 
       {/* Edit YouTube Attachment Modal */}
       <Modal isOpen={showEditYouTubeModal} toggle={() => setShowEditYouTubeModal(false)} centered>
@@ -5965,349 +6102,6 @@ useEffect(() => {
             Add File
           </Button>
         </ModalFooter>
-      </Modal>
-      {/* Student Select Modal */}
-      <Modal isOpen={showStudentSelectModal} toggle={() => setShowStudentSelectModal(false)} centered size="lg" style={{ borderRadius: 20, maxWidth: 700 }} contentClassName="border-0">
-        <div style={{ borderRadius: 20, background: '#fff', padding: 0, boxShadow: '0 8px 32px rgba(44,62,80,.12)' }}>
-          <ModalHeader toggle={() => setShowStudentSelectModal(false)} style={{ border: 'none', paddingBottom: 0, fontWeight: 700, fontSize: 18, background: 'transparent' }}>
-            Who can view this announcement?
-          </ModalHeader>
-          <ModalBody style={{ padding: 0 }}>
-            <div style={{ padding: 24, paddingTop: 12 }}>
-              <div style={{ position: 'relative', width: '100%', marginBottom: 18 }}>
-                <FaSearch style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#b0b7c3', fontSize: 16, pointerEvents: 'none' }} />
-                <Input
-                  placeholder="Search students..."
-                  value={studentSearch || ''}
-                  onChange={e => setStudentSearch(e.target.value)}
-                  style={{
-                    background: '#f7f8fa',
-                    borderRadius: 8,
-                    border: '1px solid #e9ecef',
-                    fontSize: 15,
-                    color: '#232b3b',
-                    padding: '8px 14px 8px 40px',
-                    boxShadow: '0 1px 2px rgba(44,62,80,0.03)',
-                    minWidth: 0,
-                    transition: 'border-color 0.2s, box-shadow 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#7b8cff';
-                    e.target.style.boxShadow = '0 0 0 2px #e9eaff';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e9ecef';
-                    e.target.style.boxShadow = '0 1px 2px rgba(44,62,80,0.03)';
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.borderColor = '#7b8cff';
-                  }}
-                  onMouseOut={(e) => {
-                    if (e.target !== document.activeElement) {
-                      e.target.style.borderColor = '#e9ecef';
-                    }
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontWeight: 600, color: '#222', fontSize: 12 }}>
-                  Students ({tempSelectedStudents.length})
-                </span>
-                {(() => {
-                  const filtered = students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase()));
-                  const allSelected = filtered.length > 0 && filtered.every(s => tempSelectedStudents.includes(s.id));
-                  return (
-                    <button
-                      type="button"
-                      className="unselect-all-btn"
-                      style={{ background: 'none', border: 'none', color: '#5e72e4', fontWeight: 500, fontSize: 12, cursor: 'pointer', padding: '1px 6px', margin: 0 }}
-                      onClick={() => {
-                        if (allSelected) {
-                          setTempSelectedStudents(prev => prev.filter(id => !filtered.map(s => s.id).includes(id)));
-                        } else {
-                          setTempSelectedStudents(prev => Array.from(new Set([...prev, ...filtered.map(s => s.id)])));
-                        }
-                      }}
-                    >
-                      {allSelected ? 'Unselect All' : 'Select All'}
-                    </button>
-                  );
-                })()}
-              </div>
-              <div style={{ maxHeight: 320, overflowY: 'auto', border: 'none', borderRadius: 12, background: '#f9fafd', padding: '0 16px 0 0', marginBottom: 8 }}>
-                {students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase())).length === 0 ? (
-                  <div className="text-center text-muted py-5">No students found</div>
-                ) : (
-                  students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase())).map((s) => {
-                    const isSelected = tempSelectedStudents.includes(s.id);
-                    return (
-                      <div
-                        key={s.id}
-                        className={`student-list-row${isSelected ? ' selected' : ''}`}
-                        style={{ display: 'flex', alignItems: 'center', padding: '6px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer', background: isSelected ? '#eaf4fb' : 'transparent' }}
-                        onClick={e => {
-                          // Prevent toggling twice if checkbox is clicked
-                          if (e.target.type === 'checkbox') return;
-                          if (isSelected) {
-                            setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                          } else {
-                            setTempSelectedStudents(prev => [...prev, s.id]);
-                          }
-                        }}
-                      >
-                        <img
-                          src={getAvatarForUser(s)}
-                          alt={s.name}
-                          style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover', border: '1px solid #e9ecef' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15, color: '#2d3748' }}>{s.name}</div>
-                          <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email}</div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              setTempSelectedStudents(prev => [...prev, s.id]);
-                            } else {
-                              setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                            }
-                          }}
-                          style={{ marginLeft: 10, cursor: 'pointer' }}
-                          aria-label={`Select ${s.name}`}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-              {/* Selected students pills in modal */}
-              <div style={{ minHeight: 50, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: tempSelectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef', marginTop: 12 }}>
-                {tempSelectedStudents.length === 0 ? (
-                  <div style={{ width: '100%', height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30, textAlign: 'center', gridColumn: '1 / -1', margin: '0 auto' }}>
-                    <FaUserPlus size={14} style={{ marginBottom: 2 }} />
-                    <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
-                  </div>
-                ) : (
-                  tempSelectedStudents.map(id => {
-                    const s = students.find(stu => stu.id === id);
-                    return s ? (
-                      <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e9ecef', borderRadius: 9, padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#2d3748', minHeight: 22 }}>
-                        <img src={getAvatarForUser(s)} alt={s.name} style={{ width: 14, height: 14, borderRadius: '50%', marginRight: 4, objectFit: 'cover', border: '1px solid #fff' }} />
-                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 5, lineHeight: 1.1 }}>
-                          <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748' }}>{s.name}</span>
-                          <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 9 }}>{s.email}</span>
-                        </span>
-                        <span style={{ flex: 1 }} />
-                        <FaTimes
-                          className="student-pill-x"
-                          style={{ marginLeft: 2, cursor: 'pointer', color: pillRemoveHoverId === id ? '#e74c3c' : '#7b8a9b', fontSize: 11 }}
-                          onClick={e => { e.stopPropagation(); setTempSelectedStudents(prev => prev.filter(sid => sid !== id)); }}
-                          onMouseEnter={() => setPillRemoveHoverId(id)}
-                          onMouseLeave={() => setPillRemoveHoverId(null)}
-                        />
-                      </span>
-                    ) : null;
-                  })
-                )}
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="secondary" onClick={() => setShowStudentSelectModal(false)}>
-              Cancel
-            </Button>
-            <Button color="primary" onClick={() => { setSelectedAnnouncementStudents(tempSelectedStudents); setShowStudentSelectModal(false); }}>
-              Confirm
-            </Button>
-          </ModalFooter>
-        </div>
-      </Modal>
-
-      {/* Edit Student Select Modal */}
-      <Modal isOpen={showEditStudentSelectModal} toggle={() => setShowEditStudentSelectModal(false)} centered size="lg" style={{ borderRadius: 20, maxWidth: 700 }} contentClassName="border-0">
-        <div style={{ borderRadius: 20, background: '#fff', padding: 0, boxShadow: '0 8px 32px rgba(44,62,80,.12)' }}>
-          <ModalHeader toggle={() => setShowEditStudentSelectModal(false)} style={{ border: 'none', paddingBottom: 0, fontWeight: 700, fontSize: 18, background: 'transparent' }}>
-            Who can view this announcement?
-          </ModalHeader>
-          <ModalBody style={{ padding: 0 }}>
-            <div style={{ padding: 24, paddingTop: 12 }}>
-              <div style={{ position: 'relative', width: '100%', marginBottom: 18 }}>
-                <FaSearch style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#b0b7c3', fontSize: 16, pointerEvents: 'none' }} />
-                <Input
-                  placeholder="Search students..."
-                  value={studentSearch || ''}
-                  onChange={e => setStudentSearch(e.target.value)}
-                  style={{
-                    background: '#f7f8fa',
-                    borderRadius: 8,
-                    border: '1px solid #e9ecef',
-                    fontSize: 15,
-                    color: '#232b3b',
-                    padding: '8px 14px 8px 40px',
-                    boxShadow: '0 1px 2px rgba(44,62,80,0.03)',
-                    minWidth: 0,
-                    transition: 'border-color 0.2s, box-shadow 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#7b8cff';
-                    e.target.style.boxShadow = '0 0 0 2px #e9eaff';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e9ecef';
-                    e.target.style.boxShadow = '0 1px 2px rgba(44,62,80,0.03)';
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.borderColor = '#7b8cff';
-                  }}
-                  onMouseOut={(e) => {
-                    if (e.target !== document.activeElement) {
-                      e.target.style.borderColor = '#e9ecef';
-                    }
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontWeight: 600, color: '#222', fontSize: 12 }}>
-                  Students ({tempSelectedStudents.length})
-                </span>
-                {(() => {
-                  const filtered = students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase()));
-                  const allSelected = filtered.length > 0 && filtered.every(s => tempSelectedStudents.includes(s.id));
-                  return (
-                    <button
-                      type="button"
-                      className="unselect-all-btn"
-                      style={{ background: 'none', border: 'none', color: '#5e72e4', fontWeight: 500, fontSize: 12, cursor: 'pointer', padding: '1px 6px', margin: 0 }}
-                      onClick={() => {
-                        if (allSelected) {
-                          setTempSelectedStudents(prev => prev.filter(id => !filtered.map(s => s.id).includes(id)));
-                        } else {
-                          setTempSelectedStudents(prev => Array.from(new Set([...prev, ...filtered.map(s => s.id)])));
-                        }
-                      }}
-                    >
-                      {allSelected ? 'Unselect All' : 'Select All'}
-                    </button>
-                  );
-                })()}
-              </div>
-              <div style={{ maxHeight: 320, overflowY: 'auto', border: 'none', borderRadius: 12, background: '#f9fafd', padding: '0 16px 0 0', marginBottom: 8 }}>
-                {students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase())).length === 0 ? (
-                  <div className="text-center text-muted py-5">No students found</div>
-                ) : (
-                  students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase())).map((s) => {
-                    const isSelected = tempSelectedStudents.includes(s.id);
-                    return (
-                      <div
-                        key={s.id}
-                        className={`student-list-row${isSelected ? ' selected' : ''}`}
-                        style={{ display: 'flex', alignItems: 'center', padding: '6px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer', background: isSelected ? '#eaf4fb' : 'transparent' }}
-                        onClick={e => {
-                          // Prevent toggling twice if checkbox is clicked
-                          if (e.target.type === 'checkbox') return;
-                          if (isSelected) {
-                            setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                          } else {
-                            setTempSelectedStudents(prev => [...prev, s.id]);
-                          }
-                        }}
-                      >
-                        <img
-                          src={getAvatarForUser(s)}
-                          alt={s.name}
-                          style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover', border: '1px solid #e9ecef' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15, color: '#2d3748' }}>{s.name}</div>
-                          <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email}</div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              setTempSelectedStudents(prev => [...prev, s.id]);
-                            } else {
-                              setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                            }
-                          }}
-                          style={{ marginLeft: 10, cursor: 'pointer' }}
-                          aria-label={`Select ${s.name}`}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-              {/* Selected students pills in modal */}
-              <div style={{ minHeight: 50, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: tempSelectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef', marginTop: 12 }}>
-                {tempSelectedStudents.length === 0 ? (
-                  <div style={{ width: '100%', height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30, textAlign: 'center', gridColumn: '1 / -1', margin: '0 auto' }}>
-                    <FaUserPlus size={14} style={{ marginBottom: 2 }} />
-                    <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
-                  </div>
-                ) : (
-                  tempSelectedStudents.map(id => {
-                    const s = students.find(stu => stu.id === id);
-                    return s ? (
-                      <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e9ecef', borderRadius: 9, padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#2d3748', minHeight: 22 }}>
-                        <img src={getAvatarForUser(s)} alt={s.name} style={{ width: 14, height: 14, borderRadius: '50%', marginRight: 4, objectFit: 'cover', border: '1px solid #fff' }} />
-                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 5, lineHeight: 1.1 }}>
-                          <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748' }}>{s.name}</span>
-                          <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 9 }}>{s.email}</span>
-                        </span>
-                        <span style={{ flex: 1 }} />
-                        <FaTimes
-                          className="student-pill-x"
-                          style={{ marginLeft: 2, cursor: 'pointer', color: pillRemoveHoverId === id ? '#e74c3c' : '#7b8a9b', fontSize: 11 }}
-                          onClick={e => { e.stopPropagation(); setTempSelectedStudents(prev => prev.filter(sid => sid !== id)); }}
-                          onMouseEnter={() => setPillRemoveHoverId(id)}
-                          onMouseLeave={() => setPillRemoveHoverId(null)}
-                        />
-                      </span>
-                    ) : null;
-                  })
-                )}
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="secondary" onClick={() => setShowEditStudentSelectModal(false)}>
-              Cancel
-            </Button>
-            <Button color="primary" onClick={() => { setEditSelectedStudents(tempSelectedStudents); setShowEditStudentSelectModal(false); }}>
-              Confirm
-            </Button>
-          </ModalFooter>
-        </div>
-      </Modal>
-
-      {/* Invite Student Modal */}
-      <Modal isOpen={showInviteModal} toggle={() => setShowInviteModal(false)} centered contentClassName="modal-content" style={{ borderRadius: 16 }}>
-        <div style={modalHeaderStyle('linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)')}>
-          <i className="ni ni-single-02" style={iconStyle}></i>
-          <span style={{ fontWeight: 700, fontSize: 20 }}>Invite Student</span>
-        </div>
-        <Form onSubmit={handleInviteSubmit} style={modalBodyStyle}>
-          <ModalBody style={{ background: 'transparent', padding: 0 }}>
-            <FormGroup>
-              <Label for="name" style={{ fontWeight: 600 }}>Name</Label>
-              <Input name="name" id="name" value={inviteForm.name} onChange={handleInviteChange} required style={{ borderRadius: 10, padding: '0.75rem' }} />
-            </FormGroup>
-            <FormGroup>
-              <Label for="email" style={{ fontWeight: 600 }}>Email</Label>
-              <Input type="email" name="email" id="email" value={inviteForm.email} onChange={handleInviteChange} required style={{ borderRadius: 10, padding: '0.75rem' }} />
-            </FormGroup>
-          </ModalBody>
-          <ModalFooter style={{ border: 'none', background: 'transparent' }}>
-            <Button color="secondary" onClick={() => setShowInviteModal(false)} style={{ borderRadius: 10, fontWeight: 600 }}>Cancel</Button>
-            <Button color="primary" type="submit" style={{ borderRadius: 10, fontWeight: 600, boxShadow: '0 2px 8px #43e97b55' }}>Invite</Button>
-          </ModalFooter>
-        </Form>
       </Modal>
 
       {/* Camera Modal */}

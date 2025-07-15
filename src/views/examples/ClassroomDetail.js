@@ -2864,6 +2864,15 @@ useEffect(() => {
           </NavItem>
           <NavItem>
             <NavLink
+              className={classnames({ active: activeTab === "class" })}
+              onClick={() => setActiveTab("class")}
+              style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
+            >
+              <i className="ni ni-hat-3 mr-2 text-primary"></i> Class
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
               className={classnames({ active: activeTab === "classwork" })}
               onClick={() => setActiveTab("classwork")}
               style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
@@ -4363,7 +4372,7 @@ useEffect(() => {
                               position: 'relative'
                             }}>
                               <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Live QR Code Scanner</div>
-                              <div style={{ fontSize: 14, color: '#6c757d', marginBottom: 16 }}>
+                              <div style={{ fontSize: 14, color: '#6c757d', marginBottom: 16, display: 'none' }}>
                                 Expected format:<br/>
                                 IDNo: [Student ID]<br/>
                                 Full Name: [Student Name]<br/>
@@ -4371,7 +4380,7 @@ useEffect(() => {
                               </div>
                               
                               {/* QR Scanner Controls */}
-                              <div style={{ marginBottom: 20 }}>
+                              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                                 <button 
                                   className="btn btn-primary" 
                                   style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px', marginRight: 12 }}
@@ -4387,45 +4396,47 @@ useEffect(() => {
                               </div>
 
                               {/* QR Scanner Container */}
-                              {isQrScannerOpen && (
-                                <div style={{ marginBottom: 20 }}>
-                                  <div id="qr-reader" style={{ width: '100%', maxWidth: 400, height: 300 }} />
-                                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                    <button 
-                                      className="btn btn-danger" 
-                                      style={{ borderRadius: 8, fontWeight: 600, padding: '6px 16px', fontSize: 14 }}
-                                      onClick={stopQrScanner}
-                                    >
-                                      Stop Scanner
-                                    </button>
-                                    <div style={{ 
-                                      background: '#d4edda', 
-                                      color: '#155724', 
-                                      padding: '6px 12px', 
-                                      borderRadius: 6,
-                                      fontSize: 14,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 6
-                                    }}>
-                                      <i className="fa fa-circle" style={{ fontSize: 8, color: '#28a745' }} />
-                                      Scanner Active - Ready for next scan
+                              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                {isQrScannerOpen && (
+                                  <div style={{ marginBottom: 20 }}>
+                                    <div id="qr-reader" style={{ width: '80%', maxWidth: 400, height: 300 }} />
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                      <button 
+                                        className="btn btn-danger" 
+                                        style={{ borderRadius: 8, fontWeight: 600, padding: '6px 16px', fontSize: 14 }}
+                                        onClick={stopQrScanner}
+                                      >
+                                        Stop Scanner
+                                      </button>
+                                      <div style={{ 
+                                        background: '#d4edda', 
+                                        color: '#155724', 
+                                        padding: '6px 12px', 
+                                        borderRadius: 6,
+                                        fontSize: 14,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6
+                                      }}>
+                                        <i className="fa fa-circle" style={{ fontSize: 8, color: '#28a745' }} />
+                                        Scanner Active - Ready for next scan
+                                      </div>
                                     </div>
+                                    {qrScanError && (
+                                      <div style={{ 
+                                        background: '#f8d7da', 
+                                        color: '#721c24', 
+                                        padding: '8px 12px', 
+                                        borderRadius: 6, 
+                                        marginTop: 8,
+                                        fontSize: 14 
+                                      }}>
+                                        {qrScanError}
+                                      </div>
+                                    )}
                                   </div>
-                                  {qrScanError && (
-                                    <div style={{ 
-                                      background: '#f8d7da', 
-                                      color: '#721c24', 
-                                      padding: '8px 12px', 
-                                      borderRadius: 6, 
-                                      marginTop: 8,
-                                      fontSize: 14 
-                                    }}>
-                                      {qrScanError}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                                )}
+                              </div>
 
                               {/* Scanned Student Info */}
                               {scannedStudent && (

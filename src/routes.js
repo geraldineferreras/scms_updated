@@ -63,6 +63,7 @@ import AssignmentDetailStudent from "views/examples/AssignmentDetailStudent.js";
 import StudentAttendance from "views/examples/StudentAttendance.js";
 import StudentExcuseLetter from "views/examples/StudentExcuseLetter.js";
 import StudentNotifications from "views/examples/StudentNotifications.js";
+import TeacherFastGrade from "views/examples/TeacherFastGrade.js";
 
 var routes = [
   {
@@ -245,6 +246,13 @@ var routes = [
     name: "Video Conferencing",
     icon: "ni ni-camera-compact text-purple",
     component: <TeacherVideoConferencing />,
+    layout: "/teacher",
+  },
+  {
+    path: "/fast-grade",
+    name: "Fast Grade",
+    icon: "fas fa-qrcode text-info fa-lg fa-fw",
+    component: <TeacherFastGrade />,
     layout: "/teacher",
   },
   {

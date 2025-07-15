@@ -48,6 +48,7 @@ import {
   Row,
   Col,
 } from "reactstrap";
+import FastGradeIcon from "../CustomIcons/UserManagementIcon";
 
 var ps;
 
@@ -62,6 +63,8 @@ const teacherModules = [
   { name: "Attendance", icon: "ni ni-check-bold text-green", path: "/attendance" },
   { name: "Recitation & Grades", icon: "ni ni-chart-bar-32 text-yellow", path: "/grades" },
   { name: "Excuse Management", icon: "ni ni-single-copy-04 text-pink", path: "/excuse-management" },
+  // Fast Grade module with custom icon
+  { name: "Fast Grade", icon: <FastGradeIcon style={{ marginRight: 8, verticalAlign: 'middle' }} />, path: "/fast-grade" },
 ];
 
 const TeacherSidebar = (props) => {

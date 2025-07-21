@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react"; // Force rebuild
 import { useParams } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import {
@@ -30,6 +30,7 @@ import {
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
+  UncontrolledDropdown,
   InputGroup,
   InputGroupText,
   ButtonGroup,
@@ -514,6 +515,9 @@ const ClassroomDetail = () => {
   // Add refs for visualizer
   const visualizerIntervalRef = useRef(null);
 
+  //
+  const [currentDraftId, setCurrentDraftId] = useState(null);
+
   // Visualizer functions
   const startVisualizer = () => {
     const bars = document.querySelectorAll('.visualizer-bar');
@@ -550,6 +554,9 @@ const ClassroomDetail = () => {
   // Add at the top of ClassroomDetail component:
   const [tempSelectedStudents, setTempSelectedStudents] = useState([]);
   
+  // Add classrooms state to load actual classrooms
+  const [classrooms, setClassrooms] = useState([]);
+  
   // Current user - in a real app, this would come from user context
   const currentUser = "Prof. Smith";
 
@@ -560,6 +567,7 @@ const ClassroomDetail = () => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showDraftsCollapse, setShowDraftsCollapse] = useState(false);
   const [showScheduledCollapse, setShowScheduledCollapse] = useState(false);
+  const [taskFormExpanded, setTaskFormExpanded] = useState(false);
 
   // Add this state at the top of ClassroomDetail component:
   const [classworkDropdownOpen, setClassworkDropdownOpen] = useState(null);
@@ -589,6 +597,26 @@ const ClassroomDetail = () => {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
+
+  // Load classrooms from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("teacherClasses");
+    if (saved) {
+      setClassrooms(JSON.parse(saved));
+    } else {
+      setClassrooms([]);
+    }
+  }, []);
+
+  // Load tasks from localStorage for current classroom
+  useEffect(() => {
+    const classroomKey = `classroom_tasks_${code}`;
+    const savedTasks = localStorage.getItem(classroomKey);
+    if (savedTasks) {
+      const parsedTasks = JSON.parse(savedTasks);
+      setTasks(parsedTasks);
+    }
+  }, [code]);
   
   // Add state for assignment dropdowns
   const [assignmentDropdowns, setAssignmentDropdowns] = useState({});
@@ -655,6 +683,41 @@ const ClassroomDetail = () => {
   const [voiceType, setVoiceType] = useState('female'); // or 'male' as default
   const [showQRGrading, setShowQRGrading] = useState(false);
   const [showManualGrading, setShowManualGrading] = useState(false);
+  
+  // Class Tasks state
+  const [tasks, setTasks] = useState([]);
+  const [taskForm, setTaskForm] = useState({
+    type: 'Assignment',
+    title: '',
+    text: '',
+    dueDate: '',
+    points: '',
+    allowComments: true,
+    attachments: [],
+    visibleTo: [],
+    postToClassrooms: ['current'],
+    submitted: false
+  });
+  const [taskAttachments, setTaskAttachments] = useState([]);
+  const [taskAssignedStudents, setTaskAssignedStudents] = useState([]);
+  const [taskDrafts, setTaskDrafts] = useState([]);
+  const [taskScheduled, setTaskScheduled] = useState([]);
+  const [showTaskDraftsCollapse, setShowTaskDraftsCollapse] = useState(false);
+  const [showTaskScheduledCollapse, setShowTaskScheduledCollapse] = useState(false);
+
+  const [showTaskLinkModal, setShowTaskLinkModal] = useState(false);
+  const [showTaskYouTubeModal, setShowTaskYouTubeModal] = useState(false);
+  const [showTaskDriveModal, setShowTaskDriveModal] = useState(false);
+  const [showTaskScheduleModal, setShowTaskScheduleModal] = useState(false);
+  const [showTaskOptionsModal, setShowTaskOptionsModal] = useState(false);
+  const [taskLinkInput, setTaskLinkInput] = useState('');
+  const [taskYouTubeInput, setTaskYouTubeInput] = useState('');
+  const [taskDriveInput, setTaskDriveInput] = useState('');
+  const [taskScheduleDate, setTaskScheduleDate] = useState('');
+  const [taskScheduleTime, setTaskScheduleTime] = useState('');
+  const [taskCommentsOpen, setTaskCommentsOpen] = useState({});
+  const [taskCommentInputs, setTaskCommentInputs] = useState({});
+  const taskFileInputRef = useRef();
   const [qrScore, setQRScore] = useState('');
   const qrScoreRef = useRef('');
   const qrNotesRef = useRef();
@@ -662,6 +725,11 @@ const ClassroomDetail = () => {
   const [qrNotes, setQRNotes] = useState('');
   const [qrAttachment, setQRAttachment] = useState(null);
   const [manualStudent, setManualStudent] = useState('');
+  
+  // Task attachment and emoji picker state
+  const [taskAttachmentDropdownOpen, setTaskAttachmentDropdownOpen] = useState(false);
+  const [taskEmojiPickerOpen, setTaskEmojiPickerOpen] = useState(false);
+  const taskEmojiPickerRef = useRef();
   const [manualScore, setManualScore] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [manualAttachment, setManualAttachment] = useState(null);
@@ -1300,6 +1368,18 @@ useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [emojiPickerOpen]);
+
+  // Task emoji picker click outside handler
+  useEffect(() => {
+    if (!taskEmojiPickerOpen) return;
+    function handleTaskEmojiClickOutside(event) {
+      if (taskEmojiPickerRef.current && !taskEmojiPickerRef.current.contains(event.target)) {
+        setTaskEmojiPickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleTaskEmojiClickOutside);
+    return () => document.removeEventListener("mousedown", handleTaskEmojiClickOutside);
+  }, [taskEmojiPickerOpen]);
 
   // Cleanup visualizer on unmount
   useEffect(() => {
@@ -2265,7 +2345,48 @@ useEffect(() => {
   const [scheduled, setScheduled] = useState([]);
 
   const handleScheduleAnnouncement = () => {
-    if (newAnnouncement.trim() && scheduleDate && scheduleTime) {
+    if (scheduleDate && scheduleTime) {
+      // Check if we're in the task context (Class Tasks tab)
+      if (activeTab === "class") {
+        setTaskScheduled([
+          ...taskScheduled,
+          {
+            id: Date.now() + Math.random(),
+            type: taskForm.type,
+            title: taskForm.title || 'Untitled Task',
+            text: taskForm.text || '',
+            dueDate: taskForm.dueDate || '',
+            points: taskForm.points || '',
+            allowComments: taskForm.allowComments,
+            attachments: taskAttachments,
+            assignedStudents: taskAssignedStudents,
+            scheduledFor: {
+              date: scheduleDate,
+              time: scheduleTime
+            }
+          }
+        ]);
+        // Clear task form
+        setTaskForm({
+          type: 'Assignment',
+          title: '',
+          text: '',
+          dueDate: '',
+          points: '',
+          allowComments: true,
+          attachments: [],
+          visibleTo: [],
+          submitted: false
+        });
+        setTaskAttachments([]);
+        setTaskAssignedStudents([]);
+        setScheduleDate('');
+        setScheduleTime('');
+        setShowScheduleModal(false);
+        alert("Task scheduled!");
+      } else {
+        // Handle announcement scheduling
+        if (newAnnouncement.trim()) {
       setScheduled([
         ...scheduled,
         {
@@ -2289,6 +2410,8 @@ useEffect(() => {
       setScheduleTime('');
       setShowScheduleModal(false);
       alert("Announcement scheduled!");
+        }
+      }
     }
   };
 
@@ -2336,6 +2459,57 @@ useEffect(() => {
     
     const interval = setInterval(checkScheduledAnnouncements, 60000);
     checkScheduledAnnouncements();
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-post scheduled tasks when time is reached
+  useEffect(() => {
+    const checkScheduledTasks = () => {
+      const now = new Date();
+      const currentTime = now.getTime();
+      
+      setTaskScheduled(prevTaskScheduled => {
+        const newTaskScheduled = [];
+        const toPost = [];
+        
+        prevTaskScheduled.forEach(item => {
+          const scheduledDateTime = new Date(`${item.scheduledFor.date}T${item.scheduledFor.time}`);
+          const scheduledTime = scheduledDateTime.getTime();
+          
+          if (currentTime >= scheduledTime) {
+            toPost.push(item);
+          } else {
+            newTaskScheduled.push(item);
+          }
+        });
+        
+        toPost.forEach(item => {
+          const newTask = {
+            id: Date.now() + Math.random(),
+            type: item.type,
+            title: item.title,
+            text: item.text,
+            dueDate: item.dueDate,
+            points: item.points,
+            allowComments: item.allowComments,
+            attachments: item.attachments || [],
+            assignedStudents: item.assignedStudents || [],
+            author: "Prof. Smith",
+            date: new Date().toISOString(),
+            isPinned: false,
+            isLiked: false,
+            likes: 0,
+            comments: []
+          };
+          setTasks(prev => [newTask, ...prev]);
+        });
+        
+        return newTaskScheduled;
+      });
+    };
+    
+    const interval = setInterval(checkScheduledTasks, 60000);
+    checkScheduledTasks();
     return () => clearInterval(interval);
   }, []);
 
@@ -2565,6 +2739,230 @@ useEffect(() => {
     // Add your delete logic here
     console.log('Deleting quick grade:', id);
     setQuickGradeMenuOpen(null);
+  };
+
+  // Class Tasks handlers
+  const handleTaskFormChange = (e) => {
+    const { name, value } = e.target;
+    setTaskForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePostTask = (e) => {
+    e.preventDefault();
+    
+    // Set submitted flag to true to show validation errors
+    setTaskForm(prev => ({ ...prev, submitted: true }));
+    
+    // Check required fields
+    if (!taskForm.title.trim() || !taskForm.points || !taskForm.text.trim()) {
+      return;
+    }
+    
+    const newTask = {
+      id: Date.now(),
+      ...taskForm,
+      author: 'Teacher',
+      date: new Date().toISOString(),
+      likes: 0,
+      isLiked: false,
+      isPinned: false,
+      comments: [],
+      attachments: [...taskAttachments]
+    };
+    
+    // Save task to selected classrooms
+    const selectedClassrooms = taskForm.postToClassrooms || ['current'];
+    
+    selectedClassrooms.forEach(classroomId => {
+      if (classroomId === 'current') {
+        // Save to current classroom's localStorage and update state
+        const classroomKey = `classroom_tasks_${code}`;
+        const existingTasks = JSON.parse(localStorage.getItem(classroomKey) || '[]');
+        const updatedTasks = [newTask, ...existingTasks];
+        localStorage.setItem(classroomKey, JSON.stringify(updatedTasks));
+        setTasks(prev => [newTask, ...prev]);
+      } else {
+        // Save to other classrooms using their code
+        const classroomKey = `classroom_tasks_${classroomId}`;
+        const existingTasks = JSON.parse(localStorage.getItem(classroomKey) || '[]');
+        const updatedTasks = [newTask, ...existingTasks];
+        localStorage.setItem(classroomKey, JSON.stringify(updatedTasks));
+      }
+    });
+    
+    // Remove the draft from drafts if we're editing one
+    if (currentDraftId) {
+      setTaskDrafts(prev => prev.filter(draft => draft.id !== currentDraftId));
+    }
+    
+    setTaskForm({
+      type: 'Assignment',
+      title: '',
+      text: '',
+      dueDate: '',
+      points: '',
+      allowComments: true,
+      attachments: [],
+      visibleTo: [],
+      postToClassrooms: ['current'],
+      submitted: false
+    });
+    setTaskAttachments([]);
+    setTaskAssignedStudents([]);
+    setCurrentDraftId(null); // Reset the current draft ID
+  };
+
+  const handleSaveTaskDraft = () => {
+    setTaskForm(prev => ({ ...prev, submitted: true }));
+    if (!taskForm.title.trim() || !taskForm.points || !taskForm.text.trim()) {
+      return;
+    }
+    const draft = {
+      id: currentDraftId || Date.now(),
+      ...taskForm,
+      lastEdited: new Date().toISOString(),
+      attachments: [...taskAttachments],
+      visibleTo: [...taskAssignedStudents]
+    };
+    setTaskDrafts(prev => {
+      if (currentDraftId) {
+        // Update existing draft
+        return prev.map(d => d.id === currentDraftId ? draft : d);
+      } else {
+        // Add new draft
+        return [draft, ...prev];
+      }
+    });
+    setTaskForm({
+      type: 'Assignment',
+      title: '',
+      text: '',
+      dueDate: '',
+      points: '',
+      allowComments: true,
+      attachments: [],
+      visibleTo: [],
+      postToClassrooms: ['current'],
+      submitted: false
+    });
+    setTaskAttachments([]);
+    setTaskAssignedStudents([]);
+    setCurrentDraftId(null); // <-- reset after save
+  };
+
+  const handleCancelTaskPost = () => {
+    setTaskForm({
+      type: 'Assignment',
+      title: '',
+      text: '',
+      dueDate: '',
+      points: '',
+      allowComments: true,
+      attachments: [],
+      visibleTo: [],
+      postToClassrooms: ['current'],
+      submitted: false
+    });
+    setTaskAttachments([]);
+    setTaskAssignedStudents([]);
+    setCurrentDraftId(null); // <-- reset after cancel
+  };
+
+  const handleTaskFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newAttachments = files.map(file => ({
+      file,
+      name: file.name,
+      type: 'File',
+      size: file.size
+    }));
+    setTaskAttachments(prev => [...prev, ...newAttachments]);
+  };
+
+  const handleRemoveTaskAttachment = (idx) => {
+    setTaskAttachments(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleLikeTask = (taskId) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, isLiked: !task.isLiked, likes: task.isLiked ? task.likes - 1 : task.likes + 1 }
+        : task
+    ));
+  };
+
+  const handlePinTask = (taskId) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, isPinned: !task.isPinned }
+        : task
+    ));
+  };
+
+  const handleEditTask = (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setTaskForm({
+        type: task.type,
+        title: task.title,
+        text: task.text,
+        dueDate: task.dueDate,
+        points: task.points,
+        allowComments: task.allowComments,
+        attachments: [],
+        visibleTo: []
+      });
+      setTaskAttachments(task.attachments || []);
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+    }
+  };
+
+  const handleDeleteTask = (taskId) => {
+    setTasks(prev => prev.filter(task => task.id !== taskId));
+  };
+
+  const handlePostTaskComment = (taskId) => {
+    const commentText = taskCommentInputs[taskId];
+    if (!commentText?.trim()) return;
+    
+    const newComment = {
+      id: Date.now(),
+      text: commentText,
+      author: 'Student',
+      date: new Date().toISOString()
+    };
+    
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, comments: [...(task.comments || []), newComment] }
+        : task
+    ));
+    
+    setTaskCommentInputs(prev => ({ ...prev, [taskId]: '' }));
+  };
+
+  const handleEditTaskComment = (taskId, commentIdx, text) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { 
+            ...task, 
+            comments: task.comments.map((comment, idx) => 
+              idx === commentIdx ? { ...comment, text } : comment
+            )
+          }
+        : task
+    ));
+  };
+
+  const handleDeleteTaskComment = (taskId, commentIdx) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { 
+            ...task, 
+            comments: task.comments.filter((_, idx) => idx !== commentIdx)
+          }
+        : task
+    ));
   };
 
   if (!classInfo) {
@@ -2868,7 +3266,7 @@ useEffect(() => {
               onClick={() => setActiveTab("class")}
               style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
             >
-              <i className="ni ni-hat-3 mr-2 text-primary"></i> Class
+              <i className="ni ni-tag mr-2 text-warning"></i> Class Tasks
             </NavLink>
           </NavItem>
           <NavItem>
@@ -3318,20 +3716,55 @@ useEffect(() => {
                 </Form>
                  )} {/* Schedule Modal */}
                   <Modal isOpen={showScheduleModal} toggle={() => setShowScheduleModal(false)}>
-                    <ModalHeader toggle={() => setShowScheduleModal(false)} style={{ fontWeight: 700, fontSize: 18 }}>Schedule Announcement</ModalHeader>
+                    <ModalHeader toggle={() => setShowScheduleModal(false)} style={{ fontWeight: 700, fontSize: 18 }}>Schedule Task</ModalHeader>
                     <ModalBody>
                       <div style={{ marginBottom: 16 }}>
                         <label style={{ fontWeight: 600, fontSize: 15 }}>Date</label>
-                        <Input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }} />
+                        <Input 
+                          type="date" 
+                          value={scheduleDate} 
+                          onChange={e => setScheduleDate(e.target.value)} 
+                          min={new Date().toISOString().split('T')[0]}
+                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }} 
+                        />
                       </div>
                       <div style={{ marginBottom: 16 }}>
                         <label style={{ fontWeight: 600, fontSize: 15 }}>Time</label>
-                        <Input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }} />
+                        <Input 
+                          type="time" 
+                          value={scheduleTime} 
+                          onChange={e => {
+                            const selectedTime = e.target.value;
+                            const selectedDate = scheduleDate;
+                            const now = new Date();
+                            const today = now.toISOString().split('T')[0];
+                            
+                            if (selectedDate === today) {
+                              const currentTime = now.toTimeString().slice(0, 5);
+                              if (selectedTime <= currentTime) {
+                                alert('Please select a future time for today\'s date.');
+                                return;
+                              }
+                            }
+                            setScheduleTime(selectedTime);
+                          }} 
+                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }} 
+                        />
                     </div>
                     </ModalBody>
                     <ModalFooter>
                       <Button color="secondary" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
-                      <Button color="primary" onClick={handleScheduleAnnouncement} disabled={!scheduleDate || !scheduleTime || !newAnnouncement.trim()}>Schedule</Button>
+                      <Button 
+                        color="primary" 
+                        onClick={handleScheduleAnnouncement} 
+                        disabled={!scheduleDate || !scheduleTime}
+                        style={{
+                          opacity: (!scheduleDate || !scheduleTime) ? 0.6 : 1,
+                          cursor: (!scheduleDate || !scheduleTime) ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        Schedule
+                      </Button>
                     </ModalFooter>
                   </Modal>
                 {/* Announcements List */}
@@ -4682,6 +5115,714 @@ useEffect(() => {
             </Card>
           </TabPane>
 
+          {/* Class Tasks Tab */}
+          <TabPane tabId="class">
+            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
+              <CardBody>
+                <h4 className="mb-4" style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1 }}>Class Tasks <i className="ni ni-tag text-warning ml-2" /></h4>
+                {activeTab === "class" && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8, gap: 2 }}>
+                    <Button
+                      onClick={() => { setShowTaskScheduledCollapse(!showTaskScheduledCollapse); setShowTaskDraftsCollapse(false); }}
+                      style={{
+                        borderRadius: 6,
+                        fontWeight: 500,
+                        fontSize: 13,
+                        padding: '4px 12px',
+                        minHeight: 'auto',
+                        lineHeight: 1.2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: showTaskScheduledCollapse ? '#5E72E4' : '#fff',
+                        color: showTaskScheduledCollapse ? '#fff' : '#222',
+                        border: showTaskScheduledCollapse ? '1.5px solid #5E72E4' : '1.5px solid #222',
+                        boxShadow: showTaskScheduledCollapse ? '0 2px 8px #324cdd22' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <FaRegCalendarAlt style={{ fontSize: 15, marginRight: 4 }} /> Scheduled
+                    </Button>
+                    <Button
+                      onClick={() => { setShowTaskDraftsCollapse(!showTaskDraftsCollapse); setShowTaskScheduledCollapse(false); }}
+                      style={{
+                        borderRadius: 6,
+                        fontWeight: 500,
+                        fontSize: 13,
+                        padding: '4px 12px',
+                        minHeight: 'auto',
+                        lineHeight: 1.2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: showTaskDraftsCollapse ? '#5E72E4' : '#fff',
+                        color: showTaskDraftsCollapse ? '#fff' : '#222',
+                        border: showTaskDraftsCollapse ? '1.5px solid #5E72E4' : '1.5px solid #222',
+                        boxShadow: showTaskDraftsCollapse ? '0 2px 8px #324cdd22' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <FaRegFileAlt style={{ fontSize: 15, marginRight: 4 }} /> Drafts
+                    </Button>
+                  </div>
+                )}
+                {activeTab === "class" && showTaskScheduledCollapse && (
+                  <Collapse isOpen={showTaskScheduledCollapse}>
+                    <Card style={{ marginBottom: 16, borderRadius: 12, boxShadow: '0 2px 8px #324cdd11' }}>
+                      <CardBody style={{ maxHeight: 320, overflowY: 'auto' }}>
+                        <h5>Scheduled Tasks</h5>
+                        {taskScheduled.length === 0 ? (
+                          <div style={{ color: '#888' }}>No scheduled tasks.</div>
+                        ) : (
+                          [...taskScheduled].sort((a, b) => {
+                            const aDate = new Date(a.scheduledFor?.date + ' ' + a.scheduledFor?.time);
+                            const bDate = new Date(b.scheduledFor?.date + ' ' + b.scheduledFor?.time);
+                            return aDate - bDate;
+                          }).map((item, idx) => (
+                            <div key={idx} 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between', 
+                                padding: '8px 12px',
+                                borderBottom: '1px solid #e9ecef', 
+                                background: '#fff',
+                                borderRadius: 8,
+                                marginBottom: 6,
+                                boxShadow: '0 1px 4px #324cdd08',
+                                cursor: 'default',
+                                transition: 'background 0.13s',
+                                fontFamily: 'inherit',
+                                fontSize: 14,
+                                color: '#232b3b',
+                                fontWeight: 600
+                              }}
+                            >
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 15, color: '#232b3b', marginBottom: 2, fontFamily: 'inherit', letterSpacing: 0.5 }}>{item.title || '(No Title)'}</div>
+                                <div style={{ fontWeight: 500, fontSize: 13, color: '#232b3b', opacity: 0.85, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
+                                  {truncate(item.text, 60)}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#8898AA', marginTop: 2 }}>
+                                  Scheduled for {item.scheduledFor.date} at {item.scheduledFor.time}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12 }}>
+                                    <i className="fa fa-paperclip" style={{ marginRight: 3, fontSize: 12 }} />
+                                    {item.attachments && item.attachments.length ? `${item.attachments.length} attachment${item.attachments.length !== 1 ? 's' : ''}` : 'No attachments'}
+                                  </span>
+                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center' }}>
+                                    <i className="fa fa-users" style={{ marginRight: 3, fontSize: 12 }} />
+                                    {item.visibleTo && item.visibleTo.length > 0
+                                      ? `${item.visibleTo.length} student${item.visibleTo.length !== 1 ? 's' : ''} selected`
+                                      : '0 students selected'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </CardBody>
+                    </Card>
+                  </Collapse>
+                )}
+                {activeTab === "class" && (
+                  <Collapse isOpen={showTaskDraftsCollapse}>
+                    <Card style={{ marginBottom: 16, borderRadius: 12, boxShadow: '0 2px 8px #324cdd11' }}>
+                      <CardBody style={{ maxHeight: 320, overflowY: 'auto' }}>
+                        <h5>Draft Tasks</h5>
+                        {taskDrafts.length === 0 ? (
+                          <div style={{ color: '#888' }}>No drafts saved.</div>
+                        ) : (
+                          [...taskDrafts].sort((a, b) => {
+                            const aDate = new Date(a.lastEdited);
+                            const bDate = new Date(b.lastEdited);
+                            return bDate - aDate;
+                          }).map((draft, idx) => (
+                            <div key={idx} 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'flex-start', 
+                                justifyContent: 'space-between', 
+                                padding: '8px 12px',
+                                borderBottom: '1px solid #e9ecef', 
+                                background: currentDraftId === draft.id ? '#f8faff' : '#fff',
+                                borderRadius: 8,
+                                marginBottom: 6,
+                                boxShadow: currentDraftId === draft.id ? '0 2px 8px #324cdd15' : '0 1px 4px #324cdd08',
+                                cursor: 'pointer',
+                                transition: 'background 0.13s',
+                                fontFamily: 'inherit',
+                                fontSize: 14,
+                                color: '#232b3b',
+                                fontWeight: 600,
+                                border: currentDraftId === draft.id ? '1px solid #bfcfff' : 'none'
+                              }}
+                              onClick={() => {
+                                setTaskForm({
+                                  type: draft.type || 'Assignment',
+                                  title: draft.title || '',
+                                  text: draft.text || '',
+                                  dueDate: draft.dueDate || '',
+                                  points: draft.points || '',
+                                  allowComments: draft.allowComments !== undefined ? draft.allowComments : true,
+                                  attachments: draft.attachments || [],
+                                  visibleTo: draft.visibleTo || [],
+                                  postToClassrooms: draft.postToClassrooms || ['current'],
+                                  submitted: false
+                                });
+                                setTaskAttachments(draft.attachments || []);
+                                setTaskAssignedStudents(draft.visibleTo || []);
+                                setTaskFormExpanded(true);
+                                setCurrentDraftId(draft.id); 
+                              }}
+                            >
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 15, color: '#232b3b', marginBottom: 2, fontFamily: 'inherit', letterSpacing: 0.5 }}>{draft.title || '(No Title)'}</div>
+                                <div style={{ fontWeight: 500, fontSize: 13, color: '#232b3b', opacity: 0.85, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
+                                  {truncate(draft.text, 60)}
+                                </div>
+                                <div style={{ fontSize: 12, color: '#7D8FA9', marginTop: 2, display: 'flex', gap: 12, alignItems: 'center' }}>
+                                  <span><b>Type:</b> {draft.type || 'Assignment'}</span>
+                                  <span><b>Points:</b> {draft.points || '-'}</span>
+                                  <span><b>Due:</b> {draft.dueDate || '-'}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12 }}>
+                                    <i className="fa fa-paperclip" style={{ marginRight: 3, fontSize: 12 }} />
+                                    {draft.attachments && draft.attachments.length ? `${draft.attachments.length} attachment${draft.attachments.length !== 1 ? 's' : ''}` : 'No attachments'}
+                                  </span>
+                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center' }}>
+                                    <i className="fa fa-users" style={{ marginRight: 3, fontSize: 12 }} />
+                                    {draft.visibleTo && draft.visibleTo.length > 0
+                                      ? `${draft.visibleTo.length} student${draft.visibleTo.length !== 1 ? 's' : ''} selected`
+                                      : '0 students selected'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 11, color: '#8898AA', marginLeft: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                Last edited<br />
+                                {formatRelativeTime(draft.lastEdited)}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </CardBody>
+                    </Card>
+                  </Collapse>
+                )}
+                {activeTab === "class" && (
+                  <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
+                                          <div style={{ fontWeight: 700, fontSize: 14, letterSpacing: 0.5, color: '#111', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <i className="ni ni-tag" style={{ fontSize: 20, color: '#f39c12' }} />
+                          {currentDraftId ? 'Edit Draft Task' : 'Create New Task'}
+                          {currentDraftId && (
+                            <span style={{ 
+                              background: '#e3eafe', 
+                              color: '#324cdd', 
+                              padding: '2px 8px', 
+                              borderRadius: 12, 
+                              fontSize: 11, 
+                              fontWeight: 600,
+                              marginLeft: 8
+                            }}>
+                              Editing Draft
+                            </span>
+                          )}
+                        </div>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {taskFormExpanded && (
+                            <>
+                              {taskAssignedStudents.length > 0 && (
+                                <span style={{ background: '#e3eafe', color: '#324cdd', borderRadius: '50%', padding: '1px 6px', fontWeight: 600, fontSize: 11, minWidth: 18, minHeight: 18, textAlign: 'center', boxShadow: '0 2px 8px #324cdd11', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {taskAssignedStudents.length}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="btn"
+                                style={{
+                                  borderRadius: 6,
+                                  fontWeight: 600,
+                                  width: 'auto',
+                                  textAlign: 'center',
+                                  padding: '6px 12px',
+                                  border: 'none',
+                                  background: 'none',
+                                  color: '#444',
+                                  fontSize: 14,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  boxShadow: 'none',
+                                  transition: 'background 0.15s, color 0.15s',
+                                }}
+                                onClick={() => setShowCreateStudentSelectModal(true)}
+                                aria-label="Add students"
+                              >
+                                <i className="fa fa-user-plus" style={{ fontSize: 16 }} />
+                              </button>
+                            </>
+                          )}
+                        {!taskFormExpanded ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            style={{
+                              borderRadius: 8,
+                              fontWeight: 700,
+                              fontSize: 14,
+                              padding: '8px 16px',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #667eea 0%, #324cdd 100%)',
+                              color: '#fff',
+                              boxShadow: '0 2px 8px #667eea33',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              transition: 'all 0.15s',
+                            }}
+                            onClick={() => setTaskFormExpanded(true)}
+                            aria-label="Create task"
+                          >
+                            <i className="ni ni-tag" style={{ fontSize: 16 }} />
+                            Create Task
+                          </button>
+                        ) : null}
+
+                      </div>
+                    </div>
+                    <Collapse isOpen={taskFormExpanded}>
+                      <Form onSubmit={handlePostTask}>
+                      <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
+                        <div style={{ flex: 1, minWidth: 180 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Task Type</label>
+                          <select name="type" value={taskForm.type} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }}>
+                            <option>Assignment</option>
+                            <option>Activity</option>
+                            <option>Recitation</option>
+                            <option>Quiz</option>
+                            <option>Exam</option>
+                            <option>Performance Task</option>
+                            <option>Project</option>
+                            <option>Material</option>
+                          </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Post to Classrooms</label>
+                          <select 
+                            multiple 
+                            value={taskForm.postToClassrooms || []} 
+                            onChange={(e) => {
+                              const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                              setTaskForm(prev => ({ ...prev, postToClassrooms: selectedOptions }));
+                            }}
+                            className="form-control" 
+                            style={{ 
+                              borderRadius: 8, 
+                              fontSize: 14, 
+                              background: '#f8fafc', 
+                              border: '1px solid #bfcfff',
+                              minHeight: '80px'
+                            }}
+                          >
+                            <option value="current">Current Classroom</option>
+                            {classrooms.map((classroom, index) => (
+                              <option key={classroom.id || index} value={classroom.code}>
+                                {classroom.name || classroom.title || `Classroom ${index + 1}`}
+                              </option>
+                            ))}
+                          </select>
+                          <small style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                            Hold Ctrl/Cmd to select multiple classrooms
+                          </small>
+                        </div>
+                        <div style={{ flex: 2, minWidth: 260 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Title *</label>
+                          <input 
+                            name="title" 
+                            value={taskForm.title} 
+                            onChange={handleTaskFormChange} 
+                            className="form-control" 
+                            style={{ 
+                              borderRadius: 8, 
+                              fontSize: 14, 
+                              background: '#f8fafc',
+                              border: taskForm.submitted && !taskForm.title.trim() ? '1px solid #dc3545' : '1px solid #bfcfff'
+                            }} 
+                            placeholder="Enter task title..." 
+                            required
+                          />
+                          {taskForm.submitted && !taskForm.title.trim() && (
+                            <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
+                              Task title is required
+                            </small>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 160 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Due Date</label>
+                          <input name="dueDate" type="date" value={taskForm.dueDate} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 120 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Points *</label>
+                          <input 
+                            name="points" 
+                            type="number" 
+                            min="1" 
+                            value={taskForm.points} 
+                            onChange={handleTaskFormChange} 
+                            className="form-control" 
+                            style={{ 
+                              borderRadius: 8, 
+                              fontSize: 14, 
+                              background: '#f8fafc',
+                              border: taskForm.submitted && !taskForm.points ? '1px solid #dc3545' : '1px solid #bfcfff'
+                            }} 
+                            placeholder="Points..." 
+                            required
+                          />
+                          {taskForm.submitted && !taskForm.points && (
+                            <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
+                              Points are required
+                            </small>
+                          )}
+                        </div>
+                      </div>
+                      <FormGroup className="mb-3">
+                        <Input
+                          type="textarea"
+                          name="text"
+                          value={taskForm.text}
+                          onChange={handleTaskFormChange}
+                          placeholder="What would you like to share with your class?"
+                          style={{ fontSize: 14, minHeight: 80, padding: 10, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
+                          required
+                        />
+                      </FormGroup>
+                      <div className="d-flex flex-row flex-wrap" style={{ gap: 24, marginBottom: 0, width: '100%' }}>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 2, justifyContent: 'flex-start' }}>
+                          <input type="file" style={{ display: 'none' }} ref={taskFileInputRef} onChange={handleTaskFileChange} />
+                          <Dropdown isOpen={taskAttachmentDropdownOpen} toggle={() => setTaskAttachmentDropdownOpen(!taskAttachmentDropdownOpen)}>
+                            <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <FaPaperclip />
+                            </DropdownToggle>
+                            <DropdownMenu>
+                              <DropdownItem onClick={() => { setTaskAttachmentDropdownOpen(false); taskFileInputRef.current.click(); }}>File</DropdownItem>
+                              <DropdownItem onClick={() => { setTaskAttachmentDropdownOpen(false); setShowTaskLinkModal(true); }}>Link</DropdownItem>
+                              <DropdownItem onClick={() => { setTaskAttachmentDropdownOpen(false); setShowTaskYouTubeModal(true); }}>YouTube</DropdownItem>
+                              <DropdownItem onClick={() => { setTaskAttachmentDropdownOpen(false); setShowTaskDriveModal(true); }}>Google Drive</DropdownItem>
+                            </DropdownMenu>
+                          </Dropdown>
+                          <div style={{ position: 'relative' }}>
+                            <Button color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setTaskEmojiPickerOpen(!taskEmojiPickerOpen)}>
+                              <FaSmile />
+                            </Button>
+                            {taskEmojiPickerOpen && (
+                              <div ref={taskEmojiPickerRef} className="task-emoji-dropdown" style={{ position: 'absolute', top: 40, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 10, minWidth: 280, maxWidth: 280, width: 280, maxHeight: 200, overflowY: 'auto' }}>
+                                {emojiList.map(emoji => (
+                                  <span key={emoji} style={{ fontSize: 22, cursor: 'pointer', margin: 4 }} onClick={() => {
+                                    setTaskForm(prev => ({ ...prev, text: prev.text + emoji }));
+                                    setTaskEmojiPickerOpen(false);
+                                  }}>{emoji}</span>
+                                ))}
+                                <style>{`
+                                  @media (max-width: 600px) {
+                                    .task-emoji-dropdown {
+                                      min-width: 180px !important;
+                                      max-width: 180px !important;
+                                      width: 180px !important;
+                                    }
+                                  }
+                                `}</style>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {taskAttachments.length > 0 && (
+                        <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' }}>
+                          {taskAttachments.map((att, idx) => {
+                            const { preview, type, color } = getFileTypeIconOrPreview(att);
+                            const url = att.file ? URL.createObjectURL(att.file) : att.url;
+                            const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                            const displayName = isLink ? att.url : att.name;
+                            return (
+                              <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                  <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                    {type}
+                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
+                                    {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                  </div>
+                                </div>
+                                <button onClick={() => handleRemoveTaskAttachment(idx)} style={{ fontSize: 18, marginLeft: 4, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>×</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            id="allowTaskComments"
+                            checked={taskForm.allowComments}
+                            onChange={(e) => setTaskForm(prev => ({ ...prev, allowComments: e.target.checked }))}
+                            style={{ margin: 0 }}
+                          />
+                          <label htmlFor="allowTaskComments" style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#666' }}>
+                            Allow comments
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ borderRadius: 8, padding: '8px 16px', fontSize: 14, fontWeight: 600 }}
+                            onClick={() => {
+                              handleCancelTaskPost();
+                              setTaskFormExpanded(false);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="btn btn-primary"
+                            style={{ 
+                              borderRadius: 8, 
+                              padding: '8px 12px', 
+                              fontSize: 18, 
+                              fontWeight: 700, 
+                              background: (taskForm.title.trim() && taskForm.points) 
+                                ? 'linear-gradient(135deg, #667eea 0%, #324cdd 100%)' 
+                                : '#ccc',
+                              border: 'none',
+                              cursor: (taskForm.title.trim() && taskForm.points) 
+                                ? 'pointer' 
+                                : 'not-allowed',
+                              opacity: (taskForm.title.trim() && taskForm.points) ? 1 : 0.6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 40,
+                              height: 40
+                            }}
+                            disabled={!(taskForm.title.trim() && taskForm.points)}
+                          >
+                            <i className="ni ni-send" />
+                          </button>
+                          <UncontrolledDropdown>
+                            <DropdownToggle
+                              tag="button"
+                              type="button"
+                              className="btn btn-light"
+                              style={{ 
+                                borderRadius: 8, 
+                                padding: '8px 8px', 
+                                fontSize: 18, 
+                                color: (taskForm.title.trim() && taskForm.points) ? '#666' : '#ccc',
+                                cursor: (taskForm.title.trim() && taskForm.points) ? 'pointer' : 'not-allowed',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 32,
+                                height: 40,
+                                border: 'none',
+                                background: '#fff',
+                                opacity: (taskForm.title.trim() && taskForm.points) ? 1 : 0.5
+                              }}
+                              disabled={!(taskForm.title.trim() && taskForm.points)}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                                <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'currentColor' }}></div>
+                                <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'currentColor' }}></div>
+                                <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'currentColor' }}></div>
+                              </div>
+                            </DropdownToggle>
+                            <DropdownMenu style={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '8px 0' }}>
+                              <DropdownItem 
+                                onClick={handleSaveTaskDraft}
+                                style={{ 
+                                  padding: '8px 16px', 
+                                  fontSize: 14, 
+                                  color: (taskForm.title.trim() && taskForm.points) ? '#333' : '#ccc',
+                                  cursor: (taskForm.title.trim() && taskForm.points) ? 'pointer' : 'not-allowed'
+                                }}
+                                disabled={!(taskForm.title.trim() && taskForm.points)}
+                              >
+                                Save as Draft
+                              </DropdownItem>
+                              <DropdownItem 
+                                onClick={() => {
+                                  setShowScheduleModal(true);
+                                }}
+                                style={{ 
+                                  padding: '8px 16px', 
+                                  fontSize: 14, 
+                                  color: '#333',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Schedule
+                              </DropdownItem>
+                            </DropdownMenu>
+                          </UncontrolledDropdown>
+                        </div>
+                      </div>
+                    </Form>
+                    </Collapse>
+                  </div>
+                )}
+                {activeTab === "class" && (
+                  <div style={{ width: '100%' }}>
+                    {tasks.map((task) => (
+                      <Card key={task.id} className="mb-4" style={{ borderRadius: 16, boxShadow: '0 2px 8px #324cdd11', border: '1.5px solid #e9ecef', background: '#fff' }}>
+                        <CardBody style={{ padding: '1.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16 }}>
+                                {task.author.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 16, color: '#232b3b' }}>{task.author}</div>
+                                <div style={{ fontSize: 13, color: '#8898AA' }}>{formatRelativeTime(task.date)}</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {task.isPinned && (
+                                <Badge color="warning" style={{ fontSize: 12, padding: '4px 8px' }}>
+                                  <i className="ni ni-pin-3" style={{ marginRight: 4 }} /> Pinned
+                                </Badge>
+                              )}
+                              <UncontrolledDropdown>
+                                <DropdownToggle tag="button" style={{ background: 'none', border: 'none', fontSize: 18, color: '#666', cursor: 'pointer' }}>
+                                  <i className="ni ni-bold-down" />
+                                </DropdownToggle>
+                                <DropdownMenu>
+                                  <DropdownItem onClick={() => handlePinTask(task.id)}>
+                                    <i className="ni ni-pin-3" style={{ marginRight: 8 }} />
+                                    {task.isPinned ? 'Unpin' : 'Pin'} Task
+                                  </DropdownItem>
+                                  <DropdownItem onClick={() => handleEditTask(task.id)}>
+                                    <i className="ni ni-ruler-pencil" style={{ marginRight: 8 }} />
+                                    Edit
+                                  </DropdownItem>
+                                  <DropdownItem onClick={() => handleDeleteTask(task.id)}>
+                                    <i className="ni ni-fat-remove" style={{ marginRight: 8 }} />
+                                    Delete
+                                  </DropdownItem>
+                                </DropdownMenu>
+                              </UncontrolledDropdown>
+                            </div>
+                          </div>
+                          {task.title && (
+                            <h5 style={{ fontWeight: 700, fontSize: 18, color: '#232b3b', marginBottom: 12 }}>
+                              {task.title}
+                            </h5>
+                          )}
+                          <div style={{ fontSize: 15, color: '#232b3b', lineHeight: 1.6, marginBottom: 16 }}>
+                            {task.text}
+                          </div>
+                          {task.attachments && task.attachments.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                              {task.attachments.map((att, idx) => (
+                                <div key={idx} style={{ marginBottom: 8 }}>
+                                  {getFileTypeIconOrPreview(att).preview}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                              <button
+                                onClick={() => handleLikeTask(task.id)}
+                                style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 6, color: task.isLiked ? '#e74c3c' : '#666', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                              >
+                                <i className={`ni ${task.isLiked ? 'ni-favourite-28' : 'ni-like-2'}`} />
+                                {task.likes > 0 && task.likes}
+                              </button>
+                              {task.allowComments && (
+                                <button
+                                  onClick={() => setTaskCommentsOpen(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
+                                  style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 6, color: '#666', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                                >
+                                  <i className="ni ni-chat-round" />
+                                  {task.comments ? task.comments.length : 0} Comments
+                                </button>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 13, color: '#8898AA' }}>
+                              {task.type} • {task.points} pts • Due {task.dueDate}
+                            </div>
+                          </div>
+                          {task.allowComments && taskCommentsOpen[task.id] && (
+                            <div style={{ borderTop: '1px solid #e9ecef', paddingTop: 16 }}>
+                              {task.comments && task.comments.map((comment, idx) => (
+                                <div key={idx} style={{ marginBottom: 12, padding: '12px 16px', background: '#f8fafc', borderRadius: 8 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontWeight: 600, fontSize: 14 }}>
+                                        {comment.author.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: '#232b3b' }}>{comment.author}</div>
+                                        <div style={{ fontSize: 12, color: '#8898AA' }}>{formatRelativeTime(comment.date)}</div>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                      <button
+                                        onClick={() => handleEditTaskComment(task.id, idx, comment.text)}
+                                        style={{ background: 'none', border: 'none', fontSize: 12, color: '#666', cursor: 'pointer' }}
+                                      >
+                                        <i className="ni ni-ruler-pencil" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteTaskComment(task.id, idx)}
+                                        style={{ background: 'none', border: 'none', fontSize: 12, color: '#e74c3c', cursor: 'pointer' }}
+                                      >
+                                        <i className="ni ni-fat-remove" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div style={{ fontSize: 14, color: '#232b3b', marginTop: 8 }}>
+                                    {comment.text}
+                                  </div>
+                                </div>
+                              ))}
+                              <div style={{ marginTop: 12 }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                                  <Input
+                                    type="text"
+                                    placeholder="Write a comment..."
+                                    value={taskCommentInputs[task.id] || ''}
+                                    onChange={(e) => setTaskCommentInputs(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                    style={{ flex: 1, borderRadius: 8, border: '1px solid #e9ecef' }}
+                                  />
+                                  <Button
+                                    color="primary"
+                                    size="sm"
+                                    onClick={() => handlePostTaskComment(task.id)}
+                                    style={{ borderRadius: 8, padding: '8px 16px' }}
+                                  >
+                                    Post
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </TabPane>
+
           {/* Classwork Tab */}
           <TabPane tabId="classwork">
             <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
@@ -5856,7 +6997,7 @@ useEffect(() => {
       <Modal isOpen={showCreateStudentSelectModal} toggle={() => setShowCreateStudentSelectModal(false)} centered size="lg" style={{ borderRadius: 20, maxWidth: 700 }} contentClassName="border-0">
         <div style={{ borderRadius: 20, background: '#fff', padding: 0, boxShadow: '0 8px 32px rgba(44,62,80,.12)' }}>
           <ModalHeader toggle={() => setShowCreateStudentSelectModal(false)} style={{ border: 'none', paddingBottom: 0, fontWeight: 700, fontSize: 18, background: 'transparent' }}>
-            Who can view this announcement?
+            Class Tasks Add Students
           </ModalHeader>
           <ModalBody style={{ padding: 0 }}>
             <div style={{ padding: 24, paddingTop: 12 }}>
@@ -5947,7 +7088,7 @@ useEffect(() => {
                           style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover', border: '1px solid #e9ecef' }}
                         />
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15, color: '#2d3748' }}>{s.name}</div>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: '#2d3748', textTransform: 'none' }}>{s.name}</div>
                           <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email}</div>
                         </div>
                         <input
@@ -5983,7 +7124,7 @@ useEffect(() => {
                       <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e9ecef', borderRadius: 9, padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#2d3748', minHeight: 22 }}>
                         <img src={getAvatarForUser(s)} alt={s.name} style={{ width: 14, height: 14, borderRadius: '50%', marginRight: 4, objectFit: 'cover', border: '1px solid #fff' }} />
                         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 5, lineHeight: 1.1 }}>
-                          <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748' }}>{s.name}</span>
+                          <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748', textTransform: 'none' }}>{s.name}</span>
                           <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 9 }}>{s.email}</span>
                         </span>
                         <span style={{ flex: 1 }} />
@@ -6008,6 +7149,9 @@ useEffect(() => {
             <Button color="primary" onClick={() => {
               if (showOnlineSetup) {
                 setOnlineAssignedStudents(tempSelectedStudents);
+                setShowCreateStudentSelectModal(false);
+              } else if (activeTab === "class") {
+                setTaskAssignedStudents(tempSelectedStudents);
                 setShowCreateStudentSelectModal(false);
               } else {
                 setSelectedAnnouncementStudents(tempSelectedStudents);
@@ -6240,6 +7384,71 @@ useEffect(() => {
             </div>
           </ModalBody>
         </div>
+              </Modal>
+
+        {/* Task Options Modal */}
+        <Modal isOpen={showTaskOptionsModal} toggle={() => setShowTaskOptionsModal(false)} centered>
+          <ModalHeader toggle={() => setShowTaskOptionsModal(false)}>
+            Task Options
+          </ModalHeader>
+          <ModalBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
+                type="button"
+                className="btn btn-light"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 12, 
+                  padding: '12px 16px', 
+                  borderRadius: 8,
+                  border: '1px solid #e9ecef',
+                  background: '#fff',
+                  color: '#333',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onClick={() => {
+                  handleSaveTaskDraft();
+                  setShowTaskOptionsModal(false);
+                }}
+                onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
+                onMouseOut={e => e.currentTarget.style.background = '#fff'}
+              >
+                <FaRegFileAlt style={{ fontSize: 16, color: '#666' }} />
+                Save Draft
+              </button>
+              <button
+                type="button"
+                className="btn btn-light"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 12, 
+                  padding: '12px 16px', 
+                  borderRadius: 8,
+                  border: '1px solid #e9ecef',
+                  background: '#fff',
+                  color: '#333',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onClick={() => {
+                  setShowTaskScheduleModal(true);
+                  setShowTaskOptionsModal(false);
+                }}
+                onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
+                onMouseOut={e => e.currentTarget.style.background = '#fff'}
+              >
+                <FaRegCalendarAlt style={{ fontSize: 16, color: '#666' }} />
+                Schedule Task
+              </button>
+            </div>
+          </ModalBody>
       </Modal>
     </div>
   );

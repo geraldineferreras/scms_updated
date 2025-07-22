@@ -55,53 +55,24 @@ const Login = () => {
       const result = await authLogin(email, password);
       
       if (result.success) {
-        // Redirect based on role
-        if (result.data.role === "student") {
+        // Support both result.data.role and result.data.user.role
+        const role = result.data.role || (result.data.user && result.data.user.role);
+        if (role === "student") {
           navigate("/student/index");
-        } else if (result.data.role === "admin") {
+        } else if (role === "admin") {
           navigate("/admin/index");
-        } else if (result.data.role === "teacher") {
+        } else if (role === "teacher") {
           navigate("/teacher/index");
         } else {
           navigate("/");
         }
-        
         console.log('Login successful:', result);
       } else {
         setError(result.message || 'Login failed');
       }
     } catch (error) {
-      // Fallback to local storage authentication for demo
-      const users = JSON.parse(localStorage.getItem("scms_users") || "[]");
-      const user = users.find(u => u.email === email && u.password === password);
-      
-      if (user) {
-        if (user.status !== "active") {
-          setError("Your account is inactive. Please contact the administrator.");
-          return;
-        }
-        
-        // Clear any existing auth data first
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.setItem("scms_logged_in_user", JSON.stringify(user));
-        
-        // Force page reload to update auth context
-        window.location.reload();
-        
-        if (user.role === "student") {
-          navigate("/student/index");
-        } else if (user.role === "admin") {
-          navigate("/admin/index");
-        } else if (user.role === "teacher") {
-          navigate("/teacher/index");
-        } else {
-          navigate("/");
-        }
-      } else {
-        setError('Login failed. Please check your credentials.');
-        console.error('Login error:', error);
-      }
+      setError('Login failed. Please check your credentials.');
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }

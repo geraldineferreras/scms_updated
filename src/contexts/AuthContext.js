@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const refreshUserData = () => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    const legacyUser = localStorage.getItem('scms_logged_in_user');
+    // const legacyUser = localStorage.getItem('scms_logged_in_user');
     
     if (storedToken && storedUser) {
       try {
@@ -29,18 +29,6 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Error parsing user data:', error);
         logout();
-      }
-    } else if (legacyUser) {
-      // Support for existing local storage authentication
-      try {
-        const userData = JSON.parse(legacyUser);
-        setUser(userData);
-        setToken(null);
-      } catch (error) {
-        console.error('Error parsing legacy user data:', error);
-        localStorage.removeItem('scms_logged_in_user');
-        setUser(null);
-        setToken(null);
       }
     } else {
       setUser(null);
@@ -68,19 +56,32 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await ApiService.login(email, password);
-      
-      if (response.status) {
-        // Store token and user data
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
-        localStorage.setItem('scms_logged_in_user', JSON.stringify(response.data));
-        
-        setUser(response.data);
-        setToken(response.data.token);
-        
-        return { success: true, data: response.data };
+      console.log('Login API response:', response); // Debugging line
+
+      if (response && response.status) {
+        // Support both {token, user} and flat user+token
+        let user, token;
+        if (response.data && response.data.user && response.data.token) {
+          user = response.data.user;
+          token = response.data.token;
+        } else if (response.data && response.data.token) {
+          // If user fields are at the top level of data
+          user = { ...response.data };
+          delete user.token;
+          token = response.data.token;
+        } else {
+          // fallback for flat structure
+          user = response.data;
+          token = response.data.token;
+        }
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('scms_logged_in_user', JSON.stringify(user));
+        setUser(user);
+        setToken(token);
+        return { success: true, data: user };
       } else {
-        return { success: false, message: response.message || 'Login failed' };
+        return { success: false, message: response?.message || 'Login failed' };
       }
     } catch (error) {
       console.error('Login error:', error);

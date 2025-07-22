@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://192.168.1.254/scms_new/index.php/api';
+const API_BASE = 'http://localhost/scms_new/index.php/api';
 
 class ApiService {
   // Helper method for making requests

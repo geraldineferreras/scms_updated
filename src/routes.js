@@ -64,6 +64,7 @@ import StudentAttendance from "views/examples/StudentAttendance.js";
 import StudentExcuseLetter from "views/examples/StudentExcuseLetter.js";
 import StudentNotifications from "views/examples/StudentNotifications.js";
 import TeacherFastGrade from "views/examples/TeacherFastGrade.js";
+import TaskDetail from "views/examples/TaskDetail.js";
 
 var routes = [
   {
@@ -450,6 +451,12 @@ var routes = [
     icon: "ni ni-notification-70 text-info",
     component: <StudentNotifications />,
     layout: "/student",
+  },
+  {
+    path: "/task/:taskId",
+    name: "Task Detail",
+    component: <TaskDetail />,
+    layout: "/teacher",
   },
 ];
 export default routes;

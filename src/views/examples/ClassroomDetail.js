@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react"; // Force rebuild
 import Select, { components } from 'react-select';
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import {
   Card,
@@ -44,6 +44,7 @@ import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolde
 import userDefault from '../../assets/img/theme/user-default.svg';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage'; // We'll add this helper next
+
 
 const themes = [
   { name: "Blue Gradient", value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", type: "Color Theme" },
@@ -396,6 +397,7 @@ const fileToBase64 = (file) => {
 const truncate = (str, n) => (str && str.length > n ? str.substr(0, n - 1) + '...' : str);
 
 const ClassroomDetail = () => {
+  const navigate = useNavigate();
   const { code } = useParams();
   const [activeTab, setActiveTab] = useState("stream");
   const [showCodeModal, setShowCodeModal] = useState(false);
@@ -3793,53 +3795,53 @@ useEffect(() => {
                     const isEditing = editingAnnouncementId === announcement.id;
                     return (
                       <Card key={announcement.id} className="mb-4" style={{ borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', borderLeft: announcement.isPinned ? '4px solid #f7b731' : '4px solid #324cdd', background: '#fff', transition: 'box-shadow 0.2s, border-color 0.2s', padding: 0 }}>
-                        <CardBody style={{ padding: '0.75rem 1rem' }}>
-                          <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 8 }}>
-                            <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
-                                <img src={avatarSrc} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <div style={{ fontWeight: 600, color: '#111', fontSize: 14 }}>{announcement.author}</div>
-                                  {announcement.isPinned && (
-                                    <Badge color="warning" className="ml-2">Pinned</Badge>
-                                  )}
+                          <CardBody style={{ padding: '0.75rem 1rem' }}>
+                            <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 8 }}>
+                              <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
+                                  <img src={avatarSrc} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
                                 </div>
-                                <small className="text-muted" style={{ fontSize: 11 }}>{formatRelativeTime(announcement.date)}</small>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ fontWeight: 600, color: '#111', fontSize: 14 }}>{announcement.author}</div>
+                                    {announcement.isPinned && (
+                                      <Badge color="warning" className="ml-2">Pinned</Badge>
+                                    )}
+                                  </div>
+                                  <small className="text-muted" style={{ fontSize: 11 }}>{formatRelativeTime(announcement.date)}</small>
+                                </div>
                               </div>
-                            </div>
-                            <div className="d-flex align-items-center" style={{ marginLeft: 12, flexShrink: 0 }}>
-                              <Button 
-                                color="link" 
-                                style={{ 
-                                  color: (announcement.reactions?.likedBy || []).includes("Prof. Smith") ? '#007bff' : '#000', 
-                                  fontSize: 12, 
-                                  padding: 2, 
-                                  marginRight: 16 
-                                }} 
-                                onClick={() => handleLikeAnnouncement(announcement.id)}
-                                aria-label="Like announcement"
-                              >
-                                {(announcement.reactions?.likedBy || []).includes("Prof. Smith") ? 
-                                  <FaThumbsUp size={12} /> : 
-                                  <FaRegThumbsUp size={12} />
-                                } 
-                                <span style={{ fontSize: 11, marginLeft: 2 }}>
-                                  {(announcement.reactions && announcement.reactions.like) || 0}
-                                </span>
-                              </Button>
-                              <Dropdown isOpen={announcementDropdowns[announcement.id]} toggle={() => handleDropdownToggle(announcement.id)}>
-                                <DropdownToggle tag="span" style={{ cursor: 'pointer', padding: 2, border: 'none', background: 'none' }}>
-                                  <FaEllipsisV size={14} />
-                                </DropdownToggle>
-                                <DropdownMenu right>
-                                  <DropdownItem onClick={() => handleEditAnnouncement(announcement.id)}>Edit</DropdownItem>
-                                  <DropdownItem onClick={() => handleDeleteAnnouncement(announcement.id)}>Delete</DropdownItem>
-                                  <DropdownItem onClick={() => handlePinAnnouncement(announcement.id)}>
-                                    {announcement.isPinned ? 'Unpin' : 'Pin this announcement'}
-                                  </DropdownItem>
-                                </DropdownMenu>
+                              <div className="d-flex align-items-center" style={{ marginLeft: 12, flexShrink: 0 }}>
+                                <Button 
+                                  color="link" 
+                                  style={{ 
+                                    color: (announcement.reactions?.likedBy || []).includes("Prof. Smith") ? '#007bff' : '#000', 
+                                    fontSize: 12, 
+                                    padding: 2, 
+                                    marginRight: 16 
+                                  }} 
+                                  onClick={() => handleLikeAnnouncement(announcement.id)}
+                                  aria-label="Like announcement"
+                                >
+                                  {(announcement.reactions?.likedBy || []).includes("Prof. Smith") ? 
+                                    <FaThumbsUp size={12} /> : 
+                                    <FaRegThumbsUp size={12} />
+                                  } 
+                                  <span style={{ fontSize: 11, marginLeft: 2 }}>
+                                    {(announcement.reactions && announcement.reactions.like) || 0}
+                                  </span>
+                                </Button>
+                                <Dropdown isOpen={announcementDropdowns[announcement.id]} toggle={() => handleDropdownToggle(announcement.id)}>
+                                  <DropdownToggle tag="span" style={{ cursor: 'pointer', padding: 2, border: 'none', background: 'none' }}>
+                                    <FaEllipsisV size={14} />
+                                  </DropdownToggle>
+                                  <DropdownMenu right>
+                                    <DropdownItem onClick={() => handleEditAnnouncement(announcement.id)}>Edit</DropdownItem>
+                                    <DropdownItem onClick={() => handleDeleteAnnouncement(announcement.id)}>Delete</DropdownItem>
+                                    <DropdownItem onClick={() => handlePinAnnouncement(announcement.id)}>
+                                      {announcement.isPinned ? 'Unpin' : 'Pin this announcement'}
+                                    </DropdownItem>
+                                  </DropdownMenu>
                               </Dropdown>
                             </div>
                           </div>
@@ -3997,7 +3999,7 @@ useEffect(() => {
                               {announcement.comments && announcement.comments.length > 0 && (
                                 <div style={{ marginBottom: 16 }}>
                                   <div 
-                                    style={{ 
+                          style={{
                                       fontWeight: 600, 
                                       fontSize: 13, 
                                       color: '#111', 
@@ -4060,97 +4062,7 @@ useEffect(() => {
                                             <div style={{ fontWeight: 600, color: '#111', fontSize: 11 }}>{comment.author}</div>
                                             <small className="text-muted" style={{ fontSize: 9 }}>{formatRelativeTime(comment.date)}</small>
                                                 
-                                                {/* Three-dot menu */}
-                                                {(isOwnComment || isTeacher) && (
-                                                  <div style={{ marginLeft: 'auto', position: 'relative' }}>
-                                                    <button
-                                                      type="button"
-                                                      className="btn btn-link p-0"
-                                                      style={{ 
-                                                        fontSize: 20, 
-                                                        color: '#6c757d', 
-                                                        padding: '2px 2px 2px 4px',
-                                                        border: 'none',
-                                                        background: 'none',
-                                                        cursor: 'pointer',
-                                                        lineHeight: 1,
-                                                        marginRight: '0px !important' // force remove margin right
-                                                      }}
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setCommentDropdownOpen(commentDropdownOpen === `${announcement.id}-${idx}` ? null : `${announcement.id}-${idx}`);
-                                                      }}
-                                                      aria-label="Open menu"
-                                                    >
-                                                      &#8942;
-                                                    </button>
-                                                    
-                                                    {/* Dropdown Menu */}
-                                                    {commentDropdownOpen === `${announcement.id}-${idx}` && (
-                                                      <div style={{
-                                                        position: 'absolute',
-                                                        top: 28, // fixed offset to prevent shifting
-                                                        right: 0,
-                                                        background: '#fff',
-                                                        border: 'none',
-                                                        borderRadius: 12,
-                                                        boxShadow: '0 8px 24px rgba(44,62,80,0.13)',
-                                                        zIndex: 10,
-                                                        minWidth: 120,
-                                                        padding: '10px 0'
-                                                      }}>
-                                                        {(isOwnComment || isTeacher) && (
-                                                          <button
-                                                            className="btn btn-link p-2 w-100 text-left"
-                                                            style={{ 
-                                                              fontSize: 16,
-                                                              color: '#232b3b', 
-                                                              border: 'none',
-                                                              background: 'none',
-                                                              cursor: 'pointer',
-                                                              display: 'block',
-                                                              width: '100%',
-                                                              textAlign: 'left',
-                                                              padding: '10px 0',
-                                                              fontWeight: 400,
-                                                              marginLeft: 4 // add 4px margin left
-                                                              // no marginRight
-                                                            }}
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              handleEditComment(announcement.id, idx, comment.text);
-                                                              setCommentDropdownOpen(null);
-                                                            }}
-                                                          >
-                                                            Edit
-                                                          </button>
-                                                        )}
-                                                        <button
-                                                          className="btn btn-link p-2 w-100 text-left"
-                                                          style={{ 
-                                                            fontSize: 14, 
-                                                            color: '#232b3b', 
-                                                            border: 'none',
-                                                            background: 'none',
-                                                            cursor: 'pointer',
-                                                            display: 'block',
-                                                            width: '100%',
-                                                            textAlign: 'left',
-                                                            padding: '10px 18px',
-                                                            fontWeight: 400
-                                                          }}
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteComment(announcement.id, idx);
-                                                            setCommentDropdownOpen(null);
-                                                          }}
-                                                        >
-                                                          Delete
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
+                                           
                                           </div>
                                           
                                           {console.log('Rendering comment:', { 
@@ -4160,26 +4072,6 @@ useEffect(() => {
                                             editingComment,
                                             commentText: comment.text
                                           })}
-
-                                              {/* Test button for debugging */}
-                                              <button 
-                                                onClick={() => {
-                                                  console.log('Test edit button clicked');
-                                                  handleEditComment(announcement.id, idx, comment.text);
-                                                }}
-                                                style={{ 
-                                                  fontSize: 8, 
-                                                  marginBottom: 5, 
-                                                  backgroundColor: 'red', 
-                                                  color: 'white',
-                                                  border: 'none',
-                                                  borderRadius: 3,
-                                                  padding: '2px 4px'
-                                                }}
-                                              >
-                                                TEST EDIT
-                                              </button>
-
                                           {editingComment[announcement.id] === idx ? (
                                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                               <input
@@ -4675,7 +4567,7 @@ useEffect(() => {
                         marginBottom: 18,
                         width: '100%',
                         minWidth: 320,
-                        boxShadow: '0 2px 8px #324cdd11',
+                            boxShadow: '0 2px 8px #324cdd11',
                         transition: 'box-shadow 0.15s, border 0.15s, background 0.15s',
                         position: 'relative',
                       }}
@@ -4743,7 +4635,7 @@ useEffect(() => {
                                   type="button"
                                   className="btn btn-link btn-sm"
                                   style={{
-                                    background: '#fff',
+                            background: '#fff',
                                     color: '#111',
                                     fontWeight: 600,
                                     borderRadius: 8,
@@ -5641,31 +5533,6 @@ useEffect(() => {
   </small>
                         </div>
 
-                        <div style={{ flex: 1, minWidth: 100, maxWidth: 120 }}>
-                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Points *</label>
-                          <input 
-                            name="points" 
-                            type="number" 
-                            min="1" 
-                            value={taskForm.points} 
-                            onChange={handleTaskFormChange} 
-                            className="form-control" 
-                            style={{ 
-                              borderRadius: 8, 
-                              fontSize: 14, 
-                              background: '#f8fafc',
-                              border: taskForm.submitted && !taskForm.points ? '1px solid #dc3545' : '1px solid #bfcfff'
-                            }} 
-                            placeholder="Points..." 
-                            required
-                          />
-                          {taskForm.submitted && !taskForm.points && (
-                            <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
-                              Points are required
-                            </small>
-                          )}
-                        </div>
-
                         <div style={{ flex: 1, minWidth: 120, maxWidth: 150 }}>
                           <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Due Date</label>
                           <input name="dueDate" type="date" value={taskForm.dueDate} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }} />
@@ -5885,9 +5752,9 @@ useEffect(() => {
                                   padding: '8px 16px', 
                                   fontSize: 14, 
                                   color: '#333',
-                                  cursor: 'pointer'
-                                }}
-                              >
+                            cursor: 'pointer'
+                          }}
+                        >
                                 Schedule
                               </DropdownItem>
                             </DropdownMenu>
@@ -5901,7 +5768,9 @@ useEffect(() => {
                 {activeTab === "class" && (
                   <div style={{ width: '100%' }}>
                     {tasks.map((task) => (
-                      <Card key={task.id} className="mb-4" style={{ borderRadius: 16, boxShadow: '0 2px 8px #324cdd11', border: '1.5px solid #e9ecef', background: '#fff' }}>
+                      <Card key={task.id} className="mb-4" style={{ borderRadius: 16, boxShadow: '0 2px 8px #324cdd11', border: '1.5px solid #e9ecef', background: '#fff', cursor: 'pointer' }}
+                        onClick={() => navigate(`/teacher/task/${task.id}`)}
+                      >
                         <CardBody style={{ padding: '1.5rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

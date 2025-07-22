@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, Badge, Button, Input } from "reactstrap";
 
@@ -179,16 +179,269 @@ const tabList = [
 
 const gradeFilters = ["All", "Assigned", "Returned", "Missing"];
 
+// Add mock announcements for student stream tab (similar to teacher)
+const mockAnnouncements = [
+  {
+    id: 1,
+    title: "Welcome to the new semester!",
+    content: "I'm excited to start this journey with all of you. Let's make this semester productive and engaging.",
+    author: "Prof. Smith",
+    date: "2024-01-15T09:00:00.000Z",
+    isPinned: true,
+    reactions: { like: 2, likedBy: ["Prof. Smith", "John Doe"] },
+    comments: [
+      { text: "Looking forward to this semester!", author: "Prof. Smith", date: "2024-01-15T10:30:00.000Z" },
+      { text: "Thank you for the warm welcome!", author: "John Doe", date: "2024-01-15T11:15:00.000Z" }
+    ]
+  },
+  {
+    id: 2,
+    title: "Assignment #1 Due Date Extended",
+    content: "Due to technical difficulties, the deadline for Assignment #1 has been extended to Friday, January 20th.",
+    author: "Prof. Smith",
+    date: "2024-01-14T14:00:00.000Z",
+    isPinned: false,
+    reactions: { like: 0, likedBy: [] },
+    comments: [
+      { text: "Great news! I was having trouble with the submission system.", author: "Jane Smith", date: "2024-01-14T14:20:00.000Z" }
+    ]
+  }
+];
+
+// Helper to format relative time
+function formatRelativeTime(dateString) {
+  if (!dateString) return '';
+  const now = new Date();
+  const date = new Date(dateString);
+  const diff = (now - date) / 1000;
+  if (isNaN(diff)) return '';
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) {
+    const mins = Math.floor(diff / 60);
+    return `${mins} min${mins > 1 ? 's' : ''} ago`;
+  }
+  if (diff < 86400) {
+    const hours = Math.floor(diff / 3600);
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  }
+  if (diff < 604800) {
+    const days = Math.floor(diff / 86400);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  }
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 const ClassroomDetailStudent = () => {
   const { code } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("stream");
+  const [activeStreamTab, setActiveStreamTab] = useState(null); // 'scheduled' | 'drafts' | null
   const [announcement, setAnnouncement] = useState("");
   const [expandedId, setExpandedId] = useState(7);
   const [gradeFilter, setGradeFilter] = useState("All");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [expandedGradeId, setExpandedGradeId] = useState(7);
   const currentClass = mockClasses.find(cls => cls.code === code) || mockClasses[0];
+  const [studentAnnouncement, setStudentAnnouncement] = useState("");
+  const [studentAnnouncements, setStudentAnnouncements] = useState([]);
+  const [formExpanded, setFormExpanded] = useState(false);
+  const [allowComments, setAllowComments] = useState(true);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [likedAnnouncements, setLikedAnnouncements] = useState({}); // { [id]: true/false }
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef();
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState(null);
+  const [editAnnouncementTitle, setEditAnnouncementTitle] = useState("");
+  const [editAnnouncementContent, setEditAnnouncementContent] = useState("");
+  const [attachmentDropdownOpenId, setAttachmentDropdownOpenId] = useState(null); // id of announcement or 'new' for new post
+  const attachmentMenuRef = useRef();
+  const [showYouTubeModal, setShowYouTubeModal] = useState(false);
+  const [showDriveModal, setShowDriveModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [modalUrl, setModalUrl] = useState("");
+  const [attachments, setAttachments] = useState([]); // for new post
+  const [editAttachments, setEditAttachments] = useState({}); // { [id]: [attachments] }
+  const fileInputRef = useRef();
+  const [openCommentMenu, setOpenCommentMenu] = useState({}); // { [announcementId]: commentIdx }
+  const commentMenuRef = useRef();
+  const [editingComment, setEditingComment] = useState({}); // { announcementId, idx }
+  const [editCommentValue, setEditCommentValue] = useState("");
+  const [collapsedComments, setCollapsedComments] = useState({}); // { [announcementId]: boolean }
+
+  // Close menu on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (openMenuId !== null && menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openMenuId]);
+
+  // Close attachment dropdown on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (attachmentDropdownOpenId && attachmentMenuRef.current && !attachmentMenuRef.current.contains(e.target)) {
+        setAttachmentDropdownOpenId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [attachmentDropdownOpenId]);
+
+  // Close comment menu on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (Object.keys(openCommentMenu).length && commentMenuRef.current && !commentMenuRef.current.contains(e.target)) {
+        setOpenCommentMenu({});
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openCommentMenu]);
+
+  function handleLike(announcement) {
+    setLikedAnnouncements(prev => {
+      const liked = !!prev[announcement.id];
+      // Update the like count in the announcement (mockAnnouncements is static, so for demo, update local state)
+      if (!liked) {
+        announcement.reactions.like = (announcement.reactions.like || 0) + 1;
+      } else {
+        announcement.reactions.like = Math.max(0, (announcement.reactions.like || 0) - 1);
+      }
+      return { ...prev, [announcement.id]: !liked };
+    });
+  }
+
+  function handleEditClick(announcement) {
+    setEditingAnnouncementId(announcement.id);
+    setEditAnnouncementTitle(announcement.title);
+    setEditAnnouncementContent(announcement.content);
+    setOpenMenuId(null);
+  }
+
+  function handleEditSave(announcement) {
+    // Update in studentAnnouncements if it's a student post, else in mockAnnouncements
+    if (studentAnnouncements.some(a => a.id === announcement.id)) {
+      setStudentAnnouncements(prev => prev.map(a => a.id === announcement.id ? { ...a, title: editAnnouncementTitle, content: editAnnouncementContent } : a));
+    } else {
+      announcement.title = editAnnouncementTitle;
+      announcement.content = editAnnouncementContent;
+    }
+    setEditingAnnouncementId(null);
+  }
+
+  function handleEditCancel() {
+    setEditingAnnouncementId(null);
+  }
+
+  function handleUnpin(announcement) {
+    announcement.isPinned = false;
+    setOpenMenuId(null);
+    // Force re-render for mockAnnouncements (if needed)
+    setStudentAnnouncements(prev => [...prev]);
+  }
+
+  function handlePin(announcement) {
+    announcement.isPinned = true;
+    setOpenMenuId(null);
+    setStudentAnnouncements(prev => [...prev]);
+  }
+
+  function handleAttachmentOption(option) {
+    setAttachmentDropdownOpenId(null);
+    if (option === 'youtube') {
+      setShowYouTubeModal(true);
+      setModalUrl("");
+    } else if (option === 'drive') {
+      setShowDriveModal(true);
+      setModalUrl("");
+    } else if (option === 'link') {
+      setShowLinkModal(true);
+      setModalUrl("");
+    } else if (option === 'file') {
+      if (fileInputRef.current) fileInputRef.current.click();
+    }
+  }
+  function handleAddModalAttachment(type, forEditId) {
+    const att = { type, url: modalUrl };
+    if (forEditId) {
+      setEditAttachments(prev => ({ ...prev, [forEditId]: [...(prev[forEditId] || []), att] }));
+    } else {
+      setAttachments(prev => [...prev, att]);
+    }
+    setShowYouTubeModal(false);
+    setShowDriveModal(false);
+    setShowLinkModal(false);
+    setModalUrl("");
+  }
+  function handleFileChange(e, forEditId) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const att = { type: 'file', file, name: file.name };
+    if (forEditId) {
+      setEditAttachments(prev => ({ ...prev, [forEditId]: [...(prev[forEditId] || []), att] }));
+    } else {
+      setAttachments(prev => [...prev, att]);
+    }
+    e.target.value = "";
+  }
+
+  function handleCommentMenu(announcementId, idx) {
+    setOpenCommentMenu(openCommentMenu.announcementId === announcementId && openCommentMenu.idx === idx ? {} : { announcementId, idx });
+  }
+  function handleCommentEdit(announcementId, idx) {
+    setOpenCommentMenu({});
+    setEditingComment({ announcementId, idx });
+    const ann = [...studentAnnouncements, ...mockAnnouncements].find(a => a.id === announcementId);
+    setEditCommentValue(ann.comments[idx].text);
+  }
+  function handleCommentEditSave(announcementId, idx) {
+    // Update in studentAnnouncements if it's a student post, else in mockAnnouncements
+    if (studentAnnouncements.some(a => a.id === announcementId)) {
+      setStudentAnnouncements(prev => prev.map(a => a.id === announcementId ? { ...a, comments: a.comments.map((c, i) => i === idx ? { ...c, text: editCommentValue } : c) } : a));
+    } else {
+      const ann = mockAnnouncements.find(a => a.id === announcementId);
+      if (ann) ann.comments[idx].text = editCommentValue;
+    }
+    setEditingComment({});
+    setEditCommentValue("");
+  }
+  function handleCommentEditCancel() {
+    setEditingComment({});
+    setEditCommentValue("");
+  }
+  function handleCommentDelete(announcementId, idx) {
+    setOpenCommentMenu({});
+    if (studentAnnouncements.some(a => a.id === announcementId)) {
+      setStudentAnnouncements(prev => prev.map(a => a.id === announcementId ? { ...a, comments: a.comments.filter((_, i) => i !== idx) } : a));
+    } else {
+      const ann = mockAnnouncements.find(a => a.id === announcementId);
+      if (ann) ann.comments.splice(idx, 1);
+    }
+  }
+
+  // Helper to post a new announcement as student
+  const handleStudentPostAnnouncement = (e) => {
+    e.preventDefault();
+    if (!studentAnnouncement.trim()) return;
+    const newAnn = {
+      id: Date.now(),
+      title: announcementTitle,
+      content: studentAnnouncement,
+      author: "You",
+      date: new Date().toISOString(),
+      isPinned: false,
+      reactions: { like: 0, likedBy: [] },
+      comments: []
+    };
+    setStudentAnnouncements([newAnn, ...studentAnnouncements]);
+    setStudentAnnouncement("");
+    setAnnouncementTitle("");
+    setAllowComments(true);
+    setFormExpanded(false);
+  };
 
   return (
     <div style={{ background: "#f7fafd", minHeight: "100vh" }}>
@@ -266,39 +519,325 @@ const ClassroomDetailStudent = () => {
       </div>
       {/* Stream Section */}
       {activeTab === "stream" && (
-        <div style={{ maxWidth: 1100, margin: '24px auto 0' }}>
-          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px 0 rgba(44,62,80,.06)', padding: 32, marginBottom: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 20, color: '#2096ff', marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-              <i className="ni ni-chat-round" style={{ fontSize: 22, marginRight: 8 }} /> Stream
+        <div style={{ maxWidth: 1100, margin: '24px auto 0', fontSize: '15px' }}>
+          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', border: '1.5px solid #e9ecef', padding: 32, marginBottom: 24 }}>
+            <div style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+              <i className="ni ni-chat-round" style={{ fontSize: 22, marginRight: 8, color: '#2096ff' }} /> Stream
             </div>
-            <Input
-              type="textarea"
-              placeholder="Share an announcement with your class..."
-              style={{ borderRadius: 12, fontSize: 16, padding: '16px 18px', minHeight: 56, marginBottom: 12, background: '#f7fafd', border: '1px solid #e0e0e0' }}
-              value={announcement}
-              onChange={e => setAnnouncement(e.target.value)}
-            />
-            <Button color="primary" style={{ fontWeight: 600, borderRadius: 8, minWidth: 100, fontSize: 13 }}>Post</Button>
-          </div>
-          {mockPosts.map(post => (
-            <div key={post.id} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px 0 rgba(44,62,80,.06)', padding: 28, marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
-                <img src={post.author.avatar} alt="avatar" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', marginRight: 14 }} />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{post.author.name}</div>
-                  <div style={{ color: '#888', fontSize: 13 }}>{post.date}</div>
-                </div>
+            {/* Scheduled/Drafts toggles (clickable, outlined style) */}
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 16, gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => setActiveStreamTab(activeStreamTab === 'scheduled' ? null : 'scheduled')}
+                style={{
+                  borderRadius: 8,
+                  fontWeight: 500,
+                  padding: '6px 18px',
+                  minHeight: 'auto',
+                  lineHeight: 1.2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: activeStreamTab === 'scheduled' ? '#1976d2' : '#fff',
+                  color: activeStreamTab === 'scheduled' ? '#fff' : '#222',
+                  border: '1.5px solid #222',
+                  boxShadow: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <i className="fa fa-calendar" style={{ fontSize: 18, marginRight: 6, color: activeStreamTab === 'scheduled' ? '#fff' : '#222' }} /> Scheduled
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveStreamTab(activeStreamTab === 'drafts' ? null : 'drafts')}
+                style={{
+                  borderRadius: 8,
+                  fontWeight: 500,
+                  padding: '6px 18px',
+                  minHeight: 'auto',
+                  lineHeight: 1.2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: activeStreamTab === 'drafts' ? '#1976d2' : '#fff',
+                  color: activeStreamTab === 'drafts' ? '#fff' : '#222',
+                  border: '1.5px solid #222',
+                  boxShadow: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <i className="fa fa-file-alt" style={{ fontSize: 18, marginRight: 6, color: activeStreamTab === 'drafts' ? '#fff' : '#222' }} /> Drafts
+              </button>
+            </div>
+            {/* Dropdown panel for Scheduled/Drafts */}
+            {activeStreamTab === 'scheduled' && (
+              <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: 'none', marginBottom: 24, marginTop: 0, padding: '2rem 2rem 1.5rem', maxWidth: '100%' }}>
+                <div style={{ fontWeight: 700, color: '#2d3559', marginBottom: 8 }}>Scheduled Announcements</div>
+                <div style={{ color: '#888' }}>No scheduled announcements.</div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{post.title}</div>
-              <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{post.content}</div>
-              <Input
-                type="text"
-                placeholder="Add a comment..."
-                style={{ borderRadius: 8, fontSize: 14, padding: '10px 14px', background: '#f7fafd', border: '1px solid #e0e0e0', marginBottom: 0, maxWidth: 400 }}
-              />
-              <Button color="link" style={{ fontWeight: 500, fontSize: 14, color: '#1976d2', textDecoration: 'none', marginLeft: 8, marginTop: -2 }}>Post</Button>
+            )}
+            {activeStreamTab === 'drafts' && (
+              <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: 'none', marginBottom: 24, marginTop: 0, padding: '2rem 2rem 1.5rem', maxWidth: '100%' }}>
+                <div style={{ fontWeight: 700, color: '#2d3559', marginBottom: 8 }}>Draft Announcements</div>
+                <div style={{ color: '#888' }}>No drafts saved.</div>
+              </div>
+            )}
+            {/* Student Announcement Post Form */}
+            {!formExpanded ? (
+              <div style={{ marginBottom: 24 }}>
+                <textarea
+                  value={studentAnnouncement}
+                  onFocus={() => setFormExpanded(true)}
+                  onChange={e => setStudentAnnouncement(e.target.value)}
+                  placeholder="Share an announcement with your class..."
+                  style={{ width: '100%', fontSize: 16, minHeight: 56, borderRadius: 12, padding: '16px 18px', border: 'none', background: '#f7fafd', boxShadow: 'none', resize: 'none', outline: 'none', color: '#888' }}
+                />
+              </div>
+            ) : (
+              <form onSubmit={handleStudentPostAnnouncement} style={{ marginBottom: 24, background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', padding: '1.5rem 1.5rem 1rem', border: '1.5px solid #e9ecef', maxWidth: '100%', position: 'relative' }}>
+                <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center' }}>
+                  <input type="checkbox" id="allowComments" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} style={{ marginRight: 8 }} />
+                  <label htmlFor="allowComments" style={{ fontWeight: 500, fontSize: 16, color: '#222', margin: 0 }}>Allow comments</label>
+                </div>
+                <input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={e => setAnnouncementTitle(e.target.value)}
+                  placeholder="Announcement title (optional)"
+                  style={{ width: '100%', fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8, padding: '10px 12px' }}
+                />
+                <textarea
+                  value={studentAnnouncement}
+                  onChange={e => setStudentAnnouncement(e.target.value)}
+                  placeholder="Share an announcement with your class..."
+                  style={{ width: '100%', fontSize: 16, minHeight: 56, borderRadius: 12, padding: '16px 18px', border: 'none', background: '#f7fafd', boxShadow: 'none', resize: 'vertical', outline: 'none', color: '#222', marginBottom: 8 }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <div style={{ marginBottom: 12, position: 'relative', display: 'inline-block' }}>
+                    <button
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '10px 18px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                      onClick={() => setAttachmentDropdownOpenId('new')}
+                      type="button"
+                    >
+                      <i className="fa fa-paperclip" style={{ fontSize: 18 }} /> Add Attachment
+                    </button>
+                    {attachmentDropdownOpenId === 'new' && (
+                      <div ref={attachmentMenuRef} style={{ position: 'absolute', top: 48, left: 0, background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px #324cdd22', padding: '10px 0', minWidth: 180, zIndex: 20 }}>
+                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('file')}>
+                          <i className="fa fa-file" style={{ fontSize: 18 }} /> File
+                        </div>
+                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('link')}>
+                          <i className="fa fa-globe" style={{ fontSize: 18 }} /> Link
+                        </div>
+                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('youtube')}>
+                          <i className="fa fa-youtube-play" style={{ fontSize: 18, color: '#f00' }} /> YouTube
+                        </div>
+                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('drive')}>
+                          <i className="fa fa-cloud-upload" style={{ fontSize: 18 }} /> Google Drive
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" style={{ border: 'none', background: '#f7fafd', borderRadius: 8, padding: '8px 14px', fontSize: 18, cursor: 'pointer' }}>
+                    <i className="fa fa-smile" />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <button type="button" style={{ fontWeight: 500, borderRadius: 8, minWidth: 80, fontSize: 15, background: '#f7fafd', color: '#222', border: 'none', padding: '8px 20px', cursor: 'pointer' }} onClick={() => { setFormExpanded(false); setStudentAnnouncement(""); setAnnouncementTitle(""); setAllowComments(true); }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ fontWeight: 600, borderRadius: 8, minWidth: 100, fontSize: 15, background: '#7b8cff', color: '#fff', border: 'none', padding: '8px 20px', cursor: studentAnnouncement.trim() ? 'pointer' : 'not-allowed', opacity: studentAnnouncement.trim() ? 1 : 0.6 }} disabled={!studentAnnouncement.trim()}>
+                    <i className="ni ni-send" style={{ fontSize: 16, marginRight: 6 }} />
+                    Post
+                  </button>
+                  <button type="button" style={{ border: 'none', background: '#f7fafd', borderRadius: 8, padding: '8px 14px', fontSize: 18, cursor: 'pointer' }}>
+                    <i className="fa fa-user-plus" />
+                  </button>
+                </div>
+              </form>
+            )}
+            {/* Announcements List */}
+            <div style={{ marginTop: 32 }}>
+              {[...studentAnnouncements, ...mockAnnouncements].map((announcement) => (
+                <div key={announcement.id} style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', borderLeft: announcement.isPinned ? '4px solid #f7b731' : '4px solid #324cdd', marginBottom: 24, padding: 0, position: 'relative' }}>
+                  <div style={{ padding: '0.75rem 1rem', position: 'relative' }}>
+                    {/* Like and menu group in upper right */}
+                    <div style={{ position: 'absolute', top: 16, right: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, color: likedAnnouncements[announcement.id] ? '#1976d2' : '#b0b0b0', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                        onClick={() => handleLike(announcement)}
+                        title={likedAnnouncements[announcement.id] ? 'Unlike' : 'Like'}
+                      >
+                        <i className="fa fa-thumbs-up" style={{ color: likedAnnouncements[announcement.id] ? '#1976d2' : '#b0b0b0', fontSize: 18 }} />
+                        <span>{announcement.reactions?.like || 0}</span>
+                      </div>
+                      <div style={{ color: '#5e6e8c', fontSize: 20, cursor: 'pointer', paddingLeft: 4, position: 'relative' }}>
+                        <i className="fa fa-ellipsis-v" onClick={() => setOpenMenuId(openMenuId === announcement.id ? null : announcement.id)} />
+                        {openMenuId === announcement.id && (
+                          <div ref={menuRef} style={{ position: 'absolute', top: 28, right: 0, background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px #324cdd22', padding: '18px 0', minWidth: 160, zIndex: 10 }}>
+                            <div style={{ padding: '8px 20px', cursor: 'pointer', fontWeight: 400, color: '#222', fontSize: 16 }} onClick={() => handleEditClick(announcement)}>Edit</div>
+                            <div style={{ padding: '8px 20px', cursor: 'pointer', fontWeight: 400, color: '#222', fontSize: 16 }} onClick={() => { setOpenMenuId(null); /* handle delete here */ }}>Delete</div>
+                            {announcement.isPinned ? (
+                              <div style={{ padding: '8px 20px', cursor: 'pointer', fontWeight: 400, color: '#222', fontSize: 16 }} onClick={() => handleUnpin(announcement)}>Unpin</div>
+                            ) : (
+                              <div style={{ padding: '8px 20px', cursor: 'pointer', fontWeight: 400, color: '#222', fontSize: 16 }} onClick={() => handlePin(announcement)}>Pin this announcement</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Inline edit form if editing */}
+                    {editingAnnouncementId === announcement.id ? (
+                      <>
+                        {/* Author info, date, and pinned badge (always visible) */}
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
+                              <img src={announcement.author === 'Prof. Smith' ? 'https://randomuser.me/api/portraits/men/32.jpg' : announcement.author === 'You' ? 'https://randomuser.me/api/portraits/women/44.jpg' : 'https://randomuser.me/api/portraits/men/75.jpg'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ fontWeight: 600, color: '#111' }}>{announcement.author}</div>
+                                {announcement.isPinned && (
+                                  <Badge color="warning" className="ml-2">Pinned</Badge>
+                                )}
+                              </div>
+                              <small className="text-muted">{formatRelativeTime(announcement.date)}</small>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Edit form for title/content only */}
+                        <div style={{ marginTop: 8 }}>
+                          <input
+                            type="text"
+                            value={editAnnouncementTitle}
+                            onChange={e => setEditAnnouncementTitle(e.target.value)}
+                            style={{ width: '100%', fontWeight: 700, fontSize: 18, marginBottom: 8, borderRadius: 8, border: '1px solid #e0e0e0', padding: '8px 12px' }}
+                          />
+                          <textarea
+                            value={editAnnouncementContent}
+                            onChange={e => setEditAnnouncementContent(e.target.value)}
+                            style={{ width: '100%', fontSize: 15, borderRadius: 8, border: '1px solid #e0e0e0', padding: '12px', minHeight: 60, marginBottom: 12 }}
+                          />
+                          {/* Add Attachment button */}
+                          <div style={{ marginBottom: 12, position: 'relative', display: 'inline-block' }}>
+                            <button
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '10px 18px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                              onClick={() => setAttachmentDropdownOpenId(announcement.id)}
+                              type="button"
+                            >
+                              <i className="fa fa-paperclip" style={{ fontSize: 18 }} /> Add Attachment
+                            </button>
+                            {attachmentDropdownOpenId === announcement.id && (
+                              <div ref={attachmentMenuRef} style={{ position: 'absolute', top: 48, left: 0, background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px #324cdd22', padding: '10px 0', minWidth: 180, zIndex: 20 }}>
+                                <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('file')}>
+                                  <i className="fa fa-file" style={{ fontSize: 18 }} /> File
+                                </div>
+                                <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('link')}>
+                                  <i className="fa fa-globe" style={{ fontSize: 18 }} /> Link
+                                </div>
+                                <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('youtube')}>
+                                  <i className="fa fa-youtube-play" style={{ fontSize: 18, color: '#f00' }} /> YouTube
+                                </div>
+                                <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('drive')}>
+                                  <i className="fa fa-cloud-upload" style={{ fontSize: 18 }} /> Google Drive
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Allow comments checkbox */}
+                          <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+                            <input type="checkbox" id={`allowComments-edit-${announcement.id}`} checked={allowComments} onChange={e => setAllowComments(e.target.checked)} style={{ marginRight: 8 }} />
+                            <label htmlFor={`allowComments-edit-${announcement.id}`} style={{ fontWeight: 500, color: '#222', margin: 0 }}>Allow comments</label>
+                          </div>
+                          {/* Who can view this announcement */}
+                          <div style={{ marginBottom: 18 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: '#222', marginBottom: 6 }}>
+                              <i className="fa fa-user" style={{ fontSize: 18 }} /> Who can view this announcement?
+                            </div>
+                            <button style={{ background: '#bfc5cc', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer', opacity: 0.8 }}>
+                              + Select students
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                            <button onClick={handleEditCancel} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={() => handleEditSave(announcement)} style={{ background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
+                              <img src={announcement.author === 'Prof. Smith' ? 'https://randomuser.me/api/portraits/men/32.jpg' : announcement.author === 'You' ? 'https://randomuser.me/api/portraits/women/44.jpg' : 'https://randomuser.me/api/portraits/men/75.jpg'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ fontWeight: 600, color: '#111', fontSize: 14 }}>{announcement.author}</div>
+                                {announcement.isPinned && (
+                                  <Badge color="warning" className="ml-2">Pinned</Badge>
+                                )}
+                              </div>
+                              <small className="text-muted" style={{ fontSize: 11 }}>{formatRelativeTime(announcement.date)}</small>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
+                        <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content}</div>
+                        {/* Comments Section */}
+                        <div style={{ background: '#f7fafd', borderRadius: 10, padding: '12px 18px', marginTop: 10 }}>
+                          <div
+                            style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
+                            onClick={() => setCollapsedComments(prev => ({ ...prev, [announcement.id]: !prev[announcement.id] }))}
+                          >
+                            Comments ({announcement.comments.length})
+                          </div>
+                          {!collapsedComments[announcement.id] && announcement.comments.map((comment, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 10, position: 'relative' }}>
+                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginRight: 10 }}>
+                                <img src={comment.author === 'Prof. Smith' ? 'https://randomuser.me/api/portraits/men/32.jpg' : 'https://randomuser.me/api/portraits/men/75.jpg'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, fontSize: 14 }}>{comment.author} <span style={{ color: '#888', fontWeight: 400, fontSize: 12, marginLeft: 6 }}>{formatRelativeTime(comment.date)}</span></div>
+                                {editingComment.announcementId === announcement.id && editingComment.idx === idx ? (
+                                  <>
+                                    <input
+                                      type="text"
+                                      value={editCommentValue}
+                                      onChange={e => setEditCommentValue(e.target.value)}
+                                      style={{ width: '100%', fontSize: 15, borderRadius: 6, border: '1px solid #e0e0e0', padding: '6px 10px', marginBottom: 6 }}
+                                    />
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button onClick={handleCommentEditCancel} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                                      <button onClick={() => handleCommentEditSave(announcement.id, idx)} style={{ background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div style={{ fontSize: 15, color: '#444' }}>{comment.text}</div>
+                                )}
+                              </div>
+                              <div style={{ position: 'relative', marginLeft: 8 }}>
+                                <i className="fa fa-ellipsis-v" style={{ color: '#5e6e8c', fontSize: 18, cursor: 'pointer' }} onClick={() => handleCommentMenu(announcement.id, idx)} />
+                                {openCommentMenu.announcementId === announcement.id && openCommentMenu.idx === idx && (
+                                  <div ref={commentMenuRef} style={{ position: 'absolute', top: 22, right: 0, background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px #324cdd22', padding: '10px 0', minWidth: 120, zIndex: 20 }}>
+                                    <div style={{ padding: '10px 20px', cursor: 'pointer' }} onClick={() => handleCommentEdit(announcement.id, idx)}>Edit</div>
+                                    <div style={{ padding: '10px 20px', cursor: 'pointer' }} onClick={() => handleCommentDelete(announcement.id, idx)}>Delete</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       )}
       {/* Classwork Section */}
@@ -521,6 +1060,46 @@ const ClassroomDetailStudent = () => {
         </div>
       )}
       {/* TODO: Add content for other tabs */}
+      {showYouTubeModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.15)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 4px 32px #324cdd22', padding: '2rem', minWidth: 340, maxWidth: 400 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18 }}>Add YouTube Video</div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>YouTube URL</div>
+            <input type="text" value={modalUrl} onChange={e => setModalUrl(e.target.value)} placeholder="Paste YouTube URL here" style={{ width: '100%', borderRadius: 8, border: '1px solid #e0e0e0', padding: '12px', marginBottom: 24 }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button onClick={() => { setShowYouTubeModal(false); setModalUrl(""); }} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => handleAddModalAttachment('youtube', editingAnnouncementId === announcement.id ? announcement.id : null)} style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>Add Video</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDriveModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.15)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 4px 32px #324cdd22', padding: '2rem', minWidth: 340, maxWidth: 400 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18 }}>Add Google Drive File</div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Google Drive URL</div>
+            <input type="text" value={modalUrl} onChange={e => setModalUrl(e.target.value)} placeholder="Paste Google Drive URL here" style={{ width: '100%', borderRadius: 8, border: '1px solid #e0e0e0', padding: '12px', marginBottom: 24 }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button onClick={() => { setShowDriveModal(false); setModalUrl(""); }} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => handleAddModalAttachment('drive', editingAnnouncementId === announcement.id ? announcement.id : null)} style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>Add File</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLinkModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.15)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 4px 32px #324cdd22', padding: '2rem', minWidth: 340, maxWidth: 400 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18 }}>Add Link</div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Link URL</div>
+            <input type="text" value={modalUrl} onChange={e => setModalUrl(e.target.value)} placeholder="Paste link URL here" style={{ width: '100%', borderRadius: 8, border: '1px solid #e0e0e0', padding: '12px', marginBottom: 24 }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button onClick={() => { setShowLinkModal(false); setModalUrl(""); }} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => handleAddModalAttachment('link', editingAnnouncementId === announcement.id ? announcement.id : null)} style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>Add Link</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={e => handleFileChange(e, editingAnnouncementId ? editingAnnouncementId : null)} />
     </div>
   );
 };

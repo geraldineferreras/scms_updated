@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ApiService from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
@@ -8,6 +8,7 @@ const Login = ({ onLoginSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login: authLogin } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -22,19 +23,13 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      const response = await ApiService.login(formData.email, formData.password);
-      
-      if (response.status) {
-        // Store token and user data
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
-        
-        // Call success callback
-        onLoginSuccess(response.data);
-        
-        console.log('Login successful:', response);
+      const result = await authLogin(formData.email, formData.password);
+      if (result.success) {
+        if (onLoginSuccess) onLoginSuccess(result.data);
+        // Optionally redirect here if needed
+        console.log('Login successful:', result);
       } else {
-        setError(response.message || 'Login failed');
+        setError(result.message || 'Login failed');
       }
     } catch (error) {
       setError(error.message || 'Login failed. Please try again.');

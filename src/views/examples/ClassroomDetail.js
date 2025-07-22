@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react"; // Force rebuild
+import Select, { components } from 'react-select';
 import { useParams } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import {
@@ -583,6 +584,9 @@ const ClassroomDetail = () => {
   
   // Add state for collapsible comments
   const [collapsedComments, setCollapsedComments] = useState({});
+
+  // Add state for current classroom
+  const currentClassroom = classrooms.find(cls => cls.code === code) || { name: 'Current Classroom', code };
 
   // Add CSS for pulse animation
   useEffect(() => {
@@ -3687,25 +3691,39 @@ useEffect(() => {
                     `}</style>
                     {/* After the form controls in the expanded form, show attached files if any */}
                     {attachments.length > 0 && (
-                      <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                         {attachments.map((att, idx) => {
                           const { preview, type, color } = getFileTypeIconOrPreview(att);
-                          const url = att.file ? URL.createObjectURL(att.file) : undefined;
-                          const isLink = att.type === "Link" || att.type === "YouTube";
+                          let url = undefined;
+                          if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                            url = URL.createObjectURL(att.file);
+                          } else if (att.url) {
+                            url = att.url;
+                          }
+                          const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
                           const displayName = isLink ? att.url : att.name;
                           
                           return (
-                            <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                            <div
+                              key={idx}
+                              style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                              onClick={() => {
+                                if (isLink && att.url) {
+                                  window.open(att.url, '_blank', 'noopener,noreferrer');
+                                } else {
+                                  handlePreviewAttachment(att);
+                                }
+                              }}
+                            >
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
                                 <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
                                   {type} 
-                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
                       </div>
                     </div>
-                              <Button close onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} style={{ fontSize: 18, marginLeft: 4 }} />
                       </div>
                           );
                         })}
@@ -3935,15 +3953,21 @@ useEffect(() => {
                           )}
                           <p className="mb-2" style={{ fontSize: 14, color: '#2d3748', marginBottom: 2, lineHeight: 1.2 }}>{announcement.content}</p>
                               {!isEditing && announcement.attachments && announcement.attachments.length > 0 && (
-                            <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                            <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                               {announcement.attachments.map((att, idx) => {
                                 const { preview, type, color } = getFileTypeIconOrPreview(att);
-                                const url = att.file ? URL.createObjectURL(att.file) : undefined;
-                                const isLink = att.type === "Link" || att.type === "YouTube";
+                                let url = undefined;
+                                if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                  url = URL.createObjectURL(att.file);
+                                } else if (att.url) {
+                                  url = att.url;
+                                }
+                                const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
                                 const displayName = isLink ? att.url : att.name;
                                 return (
                                   <div
                                     key={idx}
+                                    style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
                                     onClick={() => {
                                       if (isLink && att.url) {
                                         window.open(att.url, '_blank', 'noopener,noreferrer');
@@ -3951,15 +3975,14 @@ useEffect(() => {
                                         handlePreviewAttachment(att);
                                       }
                                     }}
-                                    style={{ background: '#f8fafd', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
                                   >
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
                                       <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
                                         {type}
-                                        {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                        {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                        {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                        {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
                                       </div>
                                     </div>
                                   </div>
@@ -4507,21 +4530,36 @@ useEffect(() => {
                       </div>
                     </div>
                     {onlineAttachments.length > 0 && (
-                      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                      <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                         {onlineAttachments.map((att, idx) => {
                           const { preview, type, color } = getFileTypeIconOrPreview(att);
-                          const url = att.file ? URL.createObjectURL(att.file) : att.url;
+                          let url = undefined;
+                          if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                            url = URL.createObjectURL(att.file);
+                          } else if (att.url) {
+                            url = att.url;
+                          }
                           const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
                           const displayName = isLink ? att.url : att.name;
                           return (
-                            <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                            <div
+                              key={idx}
+                              style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                              onClick={() => {
+                                if (isLink && att.url) {
+                                  window.open(att.url, '_blank', 'noopener,noreferrer');
+                                } else {
+                                  handlePreviewAttachment(att);
+                                }
+                              }}
+                            >
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
                                 <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
                                   {type}
-                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
                                 </div>
                               </div>
                               <button onClick={() => handleRemoveOnlineAttachment(idx)} style={{ fontSize: 18, marginLeft: 4, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>×</button>
@@ -5331,7 +5369,7 @@ useEffect(() => {
                             </span>
                           )}
                         </div>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {taskFormExpanded && (
                             <>
                               {taskAssignedStudents.length > 0 && (
@@ -5396,75 +5434,214 @@ useEffect(() => {
                     <Collapse isOpen={taskFormExpanded}>
                       <Form onSubmit={handlePostTask}>
                       <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
-                        <div style={{ flex: 1, minWidth: 180 }}>
-                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Task Type</label>
-                          <select name="type" value={taskForm.type} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }}>
-                            <option>Assignment</option>
-                            <option>Activity</option>
-                            <option>Recitation</option>
-                            <option>Quiz</option>
-                            <option>Exam</option>
-                            <option>Performance Task</option>
-                            <option>Project</option>
-                            <option>Material</option>
-                          </select>
+
+                  
+
+
+<div style={{ flex: 1, minWidth: 200 }}>
+  <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Post to Classrooms</label>
+  <Select
+    isMulti
+    options={[
+      { value: 'current', label: currentClassroom.name || currentClassroom.title || 'Current Classroom', avatar: currentClassroom.avatar || null, code: code, isDisabled: true },
+      ...classrooms.map(cls => ({
+        value: cls.code,
+        label: cls.name || cls.title || 'Untitled',
+        avatar: cls.avatar || null,
+        code: cls.code,
+        section: cls.section || ''
+      }))
+    ]}
+    value={[
+      { value: 'current', label: currentClassroom.name || currentClassroom.title || 'Current Classroom', avatar: currentClassroom.avatar || null, code: code, isDisabled: true },
+      ...((taskForm.postToClassrooms || []).filter(val => val !== 'current').map(val => {
+        const cls = classrooms.find(c => c.code === val);
+        return cls ? {
+          value: cls.code,
+          label: cls.name || cls.title || 'Untitled',
+          avatar: cls.avatar || null,
+          code: cls.code,
+          section: cls.section || ''
+        } : null;
+      }).filter(Boolean))
+    ]}
+    onChange={selected => {
+      setTaskForm(prev => ({
+        ...prev,
+        postToClassrooms: ['current', ...selected.filter(opt => opt.value !== 'current').map(opt => opt.value)]
+      }));
+    }}
+    classNamePrefix="classroom-select"
+    styles={{
+      control: base => ({ ...base, borderRadius: 8, fontSize: 13, background: '#f8fafc', border: '1px solid #bfcfff', minHeight: 48 }),
+      menu: base => ({ ...base, zIndex: 9999 }),
+      option: (base, state) => ({
+        ...base,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '8px 12px',
+        background: state.isSelected ? '#e6f0ff' : state.isFocused ? '#f0f4fa' : '#fff',
+        color: state.isDisabled ? '#aaa' : '#222',
+        cursor: state.isDisabled ? 'not-allowed' : 'pointer',
+        opacity: state.isDisabled ? 0.7 : 1,
+      }),
+      multiValue: base => ({ ...base,     ...base,
+        minWidth: 0,
+        maxWidth: 400,
+        flex: 1, background: '#e6f0ff', borderRadius: 16, padding: '2px 8px' }),
+      multiValueLabel: base => ({ ...base,  minWidth: 0,  
+        maxWidth: 370,
+        width: '100%',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: 'block',
+        fontSize: 12,
+        fontWeight: 500,
+        flex: 1, fontSize: 12, color: '#222', fontWeight: 500 }),
+      multiValueRemove: (base, state) => {
+        if (state.data.value === 'current') {
+          return { display: 'none' };
+        }
+        return { ...base, color: '#888', ':hover': { background: '#bfcfff', color: '#222' } };
+      },
+    }}
+    placeholder="Select classrooms..."
+    components={{
+      Option: props => {
+        const { data } = props;
+        return (
+          <div {...props.innerProps} style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: 6,
+            background: props.isFocused ? '#f0f4fa' : '#fff',
+            opacity: data.isDisabled ? 0.7 : 1
+          }}>
+            {data.avatar ? (
+              <img
+                src={data.avatar}
+                alt="avatar"
+                style={{
+                  width: 32,
+                  height: 32,
+                  minWidth: 32,
+                  minHeight: 32,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  objectFit: 'cover',
+                  marginRight: 10
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  minWidth: 32,
+                  minHeight: 32,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  background: '#bfcfff',
+                  color: '#222',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  marginRight: 10
+                }}
+              >
+                {data.label ? data.label.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : '?'}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  fontSize: 12,
+                  maxWidth: 120,
+                  width: 120,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'block'
+                }}
+              >
+                {data.label}
+              </span>
+              <span style={{ fontSize: 12, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'block' }}>
+                {data.section ? data.section + ' • ' : ''}{data.code}
+              </span>
+            </div>
+          </div>
+        );
+      },
+      MultiValueLabel: props => {
+        const { data } = props;
+        return (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            minWidth: 0,
+            flex: 1,
+            maxWidth: 90
+          }}>
+            {data.avatar ? (
+              <img src={data.avatar} alt="avatar" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 6, flexShrink: 0 }} />
+            ) : (
+              <div style={{
+                width: 20,
+                height: 20,
+                minWidth: 20,
+                minHeight: 20,
+                borderRadius: '50%',
+                background: '#bfcfff',
+                color: '#222',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: 12,
+                marginRight: 6,
+                flexShrink: 0
+              }}>
+                {data.label ? data.label.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : '?'}
+              </div>
+            )}
+            <span style={{
+              minWidth: 0,
+              maxWidth: 70,
+              width: '100%',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 500,
+              flex: 1
+            }}>
+              {data.label}
+            </span>
+          </div>
+        );
+      },
+      MultiValueRemove: props => {
+        if (props.data.value === 'current') return null;
+        return <components.MultiValueRemove {...props} />;
+      }
+    }}
+    menuPlacement="auto"
+    menuPosition="fixed"
+    isClearable={false}
+    maxMenuHeight={200}
+  />
+  <small style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+    Hold Ctrl/Cmd to select multiple classrooms
+  </small>
                         </div>
-                        <div style={{ flex: 1, minWidth: 200 }}>
-                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Post to Classrooms</label>
-                          <select 
-                            multiple 
-                            value={taskForm.postToClassrooms || []} 
-                            onChange={(e) => {
-                              const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                              setTaskForm(prev => ({ ...prev, postToClassrooms: selectedOptions }));
-                            }}
-                            className="form-control" 
-                            style={{ 
-                              borderRadius: 8, 
-                              fontSize: 14, 
-                              background: '#f8fafc', 
-                              border: '1px solid #bfcfff',
-                              minHeight: '80px'
-                            }}
-                          >
-                            <option value="current">Current Classroom</option>
-                            {classrooms.map((classroom, index) => (
-                              <option key={classroom.id || index} value={classroom.code}>
-                                {classroom.name || classroom.title || `Classroom ${index + 1}`}
-                              </option>
-                            ))}
-                          </select>
-                          <small style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                            Hold Ctrl/Cmd to select multiple classrooms
-                          </small>
-                        </div>
-                        <div style={{ flex: 2, minWidth: 260 }}>
-                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Title *</label>
-                          <input 
-                            name="title" 
-                            value={taskForm.title} 
-                            onChange={handleTaskFormChange} 
-                            className="form-control" 
-                            style={{ 
-                              borderRadius: 8, 
-                              fontSize: 14, 
-                              background: '#f8fafc',
-                              border: taskForm.submitted && !taskForm.title.trim() ? '1px solid #dc3545' : '1px solid #bfcfff'
-                            }} 
-                            placeholder="Enter task title..." 
-                            required
-                          />
-                          {taskForm.submitted && !taskForm.title.trim() && (
-                            <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
-                              Task title is required
-                            </small>
-                          )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 160 }}>
-                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Due Date</label>
-                          <input name="dueDate" type="date" value={taskForm.dueDate} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 120 }}>
+
+                        <div style={{ flex: 1, minWidth: 100, maxWidth: 120 }}>
                           <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Points *</label>
                           <input 
                             name="points" 
@@ -5488,6 +5665,35 @@ useEffect(() => {
                             </small>
                           )}
                         </div>
+
+                        <div style={{ flex: 1, minWidth: 120, maxWidth: 150 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Due Date</label>
+                          <input name="dueDate" type="date" value={taskForm.dueDate} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }} />
+                        </div>
+
+                        <div style={{ flex: 2, minWidth: 260 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Title *</label>
+                          <input 
+                            name="title" 
+                            value={taskForm.title} 
+                            onChange={handleTaskFormChange} 
+                            className="form-control" 
+                            style={{ 
+                              borderRadius: 8, 
+                              fontSize: 14, 
+                              background: '#f8fafc',
+                              border: taskForm.submitted && !taskForm.title.trim() ? '1px solid #dc3545' : '1px solid #bfcfff'
+                            }} 
+                            placeholder="Enter task title..." 
+                            required
+                          />
+                          {taskForm.submitted && !taskForm.title.trim() && (
+                            <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
+                              Task title is required
+                            </small>
+                          )}
+                        </div>
+
                       </div>
                       <FormGroup className="mb-3">
                         <Input
@@ -5541,21 +5747,36 @@ useEffect(() => {
                         </div>
                       </div>
                       {taskAttachments.length > 0 && (
-                        <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' }}>
+                        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                           {taskAttachments.map((att, idx) => {
                             const { preview, type, color } = getFileTypeIconOrPreview(att);
-                            const url = att.file ? URL.createObjectURL(att.file) : att.url;
+                            let url = undefined;
+                            if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                              url = URL.createObjectURL(att.file);
+                            } else if (att.url) {
+                              url = att.url;
+                            }
                             const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
                             const displayName = isLink ? att.url : att.name;
                             return (
-                              <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                              <div
+                                key={idx}
+                                style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                                onClick={() => {
+                                  if (isLink && att.url) {
+                                    window.open(att.url, '_blank', 'noopener,noreferrer');
+                                  } else {
+                                    handlePreviewAttachment(att);
+                                  }
+                                }}
+                              >
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
                                   <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
                                     {type}
-                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                    {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                    {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
                                   </div>
                                 </div>
                                 <button onClick={() => handleRemoveTaskAttachment(idx)} style={{ fontSize: 18, marginLeft: 4, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>×</button>
@@ -5728,12 +5949,41 @@ useEffect(() => {
                             {task.text}
                           </div>
                           {task.attachments && task.attachments.length > 0 && (
-                            <div style={{ marginBottom: 16 }}>
-                              {task.attachments.map((att, idx) => (
-                                <div key={idx} style={{ marginBottom: 8 }}>
-                                  {getFileTypeIconOrPreview(att).preview}
+                            <div style={{ marginBottom: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                              {task.attachments.map((att, idx) => {
+                                const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                let url = undefined;
+                                if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                  url = URL.createObjectURL(att.file);
+                                } else if (att.url) {
+                                  url = att.url;
+                                }
+                                const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                                const displayName = isLink ? att.url : att.name;
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                                    onClick={() => {
+                                      if (isLink && att.url) {
+                                        window.open(att.url, '_blank', 'noopener,noreferrer');
+                                      } else {
+                                        handlePreviewAttachment(att);
+                                      }
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                      <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                        {type}
+                                        {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                        {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
                                 </div>
-                              ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -5968,21 +6218,36 @@ useEffect(() => {
                       {/* Attachments Section */}
                       <div style={{ marginBottom: 12 }}>
                         {createForm.attachments && createForm.attachments.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             {createForm.attachments.map((att, idx) => {
                             const { preview, type, color } = getFileTypeIconOrPreview(att);
-                            const url = att.file ? URL.createObjectURL(att.file) : undefined;
-                            const isLink = att.type === "Link" || att.type === "YouTube";
+                            let url = undefined;
+                            if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                              url = URL.createObjectURL(att.file);
+                            } else if (att.url) {
+                              url = att.url;
+                            }
+                            const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
                             const displayName = isLink ? att.url : att.name;
                             return (
-                              <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
+                              <div
+                                key={idx}
+                                style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
+                                onClick={() => {
+                                  if (isLink && att.url) {
+                                    window.open(att.url, '_blank', 'noopener,noreferrer');
+                                  } else {
+                                    handlePreviewAttachment(att);
+                                  }
+                                }}
+                              >
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
                                   <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
                                     {type} 
-                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                    {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
+                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                    {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
                                   </div>
                                 </div>
                                   <Button close onClick={() => handleRemoveCreateAttachment(idx)} style={{ fontSize: 18, marginLeft: 4 }} />
@@ -6226,10 +6491,15 @@ useEffect(() => {
                                     
                                     {/* Attachments Section */}
                                     {assignment.attachments && assignment.attachments.length > 0 && (
-                                      <div style={{ marginTop: 20, marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                                      <div style={{ marginTop: 20, marginBottom: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                                         {assignment.attachments.map((att, idx) => {
                                           const { preview, type, color } = getFileTypeIconOrPreview(att);
-                                          const url = att.file ? URL.createObjectURL(att.file) : undefined;
+                                          let url = undefined;
+                                          if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                            url = URL.createObjectURL(att.file);
+                                          } else if (att.url) {
+                                            url = att.url;
+                                          }
                                           const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
                                           const displayName = isLink ? att.url : att.name;
                                           return (

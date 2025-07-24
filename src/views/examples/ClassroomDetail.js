@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react"; // Force rebuild
 import Select, { components } from 'react-select';
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import {
   Card,
@@ -44,6 +44,9 @@ import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolde
 import userDefault from '../../assets/img/theme/user-default.svg';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage'; // We'll add this helper next
+
+//stream new
+
 
 
 const themes = [
@@ -397,9 +400,22 @@ const fileToBase64 = (file) => {
 const truncate = (str, n) => (str && str.length > n ? str.substr(0, n - 1) + '...' : str);
 
 const ClassroomDetail = () => {
+  const formExpandedRef = useRef(); // <-- This must be the first hook!
   const navigate = useNavigate();
   const { code } = useParams();
-  const [activeTab, setActiveTab] = useState("stream");
+  const location = useLocation();
+  // Read tab from query parameter on mount
+  const getInitialTab = () => {
+    const params = new URLSearchParams(location.search);
+    return params.get('tab') || "stream";
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab && tab !== activeTab) setActiveTab(tab);
+    // eslint-disable-next-line
+  }, [location.search]);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [tooltipHover, setTooltipHover] = useState(false);
@@ -431,6 +447,13 @@ const ClassroomDetail = () => {
   const [assignments, setAssignments] = useState(sampleAssignments);
   const [students, setStudents] = useState(sampleStudents);
   const [grades, setGrades] = useState(sampleGrades);
+
+  // Save students to localStorage whenever they change
+  useEffect(() => {
+    if (code && students && students.length > 0) {
+      localStorage.setItem(`classroom_students_${code}`, JSON.stringify(students));
+    }
+  }, [students, code]);
 
   const [createForm, setCreateForm] = useState({
     type: '',
@@ -656,36 +679,6 @@ const ClassroomDetail = () => {
   // Add state for edit assessment form
   const [quickGradeEditId, setQuickGradeEditId] = useState(null);
   const [quickGradeEditForm, setQuickGradeEditForm] = useState({ title: '', points: '' });
-
-  // Handler to start editing
-  const handleQuickGradeEdit = (id) => {
-    const assessment = quickGradeAssessments.find(a => a.id === id);
-    setQuickGradeEditForm({ title: assessment.title, points: assessment.points });
-    setQuickGradeEditId(id);
-    setQuickGradeMenuOpen(null);
-  };
-
-  // Handler for edit form change
-  const handleQuickGradeEditFormChange = e => {
-    const { name, value } = e.target;
-    setQuickGradeEditForm(f => ({ ...f, [name]: value }));
-  };
-
-  // Handler to save edit
-  const handleQuickGradeEditSave = (id) => {
-    setQuickGradeAssessments(a => a.map(x => x.id === id ? { ...x, title: quickGradeEditForm.title, points: quickGradeEditForm.points } : x));
-    setQuickGradeEditId(null);
-    // Preserve the current expanded/collapsed state
-    // selectedQuickGradeId remains unchanged
-  };
-
-  // Handler to cancel edit
-  const handleQuickGradeEditCancel = () => {
-    setQuickGradeEditId(null);
-    // Preserve the current expanded/collapsed state
-    // selectedQuickGradeId remains unchanged
-  };
-
   const [voiceType, setVoiceType] = useState('female'); // or 'male' as default
   const [showQRGrading, setShowQRGrading] = useState(false);
   const [showManualGrading, setShowManualGrading] = useState(false);
@@ -2636,8 +2629,7 @@ useEffect(() => {
     };
   }, [isPlaying]);
 
-  // Add state for toggling Live Setup in Quick Grade
-  const [showLiveSetup, setShowLiveSetup] = useState(false);
+
 
   // Add state for toggling Online Setup in Quick Grade
   const [showOnlineSetup, setShowOnlineSetup] = useState(false);
@@ -2735,17 +2727,9 @@ useEffect(() => {
 
   // === Quick Grade State Variables ===
   const [selectedQuickGradeId, setSelectedQuickGradeId] = useState(null);
-  const [quickGradeMenuOpen, setQuickGradeMenuOpen] = useState(null);
 
-  const handleQuickGradeMenuOpen = (id) => {
-    setQuickGradeMenuOpen(quickGradeMenuOpen === id ? null : id);
-  };
 
-  const handleQuickGradeDelete = (id) => {
-    // Add your delete logic here
-    console.log('Deleting quick grade:', id);
-    setQuickGradeMenuOpen(null);
-  };
+
 
   // Class Tasks handlers
   const handleTaskFormChange = (e) => {
@@ -2773,7 +2757,8 @@ useEffect(() => {
       isLiked: false,
       isPinned: false,
       comments: [],
-      attachments: [...taskAttachments]
+      attachments: [...taskAttachments],
+      assignedStudents: taskAssignedStudents // <-- Add this line
     };
     
     // Save task to selected classrooms
@@ -3257,17 +3242,6 @@ useEffect(() => {
           </NavItem>
           <NavItem>
             <NavLink
-              className={classnames({ active: activeTab === "quickgrade" })}
-              onClick={() => setActiveTab("quickgrade")}
-              style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
-            >
-              <i className="fa fa-qrcode mr-1" style={{ color: '#fdcb6e' }}></i>
-              <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e' }}></i>
-              Quick Grade
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink
               className={classnames({ active: activeTab === "class" })}
               onClick={() => setActiveTab("class")}
               style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
@@ -3306,1743 +3280,568 @@ useEffect(() => {
 
         {/* Tab Content */}
         <TabContent activeTab={activeTab}>
+
           {/* Stream Tab */}
           <TabPane tabId="stream">
-            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
-              <CardBody>
-                <h4 className="mb-4" style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1 }}>Stream <i className="ni ni-chat-round text-info ml-2" /></h4>
-                {activeTab === "stream" && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8, gap: 2 }}>
-                    <Button
-                      onClick={() => { setShowScheduledCollapse(!showScheduledCollapse); setShowDraftsCollapse(false); }}
-                      style={{
-                        borderRadius: 6,
-                        fontWeight: 500,
-                        fontSize: 13,
-                        padding: '4px 12px',
-                        minHeight: 'auto',
-                        lineHeight: 1.2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: showScheduledCollapse ? '#5E72E4' : '#fff',
-                        color: showScheduledCollapse ? '#fff' : '#222',
-                        border: showScheduledCollapse ? '1.5px solid #5E72E4' : '1.5px solid #222',
-                        boxShadow: showScheduledCollapse ? '0 2px 8px #324cdd22' : 'none',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      <FaRegCalendarAlt style={{ fontSize: 15, marginRight: 4 }} /> Scheduled
-                    </Button>
-                    <Button
-                      onClick={() => { setShowDraftsCollapse(!showDraftsCollapse); setShowScheduledCollapse(false); }}
-                      style={{
-                        borderRadius: 6,
-                        fontWeight: 500,
-                        fontSize: 13,
-                        padding: '4px 12px',
-                        minHeight: 'auto',
-                        lineHeight: 1.2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: showDraftsCollapse ? '#5E72E4' : '#fff',
-                        color: showDraftsCollapse ? '#fff' : '#222',
-                        border: showDraftsCollapse ? '1.5px solid #5E72E4' : '1.5px solid #222',
-                        boxShadow: showDraftsCollapse ? '0 2px 8px #324cdd22' : 'none',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      <FaRegFileAlt style={{ fontSize: 15, marginRight: 4 }} /> Drafts
-                    </Button>
+            {activeTab === "stream" && (
+              <div style={{ maxWidth: 1100, margin: '24px auto 0', fontSize: '12px' }}>
+                <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', border: '1.5px solid #e9ecef', padding: 32, marginBottom: 24 }}>
+                  {/* Stream Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                    <i className="ni ni-chat-round" style={{ fontSize: 16, color: '#2096ff', marginRight: 2 }} />
+                    <span style={{ fontWeight: 700, color: '#2096ff', fontSize: 13, letterSpacing: 0.2 }}>Stream</span>
                   </div>
-                )}
-                {activeTab === "stream" && showScheduledCollapse && (
+                  {/* Scheduled/Drafts toggles */}
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowScheduledCollapse(!showScheduledCollapse)}
+                      style={{
+                        borderRadius: 6,
+                        border: '1.2px solid #222',
+                        background: showScheduledCollapse ? '#1976d2' : '#fff',
+                        color: showScheduledCollapse ? '#fff' : '#222',
+                        fontWeight: 500,
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        minWidth: 70,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        boxShadow: showScheduledCollapse ? '0 2px 8px #324cdd22' : 'none',
+                        transition: 'all 0.15s',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        borderColor: showScheduledCollapse ? '#1976d2' : '#222',
+                      }}
+                    >
+                      <i className="fa fa-calendar" style={{ fontSize: 13, marginRight: 3, color: showScheduledCollapse ? '#fff' : '#222' }}></i> Scheduled
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDraftsCollapse(!showDraftsCollapse)}
+                      style={{
+                        borderRadius: 6,
+                        border: '1.2px solid #222',
+                        background: showDraftsCollapse ? '#1976d2' : '#fff',
+                        color: showDraftsCollapse ? '#fff' : '#222',
+                        fontWeight: 500,
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        minWidth: 70,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        boxShadow: showDraftsCollapse ? '0 2px 8px #324cdd22' : 'none',
+                        transition: 'all 0.15s',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        borderColor: showDraftsCollapse ? '#1976d2' : '#222',
+                      }}
+                    >
+                      <i className="fa fa-file-alt" style={{ fontSize: 13, marginRight: 3, color: showDraftsCollapse ? '#fff' : '#222' }}></i> Drafts
+                    </button>
+                  </div>
+                  {/* Scheduled Announcements Collapse */}
                   <Collapse isOpen={showScheduledCollapse}>
-                    <Card style={{ marginBottom: 16, borderRadius: 12, boxShadow: '0 2px 8px #324cdd11' }}>
-                      <CardBody style={{ maxHeight: 320, overflowY: 'auto' }}>
-                        <h5>Scheduled Announcements</h5>
-                        {scheduled.length === 0 ? (
-                          <div style={{ color: '#888' }}>No scheduled announcements.</div>
-                        ) : (
-                          [...scheduled].sort((a, b) => {
-                            const aDate = new Date(a.scheduledFor?.date + ' ' + a.scheduledFor?.time);
-                            const bDate = new Date(b.scheduledFor?.date + ' ' + b.scheduledFor?.time);
-                            return aDate - bDate;
-                          }).map((item, idx) => (
-                            <div key={idx} 
-                              style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between', 
-                                padding: '8px 12px', // reduced padding
-                                borderBottom: '1px solid #e9ecef', 
-                                background: '#fff',
-                                borderRadius: 8, // reduced radius
-                                marginBottom: 6, // reduced margin
-                                boxShadow: '0 1px 4px #324cdd08', // lighter shadow
-                                cursor: 'default',
-                                transition: 'background 0.13s',
-                                fontFamily: 'inherit',
-                                fontSize: 14, // reduced base font size
-                                color: '#232b3b',
-                                fontWeight: 600
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 700, fontSize: 15, color: '#232b3b', marginBottom: 2, fontFamily: 'inherit', letterSpacing: 0.5 }}>{item.title || '(No Title)'}</div>
-                                <div style={{ fontWeight: 500, fontSize: 13, color: '#232b3b', opacity: 0.85, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
-                                  {truncate(item.text, 60)}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#8898AA', marginTop: 2 }}>
-                                  Scheduled for {item.scheduledFor.date} at {item.scheduledFor.time}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  {/* Attachment count */}
-                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12 }}>
-                                    <i className="fa fa-paperclip" style={{ marginRight: 3, fontSize: 12 }} />
-                                    {item.attachments && item.attachments.length ? `${item.attachments.length} attachment${item.attachments.length !== 1 ? 's' : ''}` : 'No attachments'}
-                                  </span>
-                                  {/* Student count (always show) */}
-                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center' }}>
-                                    <i className="fa fa-users" style={{ marginRight: 3, fontSize: 12 }} />
-                                    {item.visibleTo && item.visibleTo.length > 0
-                                      ? `${item.visibleTo.length} student${item.visibleTo.length !== 1 ? 's' : ''} selected`
-                                      : '0 students selected'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </CardBody>
-                    </Card>
-                  </Collapse>
-                )}
-                {activeTab === "stream" && (
-                  <Collapse isOpen={showDraftsCollapse}>
-                    <Card style={{ marginBottom: 16, borderRadius: 12, boxShadow: '0 2px 8px #324cdd11' }}>
-                      <CardBody style={{ maxHeight: 320, overflowY: 'auto' }}>
-                        <h5>Draft Announcements</h5>
-                        {drafts.length === 0 ? (
-                          <div style={{ color: '#888' }}>No drafts saved.</div>
-                        ) : (
-                          [...drafts].sort((a, b) => {
-                            const aDate = new Date(a.lastEdited);
-                            const bDate = new Date(b.lastEdited);
-                            return bDate - aDate;
-                          }).map((draft, idx) => (
-                            <div key={idx} 
-                              style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between', 
-                                padding: '8px 12px', // reduced padding
-                                borderBottom: '1px solid #e9ecef', 
-                                background: '#fff',
-                                borderRadius: 8, // reduced radius
-                                marginBottom: 6, // reduced margin
-                                boxShadow: '0 1px 4px #324cdd08', // lighter shadow
-                                cursor: 'pointer',
-                                transition: 'background 0.13s',
-                                fontFamily: 'inherit',
-                                fontSize: 14, // reduced base font size
-                                color: '#232b3b',
-                                fontWeight: 600
-                              }}
-                              onClick={() => {
-                                setNewAnnouncement(draft.text || '');
-                                setNewAnnouncementTitle(draft.title || '');
-                                setAttachments(draft.attachments || []);
-                                setSelectedAnnouncementStudents(draft.visibleTo || []);
-                                setFormExpanded(true);
-                                setShowDraftsCollapse(false);
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 700, fontSize: 15, color: '#232b3b', marginBottom: 2, fontFamily: 'inherit', letterSpacing: 0.5 }}>{draft.title || '(No Title)'}</div>
-                                <div style={{ fontWeight: 500, fontSize: 13, color: '#232b3b', opacity: 0.85, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
-                                  {truncate(draft.text, 60)}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#8898AA', marginTop: 2 }}>
-                                  Last edited on {draft.lastEdited ? new Date(draft.lastEdited).toLocaleString() : ''}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                                  {/* Attachment count */}
-                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12 }}>
-                                    <i className="fa fa-paperclip" style={{ marginRight: 3, fontSize: 12 }} />
-                                    {draft.attachments && draft.attachments.length ? `${draft.attachments.length} attachment${draft.attachments.length !== 1 ? 's' : ''}` : 'No attachments'}
-                                  </span>
-                                  {/* Student count (always show) */}
-                                  <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center' }}>
-                                    <i className="fa fa-users" style={{ marginRight: 3, fontSize: 12 }} />
-                                    {draft.visibleTo && draft.visibleTo.length > 0
-                                      ? `${draft.visibleTo.length} student${draft.visibleTo.length !== 1 ? 's' : ''} selected`
-                                      : '0 students selected'}
-                                  </span>
-                                </div>
-                              </div>
-                              <FaTrash 
-                                style={{ color: '#e74c3c', fontSize: 14, marginLeft: 12, flexShrink: 0, cursor: 'pointer' }} 
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setDrafts(drafts.filter((_, i) => i !== idx));
-                                }}
-                              />
-                            </div>
-                          ))
-                        )}
-                      </CardBody>
-                    </Card>
-                  </Collapse>
-                )}
-                {/* Post Announcement Form Only */}
-                {!formExpanded ? (
-                  <FormGroup className="mb-2" style={{ margin: 0 }}>
-                    <Input
-                      type="textarea"
-                      name="announcement"
-                      value={newAnnouncement}
-                      onFocus={() => setFormExpanded(true)}
-                      onChange={e => setNewAnnouncement(e.target.value)}
-                      placeholder="Share an announcement with your class..."
-                      style={{ fontSize: 14, minHeight: 80, padding: 8, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                    />
-                  </FormGroup>
-                ) : (
-                  <Form onSubmit={handlePostAnnouncement} style={{ marginBottom: 12 }}>
-                  <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', padding: '1.5rem 1.5rem 1rem', marginBottom: 0, border: '1.5px solid #e9ecef', maxWidth: '100%', position: 'relative' }}>
-                    {/* Add student button at top right */}
-                    <div style={{ position: 'absolute', top: 24, right: 24, display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, zIndex: 2 }}>
-                      {selectedAnnouncementStudents.length > 0 && (
-                        <span style={{ background: '#e3eafe', color: '#324cdd', borderRadius: '50%', padding: '2px 8px', fontWeight: 700, fontSize: 11, minWidth: 18, minHeight: 18, textAlign: 'center', boxShadow: '0 2px 8px #324cdd11', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {selectedAnnouncementStudents.length}
-                        </span>
-                      )}
-                      <Button color="secondary" style={{ borderRadius: 8, padding: '6px 12px', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, boxShadow: '0 2px 8px #324cdd11' }} onClick={() => { setTempSelectedStudents(selectedAnnouncementStudents); setShowStudentSelectModal(true); }}>
-                        <FaUserPlus />
-                      </Button>
-                    </div>
-                      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <input type="checkbox" id="allowComments" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} style={{ marginRight: 8 }} />
-                            <label htmlFor="allowComments" style={{ fontWeight: 500, fontSize: 16, color: '#222', margin: 0 }}>Allow comments</label>
-                          </div>
-                        </div>
-                      </div>
-                      <FormGroup className="mb-2">
-                        <Input
-                          type="text"
-                          name="announcementTitle"
-                          value={newAnnouncementTitle}
-                          onChange={e => setNewAnnouncementTitle(e.target.value)}
-                          placeholder="Announcement title (optional)"
-                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }}
-                        />
-                      </FormGroup>
-                      <FormGroup className="mb-2">
-                        <Input
-                          type="textarea"
-                          name="announcement"
-                          value={newAnnouncement}
-                          autoFocus
-                          onChange={e => setNewAnnouncement(e.target.value)}
-                          placeholder="Share an announcement with your class..."
-                          style={{ fontSize: 14, minHeight: 80, padding: 8, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                        />
-                      </FormGroup>
-                      <div className="d-flex w-100 action-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
-                        <div className="d-flex align-items-center" style={{ gap: 8, position: 'relative' }}>
-                          <Dropdown isOpen={attachmentDropdownOpen} toggle={() => setAttachmentDropdownOpen(!attachmentDropdownOpen)}>
-                            <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <FaPaperclip />
-                      </DropdownToggle>
-                      <DropdownMenu>
-                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); fileInputRef.current.click(); }}>File</DropdownItem>
-                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowLinkModal(true); }}>Link</DropdownItem>
-                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowYouTubeModal(true); }}>YouTube</DropdownItem>
-                              <DropdownItem onClick={() => { setAttachmentDropdownOpen(false); setShowCreateDriveModal(true); }}>Google Drive</DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                    <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
-                          <div style={{ position: 'relative' }}>
-                            <Button color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>
-                              <FaSmile />
-                            </Button>
-                            {emojiPickerOpen && (
-                              <div ref={emojiPickerRef} className="create-emoji-dropdown" style={{ position: 'absolute', top: 40, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 10, minWidth: 280, maxWidth: 280, width: 280, maxHeight: 200, overflowY: 'auto' }}>
-                                {emojiList.map(emoji => (
-                                  <span key={emoji} style={{ fontSize: 22, cursor: 'pointer', margin: 4 }} onClick={() => {
-                                    setNewAnnouncement(newAnnouncement + emoji);
-                                    setEmojiPickerOpen(false);
-                                  }}>{emoji}</span>
+                    <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: 'none', marginBottom: 24, marginTop: 0, padding: '2rem 2rem 1.5rem', maxWidth: '100%' }}>
+                      <div style={{ fontWeight: 700, color: '#2d3559', marginBottom: 8 }}>Scheduled Announcements</div>
+                      {scheduled.length === 0 ? (
+                        <div style={{ color: '#888' }}>No scheduled announcements.</div>
+                      ) : (
+                        scheduled.map((announcement, idx) => (
+                          <div key={idx} style={{ background: '#f8fafd', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', marginBottom: 18, padding: '18px 24px' }}>
+                            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
+                            <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content || announcement.text}</div>
+                            <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>Scheduled for: {announcement.scheduledFor ? `${announcement.scheduledFor.date} ${announcement.scheduledFor.time}` : ''}</div>
+                            {announcement.attachments && announcement.attachments.length > 0 && (
+                              <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {announcement.attachments.map((att, idx2) => (
+                                  <div key={idx2} style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '10px 18px', minWidth: 220, maxWidth: 340 }}>
+                                    <span style={{ fontWeight: 600 }}>{att.name || att.url || 'Attachment'}</span>
+                                  </div>
                                 ))}
-                                <style>{`
-                                  @media (max-width: 600px) {
-                                    .create-emoji-dropdown {
-                                      min-width: 180px !important;
-                                      max-width: 180px !important;
-                                      width: 180px !important;
-                                    }
-                                  }
-                                `}</style>
                               </div>
                             )}
                           </div>
-                        </div>
-             
-                        <div className="d-flex align-items-center action-buttons" style={{ gap: 8 }}>
-                          <Button color="secondary" className="cancel-btn-desktop" style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8, display: 'block' }} onClick={e => { handleCancelPost(e); setFormExpanded(false); setAllowComments(true); setSelectedAnnouncementStudents([]); setTempSelectedStudents([]); setAttachments([]); setNewAnnouncement(''); setNewAnnouncementTitle(''); }}>Cancel</Button>
-                          <Button color="primary" className="post-btn-desktop" type="submit" style={{ fontSize: 13, padding: '7px 28px', borderRadius: 8, fontWeight: 700, boxShadow: '0 2px 8px #667eea33', background: '#7b8cff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={(!newAnnouncement || newAnnouncement.trim().length === 0) && attachments.length === 0}>
-                            <i className="ni ni-send" style={{ fontSize: 16 }} />
-                        </Button>
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
-                          <Button
-                            color="secondary"
-                            style={{ borderRadius: 8, padding: '4px 10px', marginLeft: 0 }}
-                            disabled={(!newAnnouncement && !newAnnouncementTitle && attachments.length === 0) || (!newAnnouncement.trim() && !newAnnouncementTitle.trim() && attachments.length === 0)}
-                            onClick={() => setShowMoreMenu(!showMoreMenu)}
-                          >
-                            <span style={{ fontWeight: 'bold', fontSize: 18 }}>⋮</span>
-                          </Button>
-                          {showMoreMenu && (
-                            <div style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: 45,
-                              background: '#fff',
-                              border: '1px solid #e9ecef',
-                              borderRadius: 8,
-                              boxShadow: '0 2px 8px #324cdd22',
-                              zIndex: 100,
-                              minWidth: 160
-                            }}>
-                              <Button
-                                color="link"
-                                style={{ width: '100%', textAlign: 'left', padding: '8px 16px', color: '#212529', fontWeight: 400, fontSize: 15, fontFamily: 'inherit', letterSpacing: 0, background: 'none', border: 'none', marginRight: 0, marginLeft: 0 }}
-                                onClick={() => {
-                                  setShowMoreMenu(false);
-                                  setShowScheduleModal(true);
-                                }}
-                              >
-                                Schedule
-                              </Button>
-                              <Button
-                               color="link"
-                               className="no-left-margin"
-                               style={{ width: '100%', textAlign: 'left', padding: '8px 16px', color: '#212529', fontWeight: 400, fontSize: 15, fontFamily: 'inherit', letterSpacing: 0, background: 'none', border: 'none', marginRight: 0, marginLeft: 0}}
-                               onClick={() => {
-                                 setShowMoreMenu(false);
-                                 handleSaveDraft();
-                                }}
-                              >
-                               Save as Draft
-                              </Button>
+                        ))
+                      )}
                     </div>
-                          )}
-                  </div>
-                      </div>
-                    </div>
-                    {/* Mobile-only Post and Cancel buttons inside the Form */}
-                    <div className="cancel-btn-mobile-row" style={{ display: 'none', width: '100%', marginTop: 20, justifyContent: 'flex-end', gap: 8 }}>
-                      <Button color="secondary" className="cancel-btn-mobile" style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8 }} onClick={e => { handleCancelPost(e); setFormExpanded(false); setAllowComments(true); setSelectedAnnouncementStudents([]); setTempSelectedStudents([]); setAttachments([]); setNewAnnouncement(''); setNewAnnouncementTitle(''); }}>Cancel</Button>
-                      <Button color="primary" className="post-btn-mobile" type="submit" style={{ fontSize: 13, padding: '7px 28px', borderRadius: 8, fontWeight: 700, boxShadow: '0 2px 8px #667eea33', background: '#7b8cff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={(!newAnnouncement || newAnnouncement.trim().length === 0) && attachments.length === 0}>
-                        <i className="ni ni-send" style={{ fontSize: 16 }} />
-                      </Button>
-                      <div style={{ position: 'relative', display: 'inline-block' }} className="more-btn-mobile-wrapper">
-                        <Button
-                          color="secondary"
-                          style={{ borderRadius: 8, padding: '4px 10px', marginLeft: 0 }}
-                          disabled={(!newAnnouncement && !newAnnouncementTitle && attachments.length === 0) || (!newAnnouncement.trim() && !newAnnouncementTitle.trim() && attachments.length === 0)}
-                          onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        >
-                          <span style={{ fontWeight: 'bold', fontSize: 18 }}>⋮</span>
-                        </Button>
-                        {showMoreMenu && (
-                          <div style={{
-                            position: 'absolute',
-                            right: 0,
-                            top: 45,
-                            background: '#fff',
-                            border: '1px solid #e9ecef',
-                            borderRadius: 8,
-                            boxShadow: '0 2px 8px #324cdd22',
-                            zIndex: 100,
-                            minWidth: 160
-                          }}>
-                            <Button
-                              color="link"
-                              style={{ width: '100%', textAlign: 'left', padding: '8px 16px', color: '#212529', fontWeight: 400, fontSize: 15, fontFamily: 'inherit', letterSpacing: 0, background: 'none', border: 'none', marginRight: 0, marginLeft: 0 }}
-                              onClick={() => {
-                                setShowMoreMenu(false);
-                                handleSaveDraft();
-                              }}
-                            >
-                              Save as Draft
-                            </Button>
+                  </Collapse>
+                  {/* Drafts Announcements Collapse */}
+                  <Collapse isOpen={showDraftsCollapse}>
+                    <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: 'none', marginBottom: 24, marginTop: 0, padding: '2rem 2rem 1.5rem', maxWidth: '100%' }}>
+                      <div style={{ fontWeight: 700, color: '#2d3559', marginBottom: 8 }}>Draft Announcements</div>
+                      {drafts.length === 0 ? (
+                        <div style={{ color: '#888' }}>No drafts saved.</div>
+                      ) : (
+                        drafts.map((draft, idx) => (
+                          <div key={idx} style={{ background: '#f8fafd', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', marginBottom: 18, padding: '18px 24px' }}>
+                            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{draft.title}</div>
+                            <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{draft.content || draft.text}</div>
+                            <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>Saved as draft: {draft.lastEdited ? new Date(draft.lastEdited).toLocaleString() : ''}</div>
+                            {draft.attachments && draft.attachments.length > 0 && (
+                              <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {draft.attachments.map((att, idx2) => (
+                                  <div key={idx2} style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '10px 18px', minWidth: 220, maxWidth: 340 }}>
+                                    <span style={{ fontWeight: 600 }}>{att.name || att.url || 'Attachment'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        ))
+                      )}
                     </div>
-                    <style>{`
-                    @media (max-width: 600px) {
-                      .cancel-btn-desktop, .post-btn-desktop, .menu-btn-desktop { display: none !important; }
-                      .cancel-btn-mobile-row { display: flex !important; }
-                    }
-                    `}</style>
-                    {/* After the form controls in the expanded form, show attached files if any */}
-                    {attachments.length > 0 && (
-                      <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                        {attachments.map((att, idx) => {
-                          const { preview, type, color } = getFileTypeIconOrPreview(att);
-                          let url = undefined;
-                          if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
-                            url = URL.createObjectURL(att.file);
-                          } else if (att.url) {
-                            url = att.url;
-                          }
-                          const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
-                          const displayName = isLink ? att.url : att.name;
-                          
-                          return (
-                            <div
-                              key={idx}
-                              style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
-                              onClick={() => {
-                                if (isLink && att.url) {
-                                  window.open(att.url, '_blank', 'noopener,noreferrer');
-                                } else {
-                                  handlePreviewAttachment(att);
-                                }
-                              }}
-                            >
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                  {type} 
-                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
-                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
-                      </div>
-                    </div>
-                      </div>
-                          );
-                        })}
-                    </div>
-                    )}
-                  </div>
-                  
-                </Form>
-                 )} {/* Schedule Modal */}
-                  <Modal isOpen={showScheduleModal} toggle={() => setShowScheduleModal(false)}>
-                    <ModalHeader toggle={() => setShowScheduleModal(false)} style={{ fontWeight: 700, fontSize: 18 }}>Schedule Task</ModalHeader>
-                    <ModalBody>
-                      <div style={{ marginBottom: 16 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15 }}>Date</label>
-                        <Input 
-                          type="date" 
-                          value={scheduleDate} 
-                          onChange={e => setScheduleDate(e.target.value)} 
-                          min={new Date().toISOString().split('T')[0]}
-                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }} 
-                        />
-                      </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15 }}>Time</label>
-                        <Input 
-                          type="time" 
-                          value={scheduleTime} 
-                          onChange={e => {
-                            const selectedTime = e.target.value;
-                            const selectedDate = scheduleDate;
-                            const now = new Date();
-                            const today = now.toISOString().split('T')[0];
-                            
-                            if (selectedDate === today) {
-                              const currentTime = now.toTimeString().slice(0, 5);
-                              if (selectedTime <= currentTime) {
-                                alert('Please select a future time for today\'s date.');
-                                return;
-                              }
-                            }
-                            setScheduleTime(selectedTime);
-                          }} 
-                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }} 
-                        />
-                    </div>
-                    </ModalBody>
-                    <ModalFooter>
-                      <Button color="secondary" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
-                      <Button 
-                        color="primary" 
-                        onClick={handleScheduleAnnouncement} 
-                        disabled={!scheduleDate || !scheduleTime}
-                        style={{
-                          opacity: (!scheduleDate || !scheduleTime) ? 0.6 : 1,
-                          cursor: (!scheduleDate || !scheduleTime) ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        Schedule
-                      </Button>
-                    </ModalFooter>
-                  </Modal>
-                {/* Announcements List */}
-                <div style={{ marginTop: 48 }}>
-                  {announcements.map((announcement) => {
-                    const authorUser = findUserByName(announcement.author);
-                    const avatarSrc = getAvatarForUser(authorUser);
-                    const isEditing = editingAnnouncementId === announcement.id;
-                    return (
-                      <Card key={announcement.id} className="mb-4" style={{ borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', borderLeft: announcement.isPinned ? '4px solid #f7b731' : '4px solid #324cdd', background: '#fff', transition: 'box-shadow 0.2s, border-color 0.2s', padding: 0 }}>
-                          <CardBody style={{ padding: '0.75rem 1rem' }}>
-                            <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 8 }}>
-                              <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
-                                  <img src={avatarSrc} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <div style={{ fontWeight: 600, color: '#111', fontSize: 14 }}>{announcement.author}</div>
-                                    {announcement.isPinned && (
-                                      <Badge color="warning" className="ml-2">Pinned</Badge>
-                                    )}
-                                  </div>
-                                  <small className="text-muted" style={{ fontSize: 11 }}>{formatRelativeTime(announcement.date)}</small>
-                                </div>
-                              </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: 12, flexShrink: 0 }}>
-                                <Button 
-                                  color="link" 
-                                  style={{ 
-                                    color: (announcement.reactions?.likedBy || []).includes("Prof. Smith") ? '#007bff' : '#000', 
-                                    fontSize: 12, 
-                                    padding: 2, 
-                                    marginRight: 16 
-                                  }} 
-                                  onClick={() => handleLikeAnnouncement(announcement.id)}
-                                  aria-label="Like announcement"
-                                >
-                                  {(announcement.reactions?.likedBy || []).includes("Prof. Smith") ? 
-                                    <FaThumbsUp size={12} /> : 
-                                    <FaRegThumbsUp size={12} />
-                                  } 
-                                  <span style={{ fontSize: 11, marginLeft: 2 }}>
-                                    {(announcement.reactions && announcement.reactions.like) || 0}
-                                  </span>
-                                </Button>
-                                <Dropdown isOpen={announcementDropdowns[announcement.id]} toggle={() => handleDropdownToggle(announcement.id)}>
-                                  <DropdownToggle tag="span" style={{ cursor: 'pointer', padding: 2, border: 'none', background: 'none' }}>
-                                    <FaEllipsisV size={14} />
-                                  </DropdownToggle>
-                                  <DropdownMenu right>
-                                    <DropdownItem onClick={() => handleEditAnnouncement(announcement.id)}>Edit</DropdownItem>
-                                    <DropdownItem onClick={() => handleDeleteAnnouncement(announcement.id)}>Delete</DropdownItem>
-                                    <DropdownItem onClick={() => handlePinAnnouncement(announcement.id)}>
-                                      {announcement.isPinned ? 'Unpin' : 'Pin this announcement'}
-                                    </DropdownItem>
-                                  </DropdownMenu>
-                              </Dropdown>
-                            </div>
-                          </div>
-                          {isEditing ? (
-                            <>
-                              {/* Editable title input */}
-                              <input
-                                name="title"
-                                value={editAnnouncementData.title}
-                                onChange={handleEditAnnouncementChange}
-                                style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 6, border: '1px solid #e9ecef', borderRadius: 5, padding: '4px 10px', width: '100%' }}
-                                placeholder="Announcement title (optional)"
-                              />
-                              {/* Editable content textarea */}
-                              <textarea
-                                name="content"
-                                value={editAnnouncementData.content}
-                                onChange={handleEditAnnouncementChange}
-                                style={{ fontSize: 14, color: '#2d3748', border: '1px solid #e9ecef', borderRadius: 5, padding: 8, width: '100%', minHeight: 80, marginBottom: 8 }}
-                                rows={3}
-                                placeholder="Share an announcement with your class..."
-                              />
-                              {/* Attachments: show current with remove, and add new */}
-                              <div style={{ marginBottom: 8 }}>
-                                {editAnnouncementData.attachments && editAnnouncementData.attachments.length > 0 && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
-                                    {editAnnouncementData.attachments.map((att, idx) => {
-                                      const { preview, type, color } = getFileTypeIconOrPreview(att);
-                                      const url = att.file ? URL.createObjectURL(att.file) : undefined;
-                                      const isLink = att.type === "Link" || att.type === "YouTube";
-                                      const displayName = isLink ? att.url : att.name;
-                                      return (
-                                        <div key={idx} style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%' }}>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                                          <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                            <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                              {type}
-                                              {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>Download</a></>}
-                                              {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }}>View Link</a></>}
-                                            </div>
-                                          </div>
-                                          <Button close onClick={() => handleRemoveEditAttachment(idx)} style={{ fontSize: 18, marginLeft: 4 }} />
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                                {/* Add new attachment */}
-                                <input type="file" multiple style={{ display: 'none' }} ref={editFileInputRef} onChange={handleEditFileChange} />
-                                <Dropdown isOpen={editAttachmentDropdownOpen} toggle={() => setEditAttachmentDropdownOpen(!editAttachmentDropdownOpen)}>
-                                  <DropdownToggle color="secondary" size="sm" style={{ fontSize: 14, borderRadius: 8, padding: '4px 14px' }}>
-                                  <FaPaperclip style={{ marginRight: 6 }} /> Add Attachment
-                                  </DropdownToggle>
-                                  <DropdownMenu>
-                                    <DropdownItem onClick={() => { setEditAttachmentDropdownOpen(false); editFileInputRef.current.click(); }}>
-                                      <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
-                                    </DropdownItem>
-                                    <DropdownItem onClick={() => { setShowEditLinkModal(true); setEditAttachmentDropdownOpen(false); }}>
-                                      <i className="ni ni-world-2" style={{ marginRight: 8 }} /> Link
-                                    </DropdownItem>
-                                    <DropdownItem onClick={() => { setShowEditYouTubeModal(true); setEditAttachmentDropdownOpen(false); }}>
-                                      <i className="ni ni-video-camera-2" style={{ marginRight: 8 }} /> YouTube
-                                    </DropdownItem>
-                                    <DropdownItem onClick={() => { setShowEditDriveModal(true); setEditAttachmentDropdownOpen(false); }}>
-                                      <i className="ni ni-cloud-upload-96" style={{ marginRight: 8 }} /> Google Drive
-                                    </DropdownItem>
-                                  </DropdownMenu>
-                                </Dropdown>
-                                {/* Allow comments checkbox below attachments */}
-                                <div style={{ marginTop: 12, marginBottom: 0 }}>
-                                  <input type="checkbox" id="editAllowComments" checked={editAnnouncementData.allowComments !== false} onChange={e => setEditAnnouncementData(prev => ({ ...prev, allowComments: e.target.checked }))} style={{ marginRight: 8 }} />
-                                  <label htmlFor="editAllowComments" style={{ fontWeight: 500, fontSize: 14, color: '#444', marginRight: 16 }}>Allow comments</label>
-                                </div>
-                              </div>
-                              {/* Student selection for edit announcement */}
-                              <div style={{ marginTop: 16, marginBottom: 16 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                  <i className="ni ni-single-02" style={{ fontSize: 16, color: '#666' }} />
-                                  <span style={{ fontWeight: 600, fontSize: 14, color: '#111' }}>
-                                    Who can view this announcement?
-                                    {editSelectedStudents.length > 0 && (
-                                      <span style={{ background: '#e3eafe', color: '#324cdd', borderRadius: '50%', padding: '2px 8px', fontWeight: 700, fontSize: 11, minWidth: 18, minHeight: 18, textAlign: 'center', boxShadow: '0 2px 8px #324cdd11', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}>
-                                        {editSelectedStudents.length}
-                                      </span>
-                                    )}
-                                  </span>
-                                </div>
-                                <Button 
-                                  color="light" 
-                                  size="sm" 
-                                  onClick={() => { setTempSelectedStudents(editSelectedStudents); setShowEditStudentSelectModal(true); }}
-                                  style={{ fontSize: 13, borderRadius: 6, padding: '4px 12px' }}
-                                >
-                                  <i className="ni ni-fat-add" style={{ marginRight: 4 }} />
-                                  {editSelectedStudents.length > 0 ? 'Edit students' : 'Select students'}
-                                </Button>
-                              </div>
-                              {/* Save/Cancel buttons */}
-                              <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginTop: 16, marginBottom: 12 }}>
-                                <Button color="success" size="sm" onClick={() => handleSaveEditAnnouncement(announcement.id)} style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8, marginRight: 8 }}>Save</Button>
-                                <Button color="secondary" size="sm" onClick={handleCancelEditAnnouncement} style={{ fontSize: 13, padding: '4px 18px', borderRadius: 8 }}>Cancel</Button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                          {announcement.title && announcement.title.trim() !== "" && (
-                            <h6 className="mb-1 font-weight-bold" style={{ color: '#111', fontSize: 14, letterSpacing: 0.1, marginBottom: 6 }}>
-                              {announcement.title}
-                            </h6>
-                          )}
-                          <p className="mb-2" style={{ fontSize: 14, color: '#2d3748', marginBottom: 2, lineHeight: 1.2 }}>{announcement.content}</p>
-                              {!isEditing && announcement.attachments && announcement.attachments.length > 0 && (
-                            <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                              {announcement.attachments.map((att, idx) => {
-                                const { preview, type, color } = getFileTypeIconOrPreview(att);
-                                let url = undefined;
-                                if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
-                                  url = URL.createObjectURL(att.file);
-                                } else if (att.url) {
-                                  url = att.url;
-                                }
-                                const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
-                                const displayName = isLink ? att.url : att.name;
-                                return (
-                                  <div
-                                    key={idx}
-                                    style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
-                                    onClick={() => {
-                                      if (isLink && att.url) {
-                                        window.open(att.url, '_blank', 'noopener,noreferrer');
-                                      } else {
-                                        handlePreviewAttachment(att);
-                                      }
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                      <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                        {type}
-                                        {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
-                                        {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {/* After the message content, add the comment section: */}
-                          {announcement.allowComments !== false && (
-                            <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 12, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
-                              {/* Comments List */}
-                              {announcement.comments && announcement.comments.length > 0 && (
-                                <div style={{ marginBottom: 16 }}>
-                                  <div 
-                          style={{
-                                      fontWeight: 600, 
-                                      fontSize: 13, 
-                                      color: '#111', 
-                                      marginBottom: 12,
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px'
-                                    }}
-                                    onClick={() => setCollapsedComments(prev => ({
-                                      ...prev,
-                                      [announcement.id]: !prev[announcement.id]
-                                    }))}
-                                  >
-                                    Comments ({announcement.comments.length})
-                                  </div>
-                                                                          {!collapsedComments[announcement.id] && announcement.comments.map((comment, idx) => {
-                                    const isOwnComment = comment.author === currentUser;
-                                    const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
-                                    
-                                    return (
-                                      <div key={idx} style={{ 
-                                        display: 'flex', 
-                                        gap: 8, 
-                                        marginBottom: 12, 
-                                        padding: '8px 0',
-                                        borderBottom: idx < announcement.comments.length - 1 ? '1px solid #f0f0f0' : 'none'
-                                      }}>
-                                        {/* Avatar */}
-                                        <div style={{ 
-                                          width: 24, 
-                                          height: 24, 
-                                          borderRadius: '50%', 
-                                          background: '#e9ecef', 
-                                          display: 'flex', 
-                                          alignItems: 'center', 
-                                          justifyContent: 'center', 
-                                          overflow: 'hidden',
-                                          flexShrink: 0
-                                        }}>
-                                          <img 
-                                            src={getAvatarForUser({ name: comment.author, id: comment.author })} 
-                                            alt="avatar" 
-                                            style={{ 
-                                              width: 24, 
-                                              height: 24, 
-                                              borderRadius: '50%', 
-                                              objectFit: 'cover', 
-                                              display: 'block' 
-                                            }} 
-                                            onError={(e) => {
-                                              e.target.src = userDefault;
-                                            }}
-                                          />
-                                        </div>
-                                        
-                                        {/* Comment Content */}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                                            <div style={{ fontWeight: 600, color: '#111', fontSize: 11 }}>{comment.author}</div>
-                                            <small className="text-muted" style={{ fontSize: 9 }}>{formatRelativeTime(comment.date)}</small>
-                                                
-                                           
-                                          </div>
-                                          
-                                          {console.log('Rendering comment:', { 
-                                            announcementId: announcement.id, 
-                                            idx, 
-                                            isEditing: editingComment[announcement.id] === idx,
-                                            editingComment,
-                                            commentText: comment.text
-                                          })}
-                                          {editingComment[announcement.id] === idx ? (
-                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                              <input
-                                                type="text"
-                                                className="form-control"
-                                                style={{ fontSize: 11, borderRadius: 4, border: '1px solid #bfcfff', background: '#fff', height: '28px', padding: '4px 8px' }}
-                                                value={editingCommentText[`${announcement.id}-${idx}`] || comment.text}
-                                                onChange={(e) => setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: e.target.value }))}
-                                                onKeyDown={(e) => {
-                                                  if (e.key === 'Enter') {
-                                                    handleSaveEditComment(announcement.id, idx);
-                                                  } else if (e.key === 'Escape') {
-                                                    handleCancelEditComment(announcement.id, idx);
-                                                  }
-                                                }}
-                                                autoFocus
-                                              />
-                                              <button
-                                                className="btn btn-primary btn-sm"
-                                                style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
-                                                onClick={() => handleSaveEditComment(announcement.id, idx)}
-                                              >
-                                                Save
-                                              </button>
-                                              <button
-                                                className="btn btn-secondary btn-sm"
-                                                style={{ fontSize: 10, borderRadius: 4, padding: '2px 8px', height: '28px' }}
-                                                onClick={() => handleCancelEditComment(announcement.id, idx)}
-                                              >
-                                                Cancel
-                                              </button>
-                                            </div>
-                                          ) : (
-                                            <div style={{ fontSize: 11, color: '#2d3748', lineHeight: 1.3 }}>
-                                              {comment.text}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              
-                              {/* Input for new comment */}
-                              <div className="d-flex comment-input-row" style={{ gap: 8, position: 'relative', marginTop: 0, marginBottom: 4 }}>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  style={{ fontSize: 10, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff', height: '32px', padding: '4px 8px' }}
-                                  placeholder="Add a comment..."
-                                  value={commentInputs[announcement.id] || ""}
-                                  onChange={e => setCommentInputs(inputs => ({ ...inputs, [announcement.id]: e.target.value }))}
-                                  onKeyDown={e => { if (e.key === 'Enter') handlePostComment(announcement.id); }}
-                                />
-                                {/* Desktop only: emoji and post button */}
-                                <div className="comment-emoji-btn-desktop-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary comment-emoji-btn-desktop"
-                                    style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      if (openEmojiPickerId === announcement.id) {
-                                        setOpenEmojiPickerId(null);
-                                      } else {
-                                        setTimeout(() => setOpenEmojiPickerId(announcement.id), 0);
-                                      }
-                                    }}
-                                  >
-                                    <FaSmile style={{ fontSize: 14 }} />
-                                  </button>
-                                  {/* Desktop dropdown */}
-                                  {openEmojiPickerId === announcement.id && (
-                                    <div
-                                      className="comment-emoji-dropdown-desktop"
-                                      ref={el => { if (el && openEmojiPickerId === announcement.id) emojiDropdownRefs.current[announcement.id] = el; }}
-                                      style={{ position: 'absolute', top: 40, left: -180, background: '#fff', border: '1px solid #e9ecef', borderRadius: 6, boxShadow: '0 2px 8px #324cdd22', zIndex: 10, width: 200, minWidth: 200, maxWidth: 200, maxHeight: 150, overflowY: 'auto', marginTop: 8, padding: 6 }}
-                                    >
-                                      {emojiList.map(emoji => (
-                                        <span key={emoji} style={{ fontSize: 18, cursor: 'pointer', margin: 2, display: 'inline-block' }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <style>{`
-                                    @media (min-width: 601px) {
-                                      .comment-emoji-dropdown-desktop { display: block !important; }
-                                    }
-                                    @media (max-width: 600px) {
-                                      .comment-emoji-dropdown-desktop { display: none !important; }
-                                    }
-                                  `}</style>
-                                  <button
-                                    className="btn btn-primary btn-sm comment-post-btn-desktop"
-                                    style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', minWidth: '36px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    onClick={() => handlePostComment(announcement.id)}
-                                    disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
-                                  >
-                                    <i className="ni ni-send" style={{ fontSize: 14 }} />
-                                  </button>
-                                </div>
-                                {/* Mobile only: emoji dropdown at left of comment box */}
-                                {openEmojiPickerId === announcement.id && (
-                                  <div className="comment-emoji-dropdown-mobile" style={{ display: 'none', position: 'absolute', top: '100%', left: -45, background: '#fff', border: '1px solid #e9ecef', borderRadius: 6, boxShadow: '0 2px 8px #324cdd22', padding: 6, zIndex: 10, width: 160, minWidth: 160, maxWidth: 160, maxHeight: 150, overflowY: 'auto', marginTop: 55 }}>
-                                    {emojiList.map(emoji => (
-                                      <span key={emoji} style={{ fontSize: 18, cursor: 'pointer', margin: 2, display: 'inline-block' }} onClick={() => handleAddEmojiToInput(announcement.id, emoji)}>{emoji}</span>
-                                    ))}
-                                  </div>
-                                )}
-                                <style>{`
-                                  @media (max-width: 600px) {
-                                    .comment-emoji-dropdown-mobile {
-                                      display: block !important;
-                                      min-width: 160px !important;
-                                      max-width: 160px !important;
-                                      width: 160px !important;
-                                    }
-                                  }
-                                  @media (min-width: 601px) {
-                                    .comment-emoji-dropdown-mobile { display: none !important; }
-                                  }
-                                `}</style>
-                              </div>
-                              {/* Mobile only: emoji and post button below input */}
-                              <div className="d-flex comment-input-btn-row-mobile" style={{ display: 'none', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
-                                  onClick={e => { e.stopPropagation(); setOpenEmojiPickerId(openEmojiPickerId === announcement.id ? null : announcement.id); }}
-                                >
-                                  <FaSmile style={{ fontSize: 14 }} />
-                                </button>
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  style={{ fontSize: 14, borderRadius: 6, padding: '3px 10px', minWidth: '36px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
-                                  onClick={() => handlePostComment(announcement.id)}
-                                  disabled={!(commentInputs[announcement.id] && commentInputs[announcement.id].trim())}
-                                >
-                                  <i className="ni ni-send" style={{ fontSize: 14 }} />
-                                </button>
-                              </div>
-                              <style>{`
-                                @media (max-width: 600px) {
-                                  .comment-emoji-btn-desktop, .comment-post-btn-desktop { display: none !important; }
-                                  .comment-input-btn-row-mobile { display: flex !important; }
-                                }
-                                @media (min-width: 601px) {
-                                  .comment-input-btn-row-mobile { display: none !important; }
-                                }
-                              `}</style>
-                            </div>
-                              )}
-                            </>
-                          )}
-                        </CardBody>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </CardBody>
-            </Card>
-          </TabPane>
-
-          {/* Quick Grade Tab */}
-          <TabPane tabId="quickgrade">
-            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
-              <CardBody>
-                <h4 className="mb-4" style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1 }}>
-                  <i className="fa fa-qrcode mr-2" style={{ color: '#fdcb6e' }} />
-                  <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e' }} />
-                  Quick Grade
-                </h4>
-                {/* Add Live Setup and Online Setup buttons below header */}
-                <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
-                  <button
-                    type="button"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      border: '1.2px solid #222',
-                      background: showLiveSetup ? '#e9ecef' : '#fff',
-                      color: '#222',
-                      borderRadius: 8,
-                      fontWeight: 500,
-                      fontSize: 13,
-                      padding: '5px 14px',
-                      minHeight: 'auto',
-                      lineHeight: 1.1,
-                      boxShadow: '0 1px 4px #324cdd11',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                    onClick={() => { setShowLiveSetup(v => !v); setShowOnlineSetup(false); }}
-                  >
-                    <i className="fa fa-users" style={{ fontSize: 13, marginRight: 5 }} /> Live Setup
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      border: '1.2px solid #222',
-                      background: showOnlineSetup ? '#e9ecef' : '#fff',
-                      color: '#222',
-                      borderRadius: 8,
-                      fontWeight: 500,
-                      fontSize: 13,
-                      padding: '5px 14px',
-                      minHeight: 'auto',
-                      lineHeight: 1.1,
-                      boxShadow: '0 1px 4px #324cdd11',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                    onClick={() => { setShowOnlineSetup(v => !v); setShowLiveSetup(false); }}
-                  >
-                    <i className="fa fa-globe" style={{ fontSize: 13, marginRight: 5 }} /> Online Setup
-                  </button>
-                </div>
-                {/* Online Setup Form for Assignment */}
-                {showOnlineSetup && quickGradeForm.type === 'Assignment' && (
-                  <form onSubmit={handleOnlineSetupCreate} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
-                    <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
-                      <div style={{ flex: 1, minWidth: 180 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
-                        <select name="type" value={quickGradeForm.type} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }}>
-                          <option>Assignment</option>
-                          <option>Quiz</option>
-                          <option>Activity</option>
-                          <option>Project</option>
-                          <option>Exam</option>
-                        </select>
-                      </div>
-                      <div style={{ flex: 2, minWidth: 260 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Title</label>
-                        <input name="title" value={quickGradeForm.title} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter assessment title..." required />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 120 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
-                        <input name="points" type="number" min="1" value={quickGradeForm.points} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter the total points.." required />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Due Date</label>
-                        <input name="dueDate" type="date" className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} />
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                        <button type="submit" className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '8px 24px', marginTop: 24, boxShadow: '0 2px 8px #324cdd22' }}>
-                          <i className="fa fa-plus mr-2" /> Create
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Instructions</label>
-                      <textarea className="form-control" style={{ minHeight: 80, borderRadius: 8, fontSize: 14, background: '#fff' }} placeholder="Instructions (optional)" />
-                    </div>
-                    <div className="d-flex flex-row flex-wrap" style={{ gap: 24, marginBottom: 0, width: '100%' }}>
-                      {/* Assign to section */}
-                      <div style={{ flex: 1, minWidth: 180 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assign to</label>
-                        <div style={{ marginBottom: 10, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}>
-                          <button
-                            type="button"
-                            className="btn"
-                            style={{
-                              borderRadius: 8,
-                              fontWeight: 600,
-                              width: 'auto',
-                              textAlign: 'center',
-                              padding: '8px 18px',
-                              border: 'none',
-                              background: 'none',
-                              color: '#444',
-                              fontSize: 18,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              boxShadow: 'none',
-                              transition: 'background 0.15s, color 0.15s',
-                            }}
-                            onClick={() => setShowCreateStudentSelectModal(true)}
-                            aria-label="Add students"
-                          >
-                            <i className="fa fa-user-plus" style={{ fontSize: 20 }} />
-                          </button>
-                          {onlineAssignedStudents.length > 0 && (
-                            <span style={{ background: '#e3eafe', color: '#324cdd', borderRadius: '50%', padding: '2px 12px', fontWeight: 700, fontSize: 18, minWidth: 32, minHeight: 32, textAlign: 'center', boxShadow: '0 2px 8px #324cdd11', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {onlineAssignedStudents.length}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Attach section (large round buttons) */}
-                      <div style={{ flex: 1, minWidth: 180, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', gap: 24, marginTop: 2, justifyContent: 'center' }}>
-                          <button
-                            type="button"
-                            className="btn btn-light"
-                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#324cdd', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
-                            title="Upload"
-                            onClick={() => onlineFileInputRef.current.click()}
-                            onMouseOver={e => { e.currentTarget.style.background = '#e3eafe'; e.currentTarget.style.color = '#222'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#324cdd'; }}
-                          >
-                            <i className="ni ni-cloud-upload-96" style={{ fontSize: 28, marginBottom: 2 }} />
-                            <span style={{ fontSize: 11, fontWeight: 600 }}>Upload</span>
-                          </button>
-                          <input type="file" style={{ display: 'none' }} ref={onlineFileInputRef} onChange={handleOnlineFileChange} />
-                          <button
-                            type="button"
-                            className="btn btn-light"
-                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#1976D2', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
-                            title="Link"
-                            onClick={() => setShowOnlineLinkModal(true)}
-                            onMouseOver={e => { e.currentTarget.style.background = '#e3eafe'; e.currentTarget.style.color = '#222'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#1976D2'; }}
-                          >
-                            <i className="ni ni-world-2" style={{ fontSize: 28, marginBottom: 2 }} />
-                            <span style={{ fontSize: 11, fontWeight: 600 }}>Link</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-light"
-                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#FF0000', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
-                            title="YouTube"
-                            onClick={() => setShowOnlineYouTubeModal(true)}
-                            onMouseOver={e => { e.currentTarget.style.background = '#ffeaea'; e.currentTarget.style.color = '#b71c1c'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#FF0000'; }}
-                          >
-                            <i className="ni ni-video-camera-2" style={{ fontSize: 28, marginBottom: 2 }} />
-                            <span style={{ fontSize: 11, fontWeight: 600 }}>YouTube</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-light"
-                            style={{ borderRadius: '50%', width: 60, height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: '#f5f6fa', color: '#4285F4', boxShadow: '0 2px 8px #e9ecef', border: 'none', transition: 'background 0.2s, color 0.2s' }}
-                            title="Google Drive"
-                            onClick={() => setShowOnlineDriveModal(true)}
-                            onMouseOver={e => { e.currentTarget.style.background = '#e3f0fe'; e.currentTarget.style.color = '#222'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = '#f5f6fa'; e.currentTarget.style.color = '#4285F4'; }}
-                          >
-                            <i className="ni ni-folder-17" style={{ fontSize: 28, marginBottom: 2 }} />
-                            <span style={{ fontSize: 11, fontWeight: 600 }}>Drive</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    {onlineAttachments.length > 0 && (
-                      <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                        {onlineAttachments.map((att, idx) => {
-                          const { preview, type, color } = getFileTypeIconOrPreview(att);
-                          let url = undefined;
-                          if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
-                            url = URL.createObjectURL(att.file);
-                          } else if (att.url) {
-                            url = att.url;
-                          }
-                          const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
-                          const displayName = isLink ? att.url : att.name;
-                          return (
-                            <div
-                              key={idx}
-                              style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
-                              onClick={() => {
-                                if (isLink && att.url) {
-                                  window.open(att.url, '_blank', 'noopener,noreferrer');
-                                } else {
-                                  handlePreviewAttachment(att);
-                                }
-                              }}
-                            >
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                  {type}
-                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
-                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
-                                </div>
-                              </div>
-                              <button onClick={() => handleRemoveOnlineAttachment(idx)} style={{ fontSize: 18, marginLeft: 4, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>×</button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <Modal isOpen={showOnlineLinkModal} toggle={() => setShowOnlineLinkModal(false)} centered>
-                      <ModalHeader toggle={() => setShowOnlineLinkModal(false)}>Add Link</ModalHeader>
-                      <ModalBody>
-                        <FormGroup>
-                          <Label>Link URL</Label>
-                          <Input
-                            type="url"
-                            value={onlineLinkInput}
-                            onChange={e => setOnlineLinkInput(e.target.value)}
-                            placeholder="https://example.com"
-                            onKeyDown={e => { if (e.key === 'Enter') handleOnlineAddLink(); }}
-                          />
-                        </FormGroup>
-                      </ModalBody>
-                      <ModalFooter>
-                        <Button color="secondary" onClick={() => setShowOnlineLinkModal(false)}>Cancel</Button>
-                        <Button color="primary" onClick={handleOnlineAddLink}>Add Link</Button>
-                      </ModalFooter>
-                    </Modal>
-                    <Modal isOpen={showOnlineYouTubeModal} toggle={() => setShowOnlineYouTubeModal(false)} centered>
-                      <ModalHeader toggle={() => setShowOnlineYouTubeModal(false)}>Add YouTube Video</ModalHeader>
-                      <ModalBody>
-                        <FormGroup>
-                          <Label>YouTube URL or Video ID</Label>
-                          <Input
-                            type="text"
-                            value={onlineYouTubeInput}
-                            onChange={e => setOnlineYouTubeInput(e.target.value)}
-                            placeholder="https://www.youtube.com/watch?v=VIDEO_ID or VIDEO_ID"
-                            onKeyDown={e => { if (e.key === 'Enter') handleOnlineAddYouTube(); }}
-                          />
-                        </FormGroup>
-                      </ModalBody>
-                      <ModalFooter>
-                        <Button color="secondary" onClick={() => setShowOnlineYouTubeModal(false)}>Cancel</Button>
-                        <Button color="primary" onClick={handleOnlineAddYouTube}>Add Video</Button>
-                      </ModalFooter>
-                    </Modal>
-                    <Modal isOpen={showOnlineDriveModal} toggle={() => setShowOnlineDriveModal(false)} centered>
-                      <ModalHeader toggle={() => setShowOnlineDriveModal(false)}>Add Google Drive File</ModalHeader>
-                      <ModalBody>
-                        <FormGroup>
-                          <Label>Google Drive URL</Label>
-                          <Input
-                            type="url"
-                            value={onlineDriveInput}
-                            onChange={e => setOnlineDriveInput(e.target.value)}
-                            placeholder="https://drive.google.com/file/d/..."
-                            onKeyDown={e => { if (e.key === 'Enter') handleOnlineAddDrive(); }}
-                          />
-                        </FormGroup>
-                      </ModalBody>
-                      <ModalFooter>
-                        <Button color="secondary" onClick={() => setShowOnlineDriveModal(false)}>Cancel</Button>
-                        <Button color="primary" onClick={handleOnlineAddDrive}>Add File</Button>
-                      </ModalFooter>
-                    </Modal>
-                  </form>
-                )}
-                {/* Quick Grade Setup Form - full width, stream style */}
-                {showLiveSetup && (
-                  <form onSubmit={handleQuickGradeCreate} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd11', border: '1.5px solid #e9ecef', padding: '1.5rem 1.5rem 1rem', marginBottom: 32, width: '100%', maxWidth: '100%', position: 'relative' }}>
-                    <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
-                      <div style={{ flex: 1, minWidth: 180 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Grading Type</label>
-                        <select name="type" value={quickGradeForm.type} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }}>
-                          <option>Assignment</option>
-                          <option>Quiz</option>
-                          <option>Activity</option>
-                          <option>Project</option>
-                          <option>Exam</option>
-                        </select>
-                      </div>
-                      <div style={{ flex: 2, minWidth: 260 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Assessment Title</label>
-                        <input name="title" value={quickGradeForm.title} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter assessment title..." required />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 120 }}>
-                        <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>Points</label>
-                        <input name="points" type="number" min="1" value={quickGradeForm.points} onChange={handleQuickGradeFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 15, background: '#f8fafc' }} placeholder="Enter the total points.." required />
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                        <button type="submit" className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '8px 24px', marginTop: 24, boxShadow: '0 2px 8px #324cdd22' }}>
-                          <i className="fa fa-plus mr-2" /> Create
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                )}
-                {/* Assessment Cards */}
-                <div style={{ width: '100%' }}>
-                  {(showLiveSetup
-                    ? quickGradeAssessments.filter(a => !a.isOnline)
-                    : showOnlineSetup
-                      ? quickGradeAssessments.filter(a => a.isOnline)
-                      : quickGradeAssessments
-                  ).map(a => (
+                  </Collapse>
+                  {/* Only show main stream input/announcements if neither collapse is open and not expanded */}
+                  {!(formExpanded) && (
                     <div
-                      key={a.id}
-                      className="shadow-sm"
-                      style={{
-                        background: selectedQuickGradeId === a.id ? '#f8fafc' : '#fff',
-                        borderRadius: 14,
-                        padding: '1.25rem 2rem',
-                        marginBottom: 18,
-                        width: '100%',
-                        minWidth: 320,
-                            boxShadow: '0 2px 8px #324cdd11',
-                        transition: 'box-shadow 0.15s, border 0.15s, background 0.15s',
-                        position: 'relative',
-                      }}
+                      style={{ background: '#f7fafd', borderRadius: 14, padding: '22px 18px', minHeight: 56, color: '#444', fontSize: 16, border: 'none', boxShadow: 'none', marginBottom: 0, width: '100%', cursor: 'pointer', transition: 'box-shadow 0.2s, background 0.2s' }}
+                      onClick={() => setFormExpanded(true)}
+                      onMouseOver={e => e.currentTarget.style.boxShadow = '0 2px 8px #324cdd22'}
+                      onMouseOut={e => e.currentTarget.style.boxShadow = 'none'}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', width: '100%', cursor: 'pointer' }}
-                       onClick={() => setSelectedQuickGradeId(selectedQuickGradeId === a.id ? null : a.id)}>
-                        {/* Avatar */}
-                        <div style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: '50%',
-                          background: '#ffd86b',
-                          color: '#232b3b',
-                          fontWeight: 800,
-                          fontSize: 22,
+                      <span style={{ color: '#7d8fa9' }}>Share an announcement with your class...</span>
+                    </div>
+                  )}
+                  {/* Expanded announcement form */}
+                  {formExpanded && (
+                    <div ref={formExpandedRef} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 12px #324cdd22', padding: 24, marginBottom: 0, width: '100%', position: 'relative', zIndex: 10, minHeight: 220 }}>
+                      {/* Add Student button floating in upper right of the card */}
+                      <button
+                        type="button"
+                        onClick={() => setShowStudentSelectModal(true)}
+                        style={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
+                          background: '#f7fafd',
+                          border: 'none',
+                          borderRadius: 10,
+                          width: 54,
+                          height: 32,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          marginRight: 14,
-                          flexShrink: 0
-                        }}>
-                          {a.title?.[0]?.toUpperCase() || 'A'}
+                          boxShadow: '0 1px 4px #e9ecef',
+                          cursor: 'pointer',
+                          padding: 0,
+                          zIndex: 20,
+                          gap: 6
+                        }}
+                        aria-label="Add Students"
+                      >
+                        {selectedAnnouncementStudents.length > 0 && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: '#e3eafe',
+                            color: '#324cdd',
+                            fontWeight: 600,
+                            fontSize: 15,
+                            marginRight: 2
+                          }}>{selectedAnnouncementStudents.length}</span>
+                        )}
+                        <i className="fa fa-user-plus" style={{ fontSize: 20, color: '#111' }}></i>
+                      </button>
+                      <form onSubmit={handlePostAnnouncement} style={{ position: 'relative' }}>
+                        {/* Allow comments checkbox */}
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                          <input
+                            type="checkbox"
+                            checked={allowComments}
+                            onChange={e => setAllowComments(e.target.checked)}
+                            style={{ marginRight: 8 }}
+                          />
+                          <span style={{ fontSize: 15, color: '#444', fontWeight: 500 }}>Allow comments</span>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                          {quickGradeEditId === a.id ? (
-                            <form style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340 }} onSubmit={e => { e.preventDefault(); handleQuickGradeEditSave(a.id); }} onClick={e => e.stopPropagation()}>
-                              <input
-                                name="title"
-                                value={quickGradeEditForm.title}
-                                onChange={handleQuickGradeEditFormChange}
-                                className="form-control"
-                                style={{ fontWeight: 700, fontSize: 18, color: '#111', borderRadius: 8, marginBottom: 6, background: '#f8fafc' }}
-                                placeholder="Assessment Title"
-                                required
-                                onClick={e => e.stopPropagation()}
-                              />
-                              <input
-                                name="points"
-                                value={quickGradeEditForm.points}
-                                onChange={handleQuickGradeEditFormChange}
-                                className="form-control"
-                                style={{ fontSize: 15, borderRadius: 8, background: '#f8fafc' }}
-                                placeholder="Points"
-                                type="number"
-                                min="1"
-                                required
-                                onClick={e => e.stopPropagation()}
-                              />
-                              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                                <button
-                                  type="submit"
-                                  className="btn btn-primary btn-sm"
-                                  style={{
-                                    borderRadius: 8,
-                                    fontWeight: 600,
-                                    minWidth: 70,
-                                    background: '#2DCE89',
-                                    borderColor: '#2DCE89'
-                                  }}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-link btn-sm"
-                                  style={{
-                            background: '#fff',
-                                    color: '#111',
-                                    fontWeight: 600,
-                                    borderRadius: 8,
-                                    boxShadow: '0 5px 8px #e9ecef',
-                                    padding: '6px 24px',
-                                    marginLeft: 8
-                                  }}
-                                  onClick={e => { e.stopPropagation(); handleQuickGradeEditCancel(); }}
-                                >
-                                  Cancel
-                                </button>
+                        {/* Title input */}
+                        <input
+                          type="text"
+                          placeholder="Announcement title (optional)"
+                          value={newAnnouncementTitle}
+                          onChange={e => setNewAnnouncementTitle(e.target.value)}
+                          style={{ width: '100%', marginBottom: 10, borderRadius: 7, border: '1px solid #e9ecef', padding: '8px 12px', fontSize: 14, background: '#f7fafd', height: 36 }}
+                        />
+                        {/* Content textarea */}
+                        <textarea
+                          placeholder="Share an announcement with your class..."
+                          value={newAnnouncement}
+                          onChange={e => setNewAnnouncement(e.target.value)}
+                          style={{ width: '100%', minHeight: 48, borderRadius: 7, border: '1px solid #e9ecef', padding: '8px 12px', fontSize: 14, marginBottom: 14, background: '#f7fafd', height: 38 }}
+                        />
+                        {/* Attachment and Emoji buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0, position: 'relative' }}>
+                          <button
+                            type="button"
+                            onClick={() => setAttachmentDropdownOpen(!attachmentDropdownOpen)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 7,
+                              background: '#fff',
+                              border: 'none',
+                              borderRadius: 9,
+                              fontWeight: 700,
+                              fontSize: 14,
+                              boxShadow: '0 1px 4px #e9ecef',
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              transition: 'box-shadow 0.15s',
+                              height: 32,
+                              minWidth: 0,
+                            }}
+                          >
+                            <i className="fa fa-paperclip" style={{ fontSize: 14, display: 'flex', alignItems: 'center' }}></i>
+                            Add Attachment
+                          </button>
+                          {/* Dropdown menu for Add Attachment */}
+                          {attachmentDropdownOpen && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 36,
+                                left: 0,
+                                minWidth: 120,
+                                background: '#fff',
+                                borderRadius: 9,
+                                boxShadow: '0 4px 16px rgba(50,76,221,0.13)',
+                                zIndex: 30,
+                                padding: '4px 0',
+                                border: '1px solid #e9ecef',
+                              }}
+                            >
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', cursor: 'pointer', fontSize: 13, color: '#525F7F' }}
+                                onClick={() => { setAttachmentDropdownOpen(false); handleAddAttachment('File'); }}
+                              >
+                                <i className="fa fa-file" style={{ fontSize: 13, color: '#525F7F' }}></i>
+                                File
                               </div>
-                            </form>
-                          ) : (
-                            <>
-                              <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                <div style={{ fontWeight: 700, fontSize: 16, color: '#111', marginBottom: 2 }}>{a.title}</div>
-                                <div style={{ position: 'relative', marginLeft: 'auto' }} onClick={e => e.stopPropagation()}>
-                                  <button
-                                    className="btn btn-link p-0"
-                                    style={{ color: '#6c757d', fontSize: 16, padding: 2, border: 'none', background: 'none', cursor: 'pointer' }}
-                                    onClick={e => { e.stopPropagation(); handleQuickGradeMenuOpen(a.id); }}
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', cursor: 'pointer', fontSize: 13, color: '#525F7F' }}
+                                onClick={() => { setAttachmentDropdownOpen(false); handleAddAttachment('Link'); }}
+                              >
+                                <i className="fa fa-globe" style={{ fontSize: 13, color: '#525F7F' }}></i>
+                                Link
+                              </div>
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', cursor: 'pointer', fontSize: 13, color: '#525F7F' }}
+                                onClick={() => { setAttachmentDropdownOpen(false); handleAddAttachment('YouTube'); }}
+                              >
+                                <i className="fa fa-youtube-play" style={{ fontSize: 13, color: '#525F7F' }}></i>
+                                YouTube
+                              </div>
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', cursor: 'pointer', fontSize: 13, color: '#525F7F' }}
+                                onClick={() => { setAttachmentDropdownOpen(false); handleAddAttachment('Google Drive'); }}
+                              >
+                                <i className="fa fa-cloud-upload" style={{ fontSize: 13, color: '#525F7F' }}></i>
+                                Google Drive
+                              </div>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#fff',
+                              border: 'none',
+                              borderRadius: 9,
+                              boxShadow: '0 1px 4px #e9ecef',
+                              width: 32,
+                              height: 32,
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              marginLeft: 0,
+                              padding: 0,
+                              position: 'relative',
+                            }}
+                          >
+                            <i className="fa fa-smile" style={{ fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}></i>
+                            {/* Emoji Picker Dropdown */}
+                            {emojiPickerOpen && (
+                              <div
+                                ref={emojiPickerRef}
+                                style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  top: '100%',
+                                  background: '#fff',
+                                  borderRadius: 9,
+                                  boxShadow: '0 4px 16px rgba(50,76,221,0.13)',
+                                  zIndex: 40,
+                                  padding: 6,
+                                  minWidth: 130,
+                                  maxWidth: 180,
+                                  width: 180,
+                                  maxHeight: 200,
+                                  overflowY: 'auto',
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(6, 1fr)',
+                                  gap: 5,
+                                }}
+                              >
+                                {emojiList.map((emoji, idx) => (
+                                  <span
+                                    key={emoji + idx}
+                                    style={{
+                                      fontSize: 16,
+                                      cursor: 'pointer',
+                                      borderRadius: 5,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'background 0.12s',
+                                      padding: 0,
+                                      userSelect: 'none',
+                                    }}
+                                    onClick={() => {
+                                      setNewAnnouncement(newAnnouncement + emoji);
+                                      setEmojiPickerOpen(false);
+                                    }}
+                                    onMouseOver={e => e.currentTarget.style.background = '#f7fafd'}
+                                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                                   >
-                                    <i className="fa fa-ellipsis-v" />
-                                  </button>
-                                  {quickGradeMenuOpen === a.id && (
-                                    <div style={{ position: 'absolute', top: 24, right: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 10, boxShadow: '0 4px 16px #324cdd22', zIndex: 10, minWidth: 120 }}>
-                                      <button className="dropdown-item" style={{ fontWeight: 500, fontSize: 15, color: '#232b3b', background: 'none', border: 'none', width: '100%', textAlign: 'left', padding: '10px 18px' }} onClick={() => handleQuickGradeEdit(a.id)}>Edit</button>
-                                      <button className="dropdown-item" style={{ fontWeight: 500, fontSize: 15, color: '#232b3b', background: 'none', border: 'none', width: '100%', textAlign: 'left', padding: '10px 18px' }} onClick={() => handleQuickGradeDelete(a.id)}>Delete</button>
-                                    </div>
+                                    {emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </button>
+                        </div>
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+                          <button
+                            type="button"
+                            onClick={() => setFormExpanded(false)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#888',
+                              fontWeight: 500,
+                              fontSize: 13,
+                              marginRight: 6,
+                              cursor: 'pointer',
+                              padding: 0
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            style={{
+                              background: (newAnnouncement.trim().length > 0 || attachments.length > 0) ? '#7B8CFF' : '#e6e6fa',
+                              border: 'none',
+                              color: (newAnnouncement.trim().length > 0 || attachments.length > 0) ? '#fff' : '#888',
+                              fontWeight: 700,
+                              fontSize: 13,
+                              borderRadius: 7,
+                              padding: '6px 18px',
+                              cursor: (newAnnouncement.trim().length > 0 || attachments.length > 0) ? 'pointer' : 'not-allowed',
+                              transition: 'background 0.15s',
+                              opacity: (newAnnouncement.trim().length > 0 || attachments.length > 0) ? 1 : 0.6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                            disabled={!(newAnnouncement.trim().length > 0 || attachments.length > 0)}
+                          >
+                            <i className="fa fa-paper-plane" style={{ marginRight: 4, color: (newAnnouncement.trim().length > 0 || attachments.length > 0) ? '#fff' : '#888' }}></i> Post
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                  {/* Main Announcements List */}
+                  <div style={{ marginTop: 32 }}>
+                    {announcements.map((announcement) => (
+                      <div
+                        key={announcement.id}
+                        style={{
+                          background: '#fff',
+                          borderRadius: 12,
+                          boxShadow: '0 2px 8px #324cdd11',
+                          borderLeft: announcement.isPinned ? '4px solid #f7b731' : 'none',
+                          marginBottom: 24,
+                          padding: 0,
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ padding: '0.75rem 1rem', position: 'relative' }}>
+                          {/* Like and menu group in upper right */}
+                          <div style={{ position: 'absolute', top: 16, right: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div
+                              style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#b0b0b0', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                              // onClick={() => handleLike(announcement)}
+                              title={'Like'}
+                            >
+                              <i className="fa fa-thumbs-up" style={{ color: '#b0b0b0', fontSize: 18 }} />
+                              <span>{announcement.reactions?.like || 0}</span>
+                            </div>
+                            <i className="fa fa-ellipsis-v" /* onClick logic for menu */ />
+                          </div>
+                          {/* Author info, date, and pinned badge */}
+                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
+                                <img src={'https://randomuser.me/api/portraits/men/32.jpg'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ fontWeight: 600, color: '#111', fontSize: 14 }}>{announcement.author}</div>
+                                  {announcement.isPinned && (
+                                    <Badge color="warning" className="ml-2">Pinned</Badge>
                                   )}
                                 </div>
+                                <small className="text-muted" style={{ fontSize: 11 }}>{new Date(announcement.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</small>
                               </div>
-                              <div style={{ fontSize: 14, color: '#6c757d', marginBottom: 2 }}>{a.type} • {a.points} pts</div>
-                              <div style={{ fontSize: 13, color: '#b2bec3' }}>{new Date(a.id).toLocaleString()}</div>
-                            </>
-                          )}
+                            </div>
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
+                          <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content}</div>
+                          {/* Comments preview */}
+                          <div style={{ background: '#f7fafd', borderRadius: 10, padding: '12px 18px', marginTop: 10 }}>
+                            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}>
+                              Comments ({announcement.comments?.length || 0})
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      {selectedQuickGradeId === a.id && (
-                        <div style={{ margin: '32px 0 0 0' }}>
-                          <div style={{ display: 'flex', gap: 18, marginBottom: 24 }}>
-                            <button
-                              className="btn btn-light"
-                              style={{
-                                borderRadius: 8,
-                                fontWeight: 700,
-                                fontSize: 16,
-                                padding: '10px 28px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                border: '1.5px solid #e9ecef',
-                                color: '#222222',
-                                background: '#fff'
-                              }}
-                              onClick={() => {
-                                setShowQRGrading(v => !v);
-                                setShowManualGrading(false);
-                              }}
-                            >
-                              <i className="fa fa-qrcode mr-2" style={{ color: '#fdcb6e', fontSize: 20 }} /> QR Grading
-                            </button>
-                            <button
-                              className="btn btn-light"
-                              style={{
-                                borderRadius: 8,
-                                fontWeight: 700,
-                                fontSize: 16,
-                                padding: '10px 28px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                border: '1.5px solid #e9ecef',
-                                color: '#222222',
-                                background: '#fff'
-                              }}
-                              onClick={() => {
-                                setShowManualGrading(v => !v);
-                                setShowQRGrading(false);
-                              }}
-                            >
-                              <i className="fa fa-pencil-alt mr-2" style={{ color: '#fdcb6e', fontSize: 20 }} /> Manual Grading
-                            </button>
-                          </div>
-
-                          {/* QR Grading Collapsible */}
-                          {showQRGrading && (
-                            <div style={{
-                              background: '#fff',
-                              borderRadius: 16,
-                              boxShadow: '0 2px 12px #324cdd11',
-                              border: '1.5px solid #e9ecef',
-                              padding: '1.5rem 1.5rem 1rem',
-                              marginBottom: 24,
-                              maxWidth: '100%',
-                              position: 'relative'
-                            }}>
-                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Live QR Code Scanner</div>
-                              <div style={{ fontSize: 14, color: '#6c757d', marginBottom: 16, display: 'none' }}>
-                                Expected format:<br/>
-                                IDNo: [Student ID]<br/>
-                                Full Name: [Student Name]<br/>
-                                Program: [Program Name]
-                              </div>
-                              
-                              {/* QR Scanner Controls */}
-                              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                <button 
-                                  className="btn btn-primary" 
-                                  style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px', marginRight: 12 }}
-                                  onClick={() => setIsQrScannerOpen(!isQrScannerOpen)}
-                                >
-                                  {isQrScannerOpen ? 'Stop Scanner' : 'Start QR Scanner'}
-                                </button>
-                                {isQrScannerOpen && (
-                                  <span style={{ color: '#28a745', fontSize: 14, fontWeight: 600 }}>
-                                    <i className="fa fa-circle" style={{ fontSize: 8, marginRight: 6 }} /> Scanner Active
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* QR Scanner Container */}
-                              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                {isQrScannerOpen && (
-                                  <div style={{ marginBottom: 20 }}>
-                                    <div id="qr-reader" style={{ width: '80%', maxWidth: 400, height: 300 }} />
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                      <button 
-                                        className="btn btn-danger" 
-                                        style={{ borderRadius: 8, fontWeight: 600, padding: '6px 16px', fontSize: 14 }}
-                                        onClick={stopQrScanner}
-                                      >
-                                        Stop Scanner
-                                      </button>
-                                      <div style={{ 
-                                        background: '#d4edda', 
-                                        color: '#155724', 
-                                        padding: '6px 12px', 
-                                        borderRadius: 6,
-                                        fontSize: 14,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6
-                                      }}>
-                                        <i className="fa fa-circle" style={{ fontSize: 8, color: '#28a745' }} />
-                                        Scanner Active - Ready for next scan
-                                      </div>
-                                    </div>
-                                    {qrScanError && (
-                                      <div style={{ 
-                                        background: '#f8d7da', 
-                                        color: '#721c24', 
-                                        padding: '8px 12px', 
-                                        borderRadius: 6, 
-                                        marginTop: 8,
-                                        fontSize: 14 
-                                      }}>
-                                        {qrScanError}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Scanned Student Info */}
-                              {scannedStudent && (
-                                <div style={{ 
-                                  background: '#e8f5e8', 
-                                  border: '1px solid #28a745', 
-                                  borderRadius: 8, 
-                                  padding: 16, 
-                                  marginBottom: 16 
-                                }}>
-                                  <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: '#155724' }}>
-                                    Student Found ✓
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <img 
-                                      src={getAvatarForUser(scannedStudent)} 
-                                      alt="avatar" 
-                                      style={{ width: 48, height: 48, borderRadius: '50%' }} 
-                                    />
-                                    <div>
-                                      <div style={{ fontWeight: 600, fontSize: 15 }}>{scannedStudent.name}</div>
-                                      <div style={{ fontSize: 14, color: '#6c757d' }}>ID: {scannedStudent.id}</div>
-                                      <div style={{ fontSize: 14, color: '#6c757d' }}>Program: {scannedStudent.program}</div>
-                                    </div>
-                                  </div>
-                                  {scannedPhoto && (
-                                    <div style={{ marginTop: 12 }}>
-                                      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Scanned Photo:</div>
-                                      <img 
-                                        src={scannedPhoto} 
-                                        alt="scanned" 
-                                        style={{ 
-                                          width: 80, 
-                                          height: 80, 
-                                          borderRadius: 6, 
-                                          objectFit: 'cover',
-                                          border: '2px solid #28a745'
-                                        }} 
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Grading Form */}
-                              <div style={{ marginBottom: 16 }}>
-                                <div style={{ marginBottom: 12 }}>
-                                  <input
-                                    type="number"
-                                    placeholder="Score"
-                                    value={qrScore}
-                                    onChange={e => {
-                                      setQRScore(e.target.value);
-                                      qrScoreRef.current = e.target.value;
-                                    }}
-                                    style={{ borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 200 }}
-                                  />
-                                </div>
-                                <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <Dropdown isOpen={qrAttachmentDropdownOpen} toggle={() => setQRAttachmentDropdownOpen(!qrAttachmentDropdownOpen)}>
-                                    <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      <FaPaperclip />
-                                    </DropdownToggle>
-                                    <DropdownMenu>
-                                      <DropdownItem onClick={() => handleQRAttachmentType("File")}>
-                                        <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
-                                      </DropdownItem>
-                                      <DropdownItem onClick={() => handleQRAttachmentType("Camera")}>
-                                        <FaCamera style={{ marginRight: 8 }} /> Camera
-                                      </DropdownItem>
-                                    </DropdownMenu>
-                                  </Dropdown>
-                                  <input type="file" style={{ display: 'none' }} ref={qrFileInputRef} onChange={handleQRAttachment} />
-                                  {qrAttachment && (
-                                    <span className="text-muted small d-flex align-items-center">
-                                      {qrAttachment.name}
-                                      <Button close className="ml-2 p-0" style={{ fontSize: 16 }} onClick={() => setQRAttachment(null)} />
-                                    </span>
-                                  )}
-                                </div>
-                                <textarea
-                                  ref={qrNotesRef}
-                                  placeholder="Notes"
-                                  value={qrNotes}
-                                  onChange={e => setQRNotes(e.target.value)}
-                                  style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: '100%' }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Manual Grading Collapsible */}
-                          {showManualGrading && (
-                            <div style={{
-                              background: '#fff',
-                              borderRadius: 16,
-                              boxShadow: '0 2px 12px #324cdd11',
-                              border: '1.5px solid #e9ecef',
-                              padding: '1.5rem 1.5rem 1rem',
-                              marginBottom: 24,
-                              maxWidth: '100%',
-                              position: 'relative'
-                            }}>
-                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>Manual Grading</div>
-                              <select
-                                value={manualStudent}
-                                onChange={e => setManualStudent(e.target.value)}
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 220 }}
-                              >
-                                <option value="">Select Student</option>
-                                {students.map(s => (
-                                  <option key={s.id} value={s.id}>
-                                    {s.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <div style={{ marginBottom: 12 }}>
-                                <input
-                                  type="number"
-                                  placeholder="Score"
-                                  value={manualScore}
-                                  onChange={e => setManualScore(e.target.value)}
-                                  style={{ borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: 200 }}
-                                />
-                              </div>
-                              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Dropdown isOpen={manualAttachmentDropdownOpen} toggle={() => setManualAttachmentDropdownOpen(!manualAttachmentDropdownOpen)}>
-                                  <DropdownToggle color="secondary" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <FaPaperclip />
-                                  </DropdownToggle>
-                                  <DropdownMenu>
-                                    <DropdownItem onClick={() => handleManualAttachmentType("File")}>
-                                      <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
-                                    </DropdownItem>
-                                    <DropdownItem onClick={() => handleManualAttachmentType("Camera")}>
-                                      <FaCamera style={{ marginRight: 8 }} /> Camera
-                                    </DropdownItem>
-                                  </DropdownMenu>
-                                </Dropdown>
-                                <input type="file" style={{ display: 'none' }} ref={manualFileInputRef} onChange={handleManualAttachment} />
-                                {manualAttachment && (
-                                  <span className="text-muted small d-flex align-items-center">
-                                    {manualAttachment.name}
-                                    <Button close className="ml-2 p-0" style={{ fontSize: 16 }} onClick={() => setManualAttachment(null)} />
-                                  </span>
-                                )}
-                              </div>
-                              <textarea
-                                placeholder="Notes"
-                                value={manualNotes}
-                                onChange={e => setManualNotes(e.target.value)}
-                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #e9ecef', padding: 8, width: '100%' }}
-                              />
-                              <button className="btn btn-primary" style={{ borderRadius: 8, fontWeight: 700, padding: '8px 24px' }} onClick={handleManualSubmit}>
-                                Add Grade
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Grading Table */}
-                          {(gradingRows[selectedQuickGradeId] && gradingRows[selectedQuickGradeId].length > 0) ? (
-                            <div style={{ width: '100%', overflowX: 'auto' }}>
-                              <table className="table" style={{ minWidth: 700, background: '#fff', borderRadius: 12 }}>
-                              <thead>
-                                <tr style={{ background: '#f8fafc' }}>
-                                  <th>Student</th>
-                                  <th>Score</th>
-                                  <th>Attachment</th>
-                                  <th>Notes</th>
-                                  <th>Date Graded</th>
-                                  <th>Actions</th>
-                                </tr>
-                              </thead>
-                                <tbody>
-                                {(gradingRows[selectedQuickGradeId] || []).map((row, idx) => (
-                                editingGradeIdx === idx ? (
-                                  <tr key={idx}>
-                                    <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <img src={row.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-                                      {row.name}
-                                    </td>
-                                    <td>
-                                      <input
-                                        type="number"
-                                        value={editScore}
-                                        onChange={e => setEditScore(e.target.value)}
-                                        style={{ width: 60 }}
-                                      />
-                                    </td>
-                                    <td>
-                                      <input
-                                        type="file"
-                                        onChange={e => setEditAttachment(e.target.files[0])}
-                                      />
-                                      {editAttachment && <span>{editAttachment.name}</span>}
-                                    </td>
-                                    <td>
-                                      <input
-                                        type="text"
-                                        value={editNotes}
-                                        onChange={e => setEditNotes(e.target.value)}
-                                      />
-                                    </td>
-                                    <td>{row.dateGraded}</td>
-                                    <td>
-                                      <Button color="success" size="sm" onClick={() => handleSaveEditGrade(idx)}>Save</Button>
-                                      <Button color="secondary" size="sm" onClick={handleCancelEditGrade} style={{ marginLeft: 8 }}>Cancel</Button>
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  <tr key={idx}>
-                                    <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <img src={row.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-                                      {row.name}
-                                    </td>
-                                    <td>{row.score} / {row.points || 50}</td>
-                                    <td>{row.attachment ? row.attachment.name : ''}</td>
-                                    <td>{row.notes}</td>
-                                    <td>{row.dateGraded}</td>
-                                    <td>
-                                      <Button color="warning" size="sm" onClick={() => handleEditGrade(idx)}>Edit</Button>
-                                      <Button color="danger" size="sm" onClick={() => handleDeleteGrade(idx)} style={{ marginLeft: 8 }}>Delete</Button>
-                                    </td>
-                                  </tr>
-                                )
-                              ))}
-                            </tbody>          
-                            </table>
-                          </div>
-                          ) : (
-                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
-                              <i className="ni ni-chart-bar-32" style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.5 }} />
-                              <div style={{ fontSize: '16px', fontWeight: 600 }}>No Grades Yet</div>
-                              <div style={{ fontSize: '14px', marginTop: '8px' }}>Start grading students using QR or Manual grading above</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </CardBody>
-            </Card>
+              </div>
+            )}
+            {/* Add Students Modal */}
+            {showStudentSelectModal && (
+              <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.15)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 8px 32px rgba(44,62,80,.12)', width: 600, height: 490, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+                  <div style={{ borderRadius: 20, background: '#fff', padding: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ border: 'none', padding: '24px 24px 0 24px', fontWeight: 700, fontSize: 20, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Add Students</span>
+                      <button onClick={() => setShowStudentSelectModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, color: '#888', cursor: 'pointer' }}>&times;</button>
+                    </div>
+                    <div style={{ padding: '0 24px 24px 24px' }}>
+                      <div style={{ position: 'relative', width: '100%', marginBottom: 18 }}>
+                        <i className="fa fa-search" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#b0b7c3', fontSize: 16, pointerEvents: 'none' }} />
+                        <input
+                          placeholder="Search students..."
+                          value={studentSearch}
+                          onChange={e => setStudentSearch(e.target.value)}
+                          style={{ background: '#f7f8fa', borderRadius: 8, border: '1px solid #e9ecef', fontSize: 14, color: '#232b3b', padding: '8px 14px 8px 40px', boxShadow: '0 1px 2px rgba(44,62,80,0.03)', minWidth: 0, width: '100%' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <span style={{ fontWeight: 600, color: '#222', fontSize: 12 }}>Students ({tempSelectedStudents.length})</span>
+                        {(() => {
+                          const filtered = students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()));
+                          const allSelected = filtered.length > 0 && filtered.every(s => tempSelectedStudents.includes(s.id));
+                          return (
+                            <button
+                              type="button"
+                              style={{ background: 'none', border: 'none', color: '#5e72e4', fontWeight: 500, fontSize: 12, cursor: 'pointer', padding: '1px 6px', margin: 0 }}
+                              onClick={() => {
+                                if (allSelected) {
+                                  setTempSelectedStudents(prev => prev.filter(id => !filtered.map(s => s.id).includes(id)));
+                                } else {
+                                  setTempSelectedStudents(prev => Array.from(new Set([...prev, ...filtered.map(s => s.id)])));
+                                }
+                              }}
+                            >
+                              {allSelected ? 'Unselect All' : 'Select All'}
+                            </button>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ flex: 1, maxHeight: 180, overflowY: 'auto', border: 'none', borderRadius: 12, background: '#f9fafd', padding: '0 8px 0 0', marginBottom: 8 }}>
+                        {students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase())).length === 0 ? (
+                          <div className="text-center text-muted py-5">No students found</div>
+                        ) : (
+                          students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase())).map((s) => {
+                            const isSelected = tempSelectedStudents.includes(s.id);
+                            return (
+                              <div
+                                key={s.id}
+                                style={{ display: 'flex', alignItems: 'center', padding: '6px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer', background: isSelected ? '#eaf4fb' : 'transparent' }}
+                                onClick={e => {
+                                  if (e.target.type === 'checkbox') return;
+                                  if (isSelected) {
+                                    setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
+                                  } else {
+                                    setTempSelectedStudents(prev => [...prev, s.id]);
+                                  }
+                                }}
+                              >
+                                <img src={s.avatar || 'https://randomuser.me/api/portraits/men/75.jpg'} alt={s.name} style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover', border: '1px solid #e9ecef' }} />
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 14, color: '#2d3748', textTransform: 'none' }}>{s.name}</div>
+                                  <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email || ''}</div>
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={e => {
+                                    if (e.target.checked) {
+                                      setTempSelectedStudents(prev => [...prev, s.id]);
+                                    } else {
+                                      setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
+                                    }
+                                  }}
+                                  style={{ marginLeft: 10, cursor: 'pointer' }}
+                                  aria-label={`Select ${s.name}`}
+                                  onClick={e => e.stopPropagation()}
+                                />
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      {/* Selected students pills in modal */}
+                      <div style={{ minHeight: 40, maxHeight: 80, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: tempSelectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'flex-start', background: '#f7f8fa', borderRadius: 10, padding: 10, border: '1.5px solid #e9ecef', marginTop: 10, marginBottom: 0 }}>
+                            {tempSelectedStudents.length === 0 ? (
+                              <div style={{ gridColumn: '1 / -1', width: '100%', height: '100%', minHeight: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 15, textAlign: 'center' }}>
+                                <i className="fa fa-user-plus" style={{ marginBottom: 8, fontSize: 28, display: 'block' }} />
+                                <div style={{ fontSize: 16, fontWeight: 500 }}>No students selected</div>
+                              </div>
+                            ) : (
+                              tempSelectedStudents.map(id => {
+                                const s = students.find(stu => stu.id === id);
+                                return s ? (
+                                  <span key={id} style={{ display: 'inline-flex', alignItems: 'center', background: '#e9ecef', borderRadius: 10, padding: '2px 8px', fontSize: 11, fontWeight: 600, color: '#2d3748', minHeight: 22, minWidth: 120, maxWidth: 180, marginRight: 6, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <img src={s.avatar || 'https://randomuser.me/api/portraits/men/75.jpg'} alt={s.name} style={{ width: 16, height: 16, borderRadius: '50%', marginRight: 5, objectFit: 'cover', border: '1px solid #fff' }} />
+                                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 6, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+                                      <span style={{ fontWeight: 600, fontSize: 11, color: '#2d3748', textTransform: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                                      <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.email || ''}</span>
+                                    </span>
+                                    <span style={{ flex: 1 }} />
+                                    <i
+                                      className="fa fa-times-circle"
+                                      style={{ marginLeft: 3, cursor: 'pointer', color: '#7b8a9b', fontSize: 13 }}
+                                      onClick={e => { e.stopPropagation(); setTempSelectedStudents(prev => prev.filter(n => n !== id)); }}
+                                    />
+                                  </span>
+                                ) : null;
+                              })
+                            )}
+                          </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
+                        <button onClick={() => setShowStudentSelectModal(false)} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={() => { setSelectedAnnouncementStudents(tempSelectedStudents); setShowStudentSelectModal(false); }} style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>Confirm</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </TabPane>
 
           {/* Class Tasks Tab */}
@@ -5533,11 +4332,6 @@ useEffect(() => {
   </small>
                         </div>
 
-                        <div style={{ flex: 1, minWidth: 120, maxWidth: 150 }}>
-                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Due Date</label>
-                          <input name="dueDate" type="date" value={taskForm.dueDate} onChange={handleTaskFormChange} className="form-control" style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }} />
-                        </div>
-
                         <div style={{ flex: 2, minWidth: 260 }}>
                           <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Title *</label>
                           <input 
@@ -5557,6 +4351,45 @@ useEffect(() => {
                           {taskForm.submitted && !taskForm.title.trim() && (
                             <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
                               Task title is required
+                            </small>
+                          )}
+                        </div>
+
+                        {/* Type Dropdown */}
+                        <div style={{ flex: 1, minWidth: 120, maxWidth: 150 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Type</label>
+                          <select
+                            name="type"
+                            value={taskForm.type}
+                            onChange={handleTaskFormChange}
+                            className="form-control"
+                            style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }}
+                            required
+                          >
+                            <option value="Assignment">Assignment</option>
+                            <option value="Quiz">Quiz</option>
+                            <option value="Activity">Activity</option>
+                            <option value="Project">Project</option>
+                            <option value="Exam">Exam</option>
+                          </select>
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 120, maxWidth: 150 }}>
+                          <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Points *</label>
+                          <input
+                            name="points"
+                            type="number"
+                            min="1"
+                            value={taskForm.points}
+                            onChange={handleTaskFormChange}
+                            className="form-control"
+                            style={{ borderRadius: 8, fontSize: 14, background: '#f8fafc', border: '1px solid #bfcfff' }}
+                            placeholder="Enter points..."
+                            required
+                          />
+                          {taskForm.submitted && !taskForm.points && (
+                            <small className="text-danger" style={{ fontSize: 12, marginTop: 4 }}>
+                              Points are required
                             </small>
                           )}
                         </div>
@@ -5938,650 +4771,6 @@ useEffect(() => {
                     ))}
                   </div>
                 )}
-              </CardBody>
-            </Card>
-          </TabPane>
-
-          {/* Classwork Tab */}
-          <TabPane tabId="classwork">
-            <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
-              <CardBody>
-                <h4 className="mb-4" style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1 }}>Classwork <i className="ni ni-archive-2 text-info ml-2" /></h4>
-                {/* Create Button */}
-                <div className="d-flex justify-content-end mb-4" style={{ position: 'relative' }}>
-                  <Button 
-                    color="primary" 
-                    style={{ 
-                      borderRadius: 32, 
-                      fontWeight: 700, 
-                      fontSize: 16, 
-                      padding: '12px 32px', 
-                      boxShadow: '0 4px 24px #667eea55', 
-                      background: 'linear-gradient(135deg, #667eea 0%, #324cdd 100%)', 
-                      border: 'none', 
-                      color: '#fff',
-                      transition: 'box-shadow 0.2s' 
-                    }}
-                    onMouseOver={e => e.currentTarget.style.boxShadow = '0 8px 32px #667eea55'}
-                    onMouseOut={e => e.currentTarget.style.boxShadow = '0 4px 24px #667eea55'}
-                    onClick={() => {
-                      if (showCreateModal || showTypeDropdown) {
-                        setShowCreateModal(false);
-                        setShowTypeDropdown(false);
-                        setCreateType('');
-                        setCreateForm({ type: '', title: '', dueDate: '', points: '', details: '' });
-                      } else {
-                        setShowTypeDropdown(true);
-                      }
-                    }}
-                  >
-                    <FaPlus style={{ marginRight: 8 }} /> Create
-                  </Button>
-                  {/* Custom Dropdown for Assignment, Quiz, Material */}
-                  {showTypeDropdown && !showCreateModal && (
-                    <div ref={typeDropdownRef} style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: 8,
-                      background: '#fff',
-                      borderRadius: 16,
-                      boxShadow: '0 8px 32px rgba(50,76,221,0.10)',
-                      minWidth: 180,
-                      zIndex: 20,
-                      padding: '8px 0',
-                    }}>
-                      {['Assignment', 'Quiz', 'Material'].map(type => (
-                        <div
-                          key={type}
-                          style={{
-                            padding: '14px 24px',
-                            cursor: 'pointer',
-                            fontSize: 17,
-                            color: '#222',
-                            fontWeight: 500,
-                            borderBottom: type !== 'Material' ? '1px solid #f2f2f2' : 'none',
-                            transition: 'background 0.13s',
-                          }}
-                          onClick={() => {
-                            setCreateType(type);
-                            setCreateForm(f => ({ ...f, type }));
-                            setShowCreateModal(true);
-                            setShowTypeDropdown(false);
-                          }}
-                          onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
-                          onMouseOut={e => e.currentTarget.style.background = '#fff'}
-                        >
-                          {type}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {/* Collapsible Create Classwork Form */}
-                {showCreateModal && (
-                  <div style={{
-                    background: '#fff',
-                    borderRadius: 16,
-                    boxShadow: '0 2px 12px #324cdd11',
-                    border: '1.5px solid #e9ecef',
-                    padding: '1.5rem 1.5rem 1rem',
-                    marginBottom: 32,
-                    maxWidth: 700,
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                    position: 'relative'
-                  }}>
-                    <Form onSubmit={handleCreateSubmit} style={{ marginBottom: 12 }}>
-                      <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: 1, color: '#111', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <FaRegFileAlt style={{ fontSize: 24, color: '#111' }} />
-                        Create {createType || 'Classwork'}
-                      </div>
-                      <FormGroup className="mb-2">
-                        <Input
-                          type="text"
-                          name="title"
-                          value={createForm.title}
-                          onChange={handleCreateChange}
-                          placeholder={`${createType || 'Classwork'} title`}
-                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }}
-                          required
-                        />
-                      </FormGroup>
-                      <FormGroup className="mb-2">
-                        <Input
-                          type="textarea"
-                          name="details"
-                          value={createForm.details || ''}
-                          onChange={handleCreateChange}
-                          placeholder="Add more details about this classwork..."
-                          style={{ fontSize: 14, minHeight: 80, padding: 8, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                        />
-                      </FormGroup>
-                      {/* Conditional fields based on type */}
-                      {createForm.type !== 'Material' && (
-                      <div className="d-flex" style={{ gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-                        <FormGroup style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
-                          <Input
-                            type="date"
-                            name="dueDate"
-                            value={createForm.dueDate}
-                            onChange={handleCreateChange}
-                              placeholder="Due Date (optional)"
-                            style={{ fontSize: 14, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                          />
-                        </FormGroup>
-                          <FormGroup style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
-                          <Input
-                            type="number"
-                            name="points"
-                            value={createForm.points}
-                            onChange={handleCreateChange}
-                              placeholder="Points (optional)"
-                            style={{ fontSize: 14, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                          />
-                        </FormGroup>
-                              </div>
-                            )}
-                      
-                      {/* Attachments Section */}
-                      <div style={{ marginBottom: 12 }}>
-                        {createForm.attachments && createForm.attachments.length > 0 && (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                            {createForm.attachments.map((att, idx) => {
-                            const { preview, type, color } = getFileTypeIconOrPreview(att);
-                            let url = undefined;
-                            if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
-                              url = URL.createObjectURL(att.file);
-                            } else if (att.url) {
-                              url = att.url;
-                            }
-                            const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
-                            const displayName = isLink ? att.url : att.name;
-                            return (
-                              <div
-                                key={idx}
-                                style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
-                                onClick={() => {
-                                  if (isLink && att.url) {
-                                    window.open(att.url, '_blank', 'noopener,noreferrer');
-                                  } else {
-                                    handlePreviewAttachment(att);
-                                  }
-                                }}
-                              >
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                  <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                    {type} 
-                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
-                                    {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
-                                  </div>
-                                </div>
-                                  <Button close onClick={() => handleRemoveCreateAttachment(idx)} style={{ fontSize: 18, marginLeft: 4 }} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                        {/* Add attachment button */}
-                        <Dropdown isOpen={createAttachmentDropdownOpen} toggle={() => setCreateAttachmentDropdownOpen(!createAttachmentDropdownOpen)}>
-                          <DropdownToggle color="secondary" size="sm" style={{ fontSize: 14, borderRadius: 8, padding: '4px 14px' }}>
-                            <FaPaperclip style={{ marginRight: 6 }} /> Add Attachment
-                          </DropdownToggle>
-                          <DropdownMenu>
-                            <DropdownItem onClick={() => { createFileInputRef.current.click(); setCreateAttachmentDropdownOpen(false); }}>
-                              <i className="ni ni-single-copy-04" style={{ marginRight: 8 }} /> File
-                            </DropdownItem>
-                            <DropdownItem onClick={() => { setShowCreateLinkModal(true); setCreateAttachmentDropdownOpen(false); }}>
-                              <i className="ni ni-world-2" style={{ marginRight: 8 }} /> Link
-                            </DropdownItem>
-                            <DropdownItem onClick={() => { setShowCreateYouTubeModal(true); setCreateAttachmentDropdownOpen(false); }}>
-                              <i className="ni ni-video-camera-2" style={{ marginRight: 8 }} /> YouTube
-                            </DropdownItem>
-                            <DropdownItem onClick={() => { setShowCreateDriveModal(true); setCreateAttachmentDropdownOpen(false); }}>
-                              <i className="ni ni-cloud-upload-96" style={{ marginRight: 8 }} /> Google Drive
-                            </DropdownItem>
-                          </DropdownMenu>
-                        </Dropdown>
-                        <input ref={qrAttachmentRef} type="file" multiple style={{ display: 'none' }} onChange={handleCreateFileChange} />
-                      </div>
-                      
-                      {/* Student Assignment Section */}
-                      <div style={{ marginBottom: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <i className="ni ni-single-02" style={{ fontSize: 16, color: '#666' }} />
-                          <span style={{ fontWeight: 600, fontSize: 14, color: '#111' }}>Assign to students</span>
-                        </div>
-                        {createForm.assignedStudents && createForm.assignedStudents.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                            {createForm.assignedStudents.map((studentId, idx) => {
-                              const student = students.find(s => s.id === studentId);
-                              return student ? (
-                                <Badge key={studentId} color="info" style={{ fontSize: 12, padding: '4px 8px' }}>
-                                  {student.name}
-                                  <Button close size="sm" onClick={() => handleRemoveAssignedStudent(studentId)} style={{ marginLeft: 4, fontSize: 10 }} />
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
-                        <Button 
-                          color="light" 
-                          size="sm" 
-                          onClick={() => setShowCreateStudentSelectModal(true)}
-                          style={{ fontSize: 13, borderRadius: 6, padding: '4px 12px' }}
-                        >
-                          <i className="ni ni-fat-add" style={{ marginRight: 4 }} />
-                          {createForm.assignedStudents.length > 0 ? 'Add more students' : 'Add students'}
-                        </Button>
-                      </div>
-                      <div className="d-flex justify-content-end" style={{ gap: 8 }}>
-                        <Button
-                          type="button"
-                          color="light"
-                          onClick={() => setShowCreateModal(false)}
-                          style={{ borderRadius: 8, fontSize: 14 }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          color="primary"
-                          style={{ borderRadius: 8, fontSize: 14 }}
-                        >
-                          Create
-                        </Button>
-                      </div>
-                    </Form>
-                  </div>
-                )}
-                {/* Classwork List */}
-                <div style={{ marginTop: 32 }}>
-                  {assignments.length === 0 ? (
-                    <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', background: '#fff', border: '1px solid #e9ecef' }}>
-                      <CardBody className="text-center" style={{ padding: '2rem' }}>
-                        <i className="ni ni-archive-2" style={{ fontSize: 48, color: '#ccc', marginBottom: 16 }} />
-                        <h5 style={{ color: '#666', fontWeight: 600 }}>No classwork yet</h5>
-                        <p style={{ color: '#888', fontSize: 14 }}>Create your first assignment, quiz, or material to get started.</p>
-                      </CardBody>
-                    </Card>
-                  ) : (
-                    assignments.map((assignment) => {
-                      const authorUser = findUserByName(assignment.author || "Prof. Smith");
-                      const avatarSrc = getAvatarForUser(authorUser);
-                      const isEditing = editingClassworkId === assignment.id;
-                      const isExpanded = expandedClasswork === assignment.id;
-                      
-                    return (
-                        <Card key={assignment.id} className="mb-4" style={{ borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', borderLeft: '4px solid #324cdd', background: '#fff', transition: 'box-shadow 0.2s, border-color 0.2s', padding: 0 }}>
-                          <CardBody style={{ padding: '1rem 1.25rem' }}>
-                            {/* Clickable Header */}
-                            <div 
-                              className="d-flex align-items-start justify-content-between" 
-                              style={{ 
-                                marginBottom: isExpanded ? 12 : 0, 
-                                cursor: 'pointer',
-                                padding: '8px 0',
-                                borderRadius: 8,
-                                transition: 'background-color 0.2s'
-                              }} 
-                              onMouseOver={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                              onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => setExpandedClasswork(expandedClasswork === assignment.id ? null : assignment.id)}
-                            >
-                              <div className="d-flex align-items-center" style={{ gap: 12 }}>
-                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -20 }}>
-                                  <i className="ni ni-single-copy-04" style={{ fontSize: 18, color: '#666' }} />
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ fontWeight: 700, color: '#111', fontSize: 16 }}>{assignment.title}</div>
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                      <img src={avatarSrc} alt="avatar" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
-                                    </div>
-                                    <small className="text-muted" style={{ fontSize: 12 }}>{assignment.author || "Prof. Smith"}</small>
-                                    <small className="text-muted" style={{ fontSize: 12 }}>{formatRelativeTime(assignment.date)}</small>
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                                    <Badge color="info" style={{ fontSize: 10, padding: '2px 6px' }}>{assignment.type}</Badge>
-                                    {assignment.points && (
-                                      <Badge color="success" style={{ fontSize: 10, padding: '2px 6px' }}>
-                                        {assignment.points} pts
-                                      </Badge>
-                                    )}
-                                    {assignment.dueDate && (
-                                      <Badge color="warning" style={{ fontSize: 10, padding: '2px 6px' }}>
-                                        Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                <Dropdown isOpen={assignmentDropdowns[assignment.id]} toggle={() => handleClassworkDropdownToggle(assignment.id)}>
-                                  <DropdownToggle tag="span" style={{ cursor: 'pointer', padding: 4, border: 'none', background: 'none' }} onClick={e => e.stopPropagation()}>
-                                    <FaEllipsisV size={14} />
-                                  </DropdownToggle>
-                                  <DropdownMenu right>
-                                    <DropdownItem onClick={() => handleEditClasswork(assignment.id)}>Edit</DropdownItem>
-                                    <DropdownItem onClick={() => handleDeleteClasswork(assignment.id)}>Delete</DropdownItem>
-                                  </DropdownMenu>
-                                </Dropdown>
-                                <i 
-                                  className={`ni ni-bold-down ${isExpanded ? 'ni-bold-up' : ''}`} 
-                                  style={{ 
-                                    fontSize: 16, 
-                                    color: '#666', 
-                                    transition: 'transform 0.2s',
-                                    transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                    display: 'none'
-                                  }} 
-                                />
-                              </div>
-                            </div>
-                            
-                            {/* Expanded Content */}
-                            {isExpanded && (
-                              <>
-                                {isEditing ? (
-                                  <div style={{ marginBottom: 16 }}>
-                                    <Form onSubmit={(e) => { e.preventDefault(); handleSaveEditClasswork(assignment.id); }}>
-                                      <FormGroup className="mb-2">
-                                    <Input
-                                      type="text"
-                                      name="title"
-                                          value={editClassworkData.title}
-                                          onChange={handleEditClassworkChange}
-                                          placeholder="Classwork title"
-                                          style={{ fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8 }}
-                                      required
-                                    />
-                                      </FormGroup>
-                                <FormGroup className="mb-2">
-                                  <Input
-                                    type="textarea"
-                                    name="details"
-                                          value={editClassworkData.details}
-                                          onChange={handleEditClassworkChange}
-                                          placeholder="Add more details..."
-                                          style={{ fontSize: 14, minHeight: 80, padding: 8, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                                  />
-                                </FormGroup>
-                                  <div className="d-flex" style={{ gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-                                    <FormGroup style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
-                                      <Input
-                                        type="date"
-                                        name="dueDate"
-                                            value={editClassworkData.dueDate}
-                                            onChange={handleEditClassworkChange}
-                                        placeholder="Due Date"
-                                            style={{ fontSize: 14, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                                      />
-                                    </FormGroup>
-                                        <FormGroup style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
-                                      <Input
-                                        type="number"
-                                        name="points"
-                                            value={editClassworkData.points}
-                                            onChange={handleEditClassworkChange}
-                                        placeholder="Points"
-                                            style={{ fontSize: 14, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff' }}
-                                      />
-                                    </FormGroup>
-                                  </div>
-                                      <div className="d-flex justify-content-end" style={{ gap: 8 }}>
-                                        <Button
-                                          type="button"
-                                          color="light"
-                                          onClick={handleCancelEditClasswork}
-                                          style={{ borderRadius: 8, fontSize: 14 }}
-                                        >
-                                    Cancel
-                                  </Button>
-                                        <Button
-                                          type="submit"
-                                          color="primary"
-                                          style={{ borderRadius: 8, fontSize: 14 }}
-                                        >
-                                          Save
-                                        </Button>
-                              </div>
-                            </Form>
-                                  </div>
-                          ) : (
-                            <>
-                                    {assignment.details && (
-                                      <p className="mb-3" style={{ fontSize: 14, color: '#2d3748', lineHeight: 1.5 }}>{assignment.details}</p>
-                                    )}
-                                    
-                                    {/* Attachments Section */}
-                                    {assignment.attachments && assignment.attachments.length > 0 && (
-                                      <div style={{ marginTop: 20, marginBottom: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                                        {assignment.attachments.map((att, idx) => {
-                                          const { preview, type, color } = getFileTypeIconOrPreview(att);
-                                          let url = undefined;
-                                          if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
-                                            url = URL.createObjectURL(att.file);
-                                          } else if (att.url) {
-                                            url = att.url;
-                                          }
-                                          const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
-                                          const displayName = isLink ? att.url : att.name;
-                                          return (
-                                            <div
-                                              key={idx}
-                                              onClick={() => {
-                                                if (isLink && att.url) {
-                                                  window.open(att.url, '_blank', 'noopener,noreferrer');
-                                                } else {
-                                                  handlePreviewAttachment(att);
-                                                }
-                                              }}
-                                              style={{ background: '#f8fafd', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
-                                            >
-                                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                                              <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                                <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                                  {type}
-                                                  {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
-                                                  {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                    
-                                    {/* Assigned Students Section */}
-                                    {assignment.assignedStudents && assignment.assignedStudents.length > 0 && (
-                                      <div style={{ marginBottom: 16 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                          <i className="ni ni-single-02" style={{ fontSize: 14, color: '#666' }} />
-                                          <span style={{ fontWeight: 600, fontSize: 13, color: '#111' }}>Assigned to:</span>
-                                        </div>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                          {assignment.assignedStudents.map((studentId) => {
-                                            const student = students.find(s => s.id === studentId);
-                                            return student ? (
-                                              <Badge key={studentId} color="info" style={{ fontSize: 11, padding: '3px 8px' }}>
-                                                {student.name}
-                                              </Badge>
-                                            ) : null;
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Comments Section */}
-                                    <div style={{ background: '#f8fafd', borderRadius: 8, marginTop: 16, padding: '12px 18px 10px', boxShadow: '0 1px 4px #324cdd11' }}>
-                                      {assignment.comments && assignment.comments.length > 0 && (
-                                        <div 
-                                          style={{ 
-                                            fontWeight: 600, 
-                                            fontSize: 13, 
-                                            color: '#111', 
-                                            marginBottom: 16,
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px'
-                                          }}
-                                          onClick={() => setCollapsedComments(prev => ({
-                                            ...prev,
-                                            [`classwork-${assignment.id}`]: !prev[`classwork-${assignment.id}`]
-                                          }))}
-                                        >
-                                          Comments ({assignment.comments.length})
-                                        </div>
-                                      )}
-                                      
-                                    {/* List comments */}
-                                      {assignment.comments && assignment.comments.length > 0 && !collapsedComments[`classwork-${assignment.id}`] && (
-                                      <div style={{ marginBottom: 8 }}>
-                                          {assignment.comments.map((c, idx) => {
-                                            const commentUser = findUserByName(c.author);
-                                            const commentAvatar = getAvatarForUser(commentUser);
-                                            const isEditing = editingComment[assignment.id] === idx;
-                                            console.log('Rendering assignment:', assignment.id, 'comment idx:', idx, 'editingComment:', editingComment, 'isEditing:', isEditing);
-                                          const isOwn = c.author === currentUser;
-                                          const isTeacher = currentUser === "Prof. Smith"; // In a real app, this would come from user context
-                                            
-                                          return (
-                                            <div key={c.id || `${c.author}-${c.date}-${idx}`} className="d-flex align-items-start" style={{ marginBottom: 6, gap: 10, padding: '4px 0', borderBottom: '1px solid #e9ecef', fontSize: 13, color: '#2d3748', position: 'relative', alignItems: 'stretch', width: '100%' }}>
-                                              <div style={{ width: 24, height: 24, minWidth: 24, minHeight: 24, maxWidth: 24, maxHeight: 24, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                                                  <img 
-                                                    src={commentAvatar} 
-                                                    alt="avatar" 
-                                                    style={{ 
-                                                      width: 20, 
-                                                      height: 20, 
-                                                      minWidth: 20, 
-                                                      minHeight: 20, 
-                                                      maxWidth: 20, 
-                                                      maxHeight: 20, 
-                                                      borderRadius: '50%', 
-                                                      objectFit: 'cover', 
-                                                      display: 'block' 
-                                                    }}
-                                                    onError={(e) => {
-                                                      e.target.src = userDefault;
-                                                    }}
-                                                  />
-                                              </div>
-                                              <div style={{ flex: 1, minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                                                {/* Three-dot menu absolutely positioned at top right */}
-                                                {(isOwn || isTeacher) && (
-                                                  <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}>
-                                                      <Dropdown isOpen={commentDropdownOpen === `${assignment.id}-${idx}`} toggle={() => setCommentDropdownOpen(commentDropdownOpen === `${assignment.id}-${idx}` ? null : `${assignment.id}-${idx}`)}>
-                                                      <DropdownToggle tag="span" style={{ cursor: 'pointer', padding: 0, border: 'none', background: 'none' }} onClick={e => e.stopPropagation()}>
-                                                        <FaEllipsisV size={14} />
-                                                      </DropdownToggle>
-                                                      <DropdownMenu right onClick={e => e.stopPropagation()}>
-                                                          <DropdownItem
-                                                            onClick={e => {
-                                                              e.stopPropagation();
-                                                              console.log('DEBUG EDIT clicked:', { assignmentId: assignment.id, idx, commentText: c.text });
-                                                              handleEditComment(assignment.id, idx, c.text);
-                                                              setTimeout(() => setCommentDropdownOpen(null), 50); // Delay closing
-                                                            }}
-                                                          >
-                                                            Edit
-                                                          </DropdownItem>
-                                                          <DropdownItem onClick={(e) => { e.stopPropagation(); handleDeleteComment(assignment.id, idx); }}>Delete</DropdownItem>
-                                                      </DropdownMenu>
-                                                    </Dropdown>
-                                                  </div>
-                                                )}
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                                  <span style={{ fontWeight: 600 }}>{c.author}</span>
-                                                    <span style={{ color: '#90A4AE', fontSize: 11, marginTop: 2 }}>{formatRelativeTime(c.date)}</span>
-                                                </div>
-                                                {isEditing ? (
-                                                  <div style={{ width: '100%', minWidth: 0, overflowX: 'visible', display: 'flex', flexDirection: 'column' }}>
-                                                    <input
-                                                      type="text"
-                                                      className="form-control"
-                                                      style={{ fontSize: 13, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff', height: '40px', marginTop: 6, maxWidth: '100%', boxSizing: 'border-box' }}
-                                                      placeholder="Edit comment..."
-                                                        value={editingCommentText[`${assignment.id}-${idx}`] || ""}
-                                                        onChange={e => setEditingCommentText(prev => ({ ...prev, [`${assignment.id}-${idx}`]: e.target.value }))}
-                                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEditComment(assignment.id, idx); }}
-                                                      autoFocus
-                                                    />
-                                                    <div className="d-flex align-items-center comment-edit-btn-row" style={{ gap: 6, marginTop: 8, justifyContent: 'flex-end', width: '100%', marginBottom: 16, flexWrap: 'nowrap' }}>
-                                                        <button className="btn btn-success btn-sm" style={{ fontSize: 13, borderRadius: 6, fontWeight: 600, padding: '4px 10px' }} onClick={e => { e.stopPropagation(); handleSaveEditComment(assignment.id, idx); }}>Save</button>
-                                                        <button className="btn btn-secondary btn-sm" style={{ fontSize: 13, borderRadius: 6, fontWeight: 600, padding: '4px 10px' }} onClick={e => { e.stopPropagation(); handleCancelEditComment(assignment.id, idx); }}>Cancel</button>
-                                                    </div>
-                                                  </div>
-                                                ) : (
-                                                  <div style={{ marginLeft: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <span>{c.text}</span>
-                                                    {/* DEBUG BUTTON - REMOVE AFTER TESTING */}
-                                                    <button 
-                                                      style={{ 
-                                                        background: 'red', 
-                                                        color: 'white', 
-                                                        border: 'none', 
-                                                        borderRadius: '4px', 
-                                                        padding: '2px 8px', 
-                                                        fontSize: '10px',
-                                                        cursor: 'pointer'
-                                                      }}
-                                                      onClick={(e) => { 
-                                                        e.stopPropagation(); 
-                                                        console.log('DEBUG EDIT clicked:', { assignmentId: assignment.id, idx, commentText: c.text });
-                                                        handleEditComment(assignment.id, idx, c.text); 
-                                                        setCommentDropdownOpen(null); 
-                                                      }}
-                                                    >
-                                                      DEBUG EDIT
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                      
-                                    {/* Input for new comment */}
-                                    <div className="d-flex comment-input-row" style={{ gap: 8, position: 'relative', marginTop: 16, marginBottom: 4 }}>
-                                      <input
-                                        type="text"
-                                        className="form-control"
-                                        style={{ fontSize: 13, borderRadius: 6, border: '1px solid #bfcfff', background: '#fff', height: '40px' }}
-                                        placeholder="Add a comment..."
-                                          value={commentInputs[assignment.id] || ""}
-                                          onChange={e => setCommentInputs(inputs => ({ ...inputs, [assignment.id]: e.target.value }))}
-                                          onKeyDown={e => { if (e.key === 'Enter') handlePostClassworkComment(assignment.id); }}
-                                      />
-                                      <button
-                                          className="btn btn-primary btn-sm"
-                                        style={{ fontSize: 18, borderRadius: 8, padding: '4px 14px', minWidth: '44px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                          onClick={() => handlePostClassworkComment(assignment.id)}
-                                          disabled={!(commentInputs[assignment.id] && commentInputs[assignment.id].trim())}
-                                      >
-                                        <i className="ni ni-send" style={{ fontSize: 16 }} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                  </>
-                              )}
-                            </>
-                          )}
-                        </CardBody>
-                      </Card>
-                    );
-                    })
-                  )}
-                </div>
               </CardBody>
             </Card>
           </TabPane>
@@ -7065,337 +5254,6 @@ useEffect(() => {
             </div>
           )}
         </ModalBody>
-      </Modal>
-
-      {/* Classwork Creation Modals */}
-      
-      {/* Link Modal */}
-      <Modal isOpen={showCreateLinkModal} toggle={() => setShowCreateLinkModal(false)} centered>
-        <ModalHeader toggle={() => setShowCreateLinkModal(false)}>Add Link</ModalHeader>
-        <ModalBody>
-            <FormGroup>
-            <Label>Link URL</Label>
-            <Input
-              type="url"
-              value={createLinkInput}
-              onChange={(e) => setCreateLinkInput(e.target.value)}
-              placeholder="https://example.com"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateAddLink(); }}
-            />
-            </FormGroup>
-          </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowCreateLinkModal(false)}>Cancel</Button>
-          <Button color="primary" onClick={handleCreateAddLink}>Add Link</Button>
-          </ModalFooter>
-      </Modal>
-
-      {/* YouTube Modal */}
-      <Modal isOpen={showCreateYouTubeModal} toggle={() => setShowCreateYouTubeModal(false)} centered>
-        <ModalHeader toggle={() => setShowCreateYouTubeModal(false)}>Add YouTube Video</ModalHeader>
-        <ModalBody>
-            <FormGroup>
-            <Label>YouTube URL or Video ID</Label>
-            <Input
-              type="text"
-              value={createYouTubeInput}
-              onChange={(e) => setCreateYouTubeInput(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=VIDEO_ID or VIDEO_ID"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateAddYouTube(); }}
-            />
-            </FormGroup>
-          </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowCreateYouTubeModal(false)}>Cancel</Button>
-          <Button color="primary" onClick={handleCreateAddYouTube}>Add Video</Button>
-          </ModalFooter>
-      </Modal>
-
-      {/* Google Drive Modal */}
-      <Modal isOpen={showCreateDriveModal} toggle={() => setShowCreateDriveModal(false)} centered>
-        <ModalHeader toggle={() => setShowCreateDriveModal(false)}>Add Google Drive File</ModalHeader>
-        <ModalBody>
-          <FormGroup>
-            <Label>Google Drive URL</Label>
-            <Input
-              type="url"
-              value={createDriveInput}
-              onChange={(e) => setCreateDriveInput(e.target.value)}
-              placeholder="https://drive.google.com/file/d/..."
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateAddDrive(); }}
-            />
-          </FormGroup>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowCreateDriveModal(false)}>Cancel</Button>
-          <Button color="primary" onClick={handleCreateAddDrive}>Add File</Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Student Selection Modal */}
-      <Modal isOpen={showCreateStudentSelectModal} toggle={() => setShowCreateStudentSelectModal(false)} centered size="lg" style={{ borderRadius: 20, maxWidth: 700 }} contentClassName="border-0">
-        <div style={{ borderRadius: 20, background: '#fff', padding: 0, boxShadow: '0 8px 32px rgba(44,62,80,.12)' }}>
-          <ModalHeader toggle={() => setShowCreateStudentSelectModal(false)} style={{ border: 'none', paddingBottom: 0, fontWeight: 700, fontSize: 18, background: 'transparent' }}>
-            Class Tasks Add Students
-          </ModalHeader>
-          <ModalBody style={{ padding: 0 }}>
-            <div style={{ padding: 24, paddingTop: 12 }}>
-              <div style={{ position: 'relative', width: '100%', marginBottom: 18 }}>
-                <FaSearch style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#b0b7c3', fontSize: 16, pointerEvents: 'none' }} />
-                <Input
-                  placeholder="Search students..."
-                  value={studentSearch || ''}
-                  onChange={e => setStudentSearch(e.target.value)}
-                  style={{
-                    background: '#f7f8fa',
-                    borderRadius: 8,
-                    border: '1px solid #e9ecef',
-                    fontSize: 15,
-                    color: '#232b3b',
-                    padding: '8px 14px 8px 40px',
-                    boxShadow: '0 1px 2px rgba(44,62,80,0.03)',
-                    minWidth: 0,
-                    transition: 'border-color 0.2s, box-shadow 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#7b8cff';
-                    e.target.style.boxShadow = '0 0 0 2px #e9eaff';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e9ecef';
-                    e.target.style.boxShadow = '0 1px 2px rgba(44,62,80,0.03)';
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.borderColor = '#7b8cff';
-                  }}
-                  onMouseOut={(e) => {
-                    if (e.target !== document.activeElement) {
-                      e.target.style.borderColor = '#e9ecef';
-                    }
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontWeight: 600, color: '#222', fontSize: 12 }}>
-                  Students ({tempSelectedStudents.length})
-                </span>
-                {(() => {
-                  const filtered = students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase()));
-                  const allSelected = filtered.length > 0 && filtered.every(s => tempSelectedStudents.includes(s.id));
-                  return (
-                    <button
-                      type="button"
-                      className="unselect-all-btn"
-                      style={{ background: 'none', border: 'none', color: '#5e72e4', fontWeight: 500, fontSize: 12, cursor: 'pointer', padding: '1px 6px', margin: 0 }}
-                      onClick={() => {
-                        if (allSelected) {
-                          setTempSelectedStudents(prev => prev.filter(id => !filtered.map(s => s.id).includes(id)));
-                        } else {
-                          setTempSelectedStudents(prev => Array.from(new Set([...prev, ...filtered.map(s => s.id)])));
-                        }
-                      }}
-                    >
-                      {allSelected ? 'Unselect All' : 'Select All'}
-                    </button>
-                  );
-                })()}
-              </div>
-              <div style={{ maxHeight: 320, overflowY: 'auto', border: 'none', borderRadius: 12, background: '#f9fafd', padding: '0 16px 0 0', marginBottom: 8 }}>
-                {students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase())).length === 0 ? (
-                  <div className="text-center text-muted py-5">No students found</div>
-                ) : (
-                  students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.email.toLowerCase().includes(studentSearch.toLowerCase())).map((s) => {
-                    const isSelected = tempSelectedStudents.includes(s.id);
-                    return (
-                      <div
-                        key={s.id}
-                        className={`student-list-row${isSelected ? ' selected' : ''}`}
-                        style={{ display: 'flex', alignItems: 'center', padding: '6px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer', background: isSelected ? '#eaf4fb' : 'transparent' }}
-                        onClick={e => {
-                          // Prevent toggling twice if checkbox is clicked
-                          if (e.target.type === 'checkbox') return;
-                          if (isSelected) {
-                            setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                          } else {
-                            setTempSelectedStudents(prev => [...prev, s.id]);
-                          }
-                        }}
-                      >
-                        <img
-                          src={getAvatarForUser(s)}
-                          alt={s.name}
-                          style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover', border: '1px solid #e9ecef' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#2d3748', textTransform: 'none' }}>{s.name}</div>
-                          <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email}</div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              setTempSelectedStudents(prev => [...prev, s.id]);
-                            } else {
-                              setTempSelectedStudents(prev => prev.filter(id => id !== s.id));
-                            }
-                          }}
-                          style={{ marginLeft: 10, cursor: 'pointer' }}
-                          aria-label={`Select ${s.name}`}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-              {/* Selected students pills in modal */}
-              <div style={{ minHeight: 50, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: tempSelectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef', marginTop: 12 }}>
-                {tempSelectedStudents.length === 0 ? (
-                  <div style={{ width: '100%', height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30, textAlign: 'center', gridColumn: '1 / -1', margin: '0 auto' }}>
-                    <FaUserPlus size={14} style={{ marginBottom: 2 }} />
-                    <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
-                  </div>
-                ) : (
-                  tempSelectedStudents.map(id => {
-                    const s = students.find(stu => stu.id === id);
-                    return s ? (
-                      <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e9ecef', borderRadius: 9, padding: '1px 6px', fontSize: 10, fontWeight: 600, color: '#2d3748', minHeight: 22 }}>
-                        <img src={getAvatarForUser(s)} alt={s.name} style={{ width: 14, height: 14, borderRadius: '50%', marginRight: 4, objectFit: 'cover', border: '1px solid #fff' }} />
-                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 5, lineHeight: 1.1 }}>
-                          <span style={{ fontWeight: 600, fontSize: 10, color: '#2d3748', textTransform: 'none' }}>{s.name}</span>
-                          <span style={{ color: '#7b8a9b', fontWeight: 400, fontSize: 9 }}>{s.email}</span>
-                        </span>
-                        <span style={{ flex: 1 }} />
-                        <FaTimes
-                          className="student-pill-x"
-                          style={{ marginLeft: 2, cursor: 'pointer', color: pillRemoveHoverId === id ? '#e74c3c' : '#7b8a9b', fontSize: 11 }}
-                          onClick={e => { e.stopPropagation(); setTempSelectedStudents(prev => prev.filter(sid => sid !== id)); }}
-                          onMouseEnter={() => setPillRemoveHoverId(id)}
-                          onMouseLeave={() => setPillRemoveHoverId(null)}
-                        />
-                      </span>
-                    ) : null;
-                  })
-                )}
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="secondary" onClick={() => setShowCreateStudentSelectModal(false)}>
-              Cancel
-            </Button>
-            <Button color="primary" onClick={() => {
-              if (showOnlineSetup) {
-                setOnlineAssignedStudents(tempSelectedStudents);
-                setShowCreateStudentSelectModal(false);
-              } else if (activeTab === "class") {
-                setTaskAssignedStudents(tempSelectedStudents);
-                setShowCreateStudentSelectModal(false);
-              } else {
-                setSelectedAnnouncementStudents(tempSelectedStudents);
-                setShowStudentSelectModal(false);
-              }
-            }}>
-              Confirm
-            </Button>
-          </ModalFooter>
-        </div>
-      </Modal>
-
-      {/* Cropping Modal */}
-      <Modal isOpen={cropModalOpen} toggle={() => setCropModalOpen(false)} centered size="md">
-        <ModalHeader toggle={() => setCropModalOpen(false)} style={{ border: 'none' }}>Crop Photo</ModalHeader>
-        <ModalBody style={{ height: 400, position: 'relative', background: '#222' }}>
-          {cropImage && (
-            <Cropper
-              image={cropImage}
-              crop={crop}
-              zoom={zoom}
-              aspect={3.5/1}
-              minZoom={minZoom}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-              onMediaLoaded={mediaSize => {
-                // Set initial crop area if not set
-                if (!croppedAreaPixels) {
-                  const width = mediaSize.width;
-                  const height = width / (3.5 / 1);
-                  setCroppedAreaPixels({
-                    x: 0,
-                    y: (mediaSize.height - height) / 2,
-                    width,
-                    height
-                  });
-                }
-              }}
-              cropShape="rect"
-              showGrid={true}
-              style={{ containerStyle: { borderRadius: 12 } }}
-            />
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <div style={{ flex: 1 }}>
-            <label style={{ color: '#888', fontWeight: 600, marginRight: 8 }}>Zoom</label>
-            <input type="range" min={minZoom} max={3} step={0.01} value={zoom} onChange={e => setZoom(Number(e.target.value))} style={{ width: 120, verticalAlign: 'middle' }} />
-          </div>
-          <Button color="primary" onClick={handleCropSave}>Save</Button>
-          <Button color="secondary" onClick={() => setCropModalOpen(false)}>Cancel</Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Edit YouTube Attachment Modal */}
-      <Modal isOpen={showEditYouTubeModal} toggle={() => setShowEditYouTubeModal(false)} centered>
-        <ModalHeader toggle={() => setShowEditYouTubeModal(false)} style={{ border: 'none' }}>Add YouTube Video</ModalHeader>
-        <ModalBody>
-          <FormGroup>
-            <Label for="editYouTubeInput">YouTube URL</Label>
-            <Input
-              id="editYouTubeInput"
-              type="text"
-              value={editYouTubeInput}
-              onChange={e => setEditYouTubeInput(e.target.value)}
-              placeholder="Paste YouTube URL here"
-              autoFocus
-            />
-          </FormGroup>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowEditYouTubeModal(false)}>
-            Cancel
-          </Button>
-          <Button color="primary" onClick={handleEditAddYouTube}>
-            Add Video
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Edit Google Drive Attachment Modal */}
-      <Modal isOpen={showEditDriveModal} toggle={() => setShowEditDriveModal(false)} centered>
-        <ModalHeader toggle={() => setShowEditDriveModal(false)} style={{ border: 'none' }}>Add Google Drive File</ModalHeader>
-        <ModalBody>
-          <FormGroup>
-            <Label for="editDriveInput">Google Drive URL</Label>
-            <Input
-              id="editDriveInput"
-              type="text"
-              value={editDriveInput}
-              onChange={e => setEditDriveInput(e.target.value)}
-              placeholder="Paste Google Drive URL here"
-              autoFocus
-            />
-          </FormGroup>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setShowEditDriveModal(false)}>
-            Cancel
-          </Button>
-          <Button color="primary" onClick={() => { alert("Google Drive integration coming soon!"); setShowEditDriveModal(false); }}>
-            Add File
-          </Button>
-        </ModalFooter>
       </Modal>
 
       {/* Camera Modal */}

@@ -870,6 +870,11 @@ const ClassroomDetailStudent = () => {
     return () => { running = false; if (frameId) cancelAnimationFrame(frameId); };
   }, [previewModalOpen]);
 
+  // Add this function near other handlers, e.g., after handleFileChange
+  function handleRemoveAttachment(idx) {
+    setAttachments(prev => prev.filter((_, i) => i !== idx));
+  }
+
   return (
     <div style={{ background: "#f7fafd", minHeight: "100vh" }}>
       {/* Banner */}
@@ -1159,10 +1164,10 @@ const ClassroomDetailStudent = () => {
       </div>
       {/* Stream Section */}
       {activeTab === "stream" && (
-        <div style={{ maxWidth: 1100, margin: '24px auto 0', fontSize: '15px' }}>
+        <div style={{ maxWidth: 1100, margin: '24px auto 0', fontSize: '12px' }}>
           <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', border: '1.5px solid #e9ecef', padding: 32, marginBottom: 24 }}>
-            <div style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-              <i className="ni ni-chat-round" style={{ fontSize: 22, marginRight: 8, color: '#2096ff' }} /> Stream
+            <div style={{ fontWeight: 800, color: '#324cdd', letterSpacing: 1, marginBottom: 10, display: 'flex', alignItems: 'center', fontSize: '13px' }}>
+              <i className="ni ni-chat-round" style={{ fontSize: 18, marginRight: 6, color: '#2096ff' }} /> Stream
             </div>
             {/* Scheduled/Drafts toggles (clickable, outlined style) */}
             <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 16, gap: 12 }}>
@@ -1220,18 +1225,29 @@ const ClassroomDetailStudent = () => {
                 ) : (
                   scheduledAnnouncements.map((announcement) => (
                     <div key={announcement.id} style={{ background: '#f8fafd', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', marginBottom: 18, padding: '18px 24px' }}>
-                      <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
-                      <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content}</div>
-                      <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>Scheduled for: {new Date(announcement.date).toLocaleString()}</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 5 }}>{announcement.title}</div>
+                      <div style={{ color: '#444', fontSize: 13, marginBottom: 10 }}>{announcement.content}</div>
+                      <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Scheduled for: {new Date(announcement.date).toLocaleString()}</div>
                       {announcement.attachments && announcement.attachments.length > 0 && (
                         <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {announcement.attachments.map((att, idx) => {
                             const isMp3 = att.type === 'file' && att.file && (att.file.type === 'audio/mp3' || att.file.type === 'audio/mpeg' || (att.name && att.name.toLowerCase().endsWith('.mp3')));
                             const isPdf = att.type === 'file' && att.file && (att.file.type === 'application/pdf' || (att.name && att.name.toLowerCase().endsWith('.pdf')));
-                            const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
-                            const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : '#888';
-                            const linkColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : '#1976d2';
+                            const isMp4 = att.type === 'file' && att.file && (att.file.type === 'video/mp4' || (att.name && att.name.toLowerCase().endsWith('.mp4')));
+                            const isWord = att.type === 'file' && att.file && (att.file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || (att.name && /\.docx?$/i.test(att.name)));
+                            const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : isMp4 ? 'MP4' : isWord ? 'WORD' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
+                            const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : isMp4 ? '#7B1FA2' : isWord ? '#1976D2' : '#888';
+                            const linkColor = typeColor;
                             const isFile = att.type === 'file' && att.file;
+                            // Truncate file name and type string
+                            const displayName = (att.name || att.url || 'Attachment').length > 22 ? (att.name || att.url || 'Attachment').slice(0, 19) + '...' : (att.name || att.url || 'Attachment');
+                            let typeString = '';
+                            if (isFile && att.file && att.file.type && !isMp3 && !isPdf && !isMp4 && !isWord) {
+                              typeString = att.file.type.toUpperCase();
+                              if (typeString.length > 28) typeString = typeString.slice(0, 25) + '...';
+                            } else {
+                              typeString = fileType;
+                            }
                             return (
                               <div
                                 key={idx}
@@ -1252,18 +1268,30 @@ const ClassroomDetailStudent = () => {
                                     <path d="M8 8h16v24H8z" fill="#fff"/>
                                     <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#F44336" fontWeight="bold">PDF</text>
                                   </svg>
+                                ) : isMp4 ? (
+                                  <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                                    <rect width="32" height="40" rx="6" fill="#fff" stroke="#7B1FA2" strokeWidth="2"/>
+                                    <polygon points="13,14 25,20 13,26" fill="#7B1FA2"/>
+                                    <text x="16" y="36" textAnchor="middle" fontSize="10" fill="#7B1FA2" fontWeight="bold">MP4</text>
+                                  </svg>
+                                ) : isWord ? (
+                                  <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                                    <rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/>
+                                    <path d="M8 8h16v24H8z" fill="#fff"/>
+                                    <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">WORD</text>
+                                  </svg>
                                 ) : getFileTypeIcon(att)}
                                 {/* File info */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{att.name || att.url || 'Attachment'}</div>
-                                  <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ color: typeColor }}>{fileType}</span>
+                                  <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{displayName}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
+                                    <span style={{ color: typeColor }}>{typeString}</span>
                                     {isFile && <span style={{ color: '#b0b0b0', fontWeight: 700, fontSize: 15, margin: '0 2px' }}>•</span>}
                                     {isFile ? (
                                       <a
                                         href={typeof att.file === 'string' ? att.file : URL.createObjectURL(att.file)}
                                         download={att.name}
-                                        style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline' }}
+                                        style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                         onClick={e => { e.stopPropagation(); }}
                                       >
                                         Download
@@ -1273,7 +1301,7 @@ const ClassroomDetailStudent = () => {
                                         href={att.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline' }}
+                                        style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                         onClick={e => e.stopPropagation()}
                                       >
                                         Open
@@ -1281,6 +1309,33 @@ const ClassroomDetailStudent = () => {
                                     ) : null}
                                   </div>
                                 </div>
+                                {/* Remove button */}
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleRemoveAttachment(idx); }}
+                                  style={{
+                                    marginLeft: 10,
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#888',
+                                    fontWeight: 700,
+                                    fontSize: 22,
+                                    cursor: 'pointer',
+                                    borderRadius: '50%',
+                                    width: 32,
+                                    height: 32,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'background 0.2s',
+                                  }}
+                                  title="Remove attachment"
+                                  aria-label="Remove attachment"
+                                  type="button"
+                                  tabIndex={0}
+                                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveAttachment(idx); } }}
+                                >
+                                  &times;
+                                </button>
                               </div>
                             );
                           })}
@@ -1309,18 +1364,29 @@ const ClassroomDetailStudent = () => {
                         setDraftAnnouncements(draftAnnouncements.filter(d => d.id !== announcement.id));
                       }}
                     >
-                      <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
-                      <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content}</div>
-                      <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>Saved as draft: {new Date(announcement.date).toLocaleString()}</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 5 }}>{announcement.title}</div>
+                      <div style={{ color: '#444', fontSize: 13, marginBottom: 10 }}>{announcement.content}</div>
+                      <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Saved as draft: {new Date(announcement.date).toLocaleString()}</div>
                       {announcement.attachments && announcement.attachments.length > 0 && (
                         <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {announcement.attachments.map((att, idx) => {
                             const isMp3 = att.type === 'file' && att.file && (att.file.type === 'audio/mp3' || att.file.type === 'audio/mpeg' || (att.name && att.name.toLowerCase().endsWith('.mp3')));
                             const isPdf = att.type === 'file' && att.file && (att.file.type === 'application/pdf' || (att.name && att.name.toLowerCase().endsWith('.pdf')));
-                            const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
-                            const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : '#888';
-                            const linkColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : '#1976d2';
+                            const isMp4 = att.type === 'file' && att.file && (att.file.type === 'video/mp4' || (att.name && att.name.toLowerCase().endsWith('.mp4')));
+                            const isWord = att.type === 'file' && att.file && (att.file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || (att.name && /\.docx?$/i.test(att.name)));
+                            const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : isMp4 ? 'MP4' : isWord ? 'WORD' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
+                            const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : isMp4 ? '#7B1FA2' : isWord ? '#1976D2' : '#888';
+                            const linkColor = typeColor;
                             const isFile = att.type === 'file' && att.file;
+                            // Truncate file name and type string
+                            const displayName = (att.name || att.url || 'Attachment').length > 22 ? (att.name || att.url || 'Attachment').slice(0, 19) + '...' : (att.name || att.url || 'Attachment');
+                            let typeString = '';
+                            if (isFile && att.file && att.file.type && !isMp3 && !isPdf && !isMp4 && !isWord) {
+                              typeString = att.file.type.toUpperCase();
+                              if (typeString.length > 28) typeString = typeString.slice(0, 25) + '...';
+                            } else {
+                              typeString = fileType;
+                            }
                             return (
                               <div
                                 key={idx}
@@ -1341,18 +1407,30 @@ const ClassroomDetailStudent = () => {
                                     <path d="M8 8h16v24H8z" fill="#fff"/>
                                     <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#F44336" fontWeight="bold">PDF</text>
                                   </svg>
+                                ) : isMp4 ? (
+                                  <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                                    <rect width="32" height="40" rx="6" fill="#fff" stroke="#7B1FA2" strokeWidth="2"/>
+                                    <polygon points="13,14 25,20 13,26" fill="#7B1FA2"/>
+                                    <text x="16" y="36" textAnchor="middle" fontSize="10" fill="#7B1FA2" fontWeight="bold">MP4</text>
+                                  </svg>
+                                ) : isWord ? (
+                                  <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                                    <rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/>
+                                    <path d="M8 8h16v24H8z" fill="#fff"/>
+                                    <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">WORD</text>
+                                  </svg>
                                 ) : getFileTypeIcon(att)}
                                 {/* File info */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{att.name || att.url || 'Attachment'}</div>
-                                  <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ color: typeColor }}>{fileType}</span>
+                                  <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{displayName}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
+                                    <span style={{ color: typeColor }}>{typeString}</span>
                                     {isFile && <span style={{ color: '#b0b0b0', fontWeight: 700, fontSize: 15, margin: '0 2px' }}>•</span>}
                                     {isFile ? (
                                       <a
                                         href={typeof att.file === 'string' ? att.file : URL.createObjectURL(att.file)}
                                         download={att.name}
-                                        style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline' }}
+                                        style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                         onClick={e => { e.stopPropagation(); }}
                                       >
                                         Download
@@ -1362,7 +1440,7 @@ const ClassroomDetailStudent = () => {
                                         href={att.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline' }}
+                                        style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                         onClick={e => e.stopPropagation()}
                                       >
                                         Open
@@ -1370,6 +1448,33 @@ const ClassroomDetailStudent = () => {
                                     ) : null}
                                   </div>
                                 </div>
+                                {/* Remove button */}
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleRemoveAttachment(idx); }}
+                                  style={{
+                                    marginLeft: 10,
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#888',
+                                    fontWeight: 700,
+                                    fontSize: 22,
+                                    cursor: 'pointer',
+                                    borderRadius: '50%',
+                                    width: 32,
+                                    height: 32,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'background 0.2s',
+                                  }}
+                                  title="Remove attachment"
+                                  aria-label="Remove attachment"
+                                  type="button"
+                                  tabIndex={0}
+                                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveAttachment(idx); } }}
+                                >
+                                  &times;
+                                </button>
                               </div>
                             );
                           })}
@@ -1414,37 +1519,151 @@ const ClassroomDetailStudent = () => {
                   value={announcementTitle}
                   onChange={e => setAnnouncementTitle(e.target.value)}
                   placeholder="Announcement title (optional)"
-                  style={{ width: '100%', fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 8, padding: '10px 12px' }}
+                  style={{ width: '100%', fontSize: 15, borderRadius: 8, border: '1px solid #bfcfff', background: '#fff', marginBottom: 10, padding: '10px 14px', height: 34 }}
                 />
                 <textarea
                   id="student-announcement-textarea"
                   value={studentAnnouncement}
                   onChange={e => setStudentAnnouncement(e.target.value)}
                   placeholder="Share an announcement with your class..."
-                  style={{ width: '100%', fontSize: 16, minHeight: 56, borderRadius: 12, padding: '16px 18px', border: 'none', background: '#f7fafd', boxShadow: 'none', resize: 'vertical', outline: 'none', color: '#222', marginBottom: 8 }}
+                  style={{ width: '100%', fontSize: 15, minHeight: 44, borderRadius: 8, padding: '10px 14px', border: 'none', background: '#f7fafd', boxShadow: 'none', resize: 'vertical', outline: 'none', color: '#222', marginBottom: 10, height: 34 }}
                 />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <div style={{ marginBottom: 12, position: 'relative', display: 'inline-block' }}>
+                {/* Attachments preview before posting */}
+                {attachments && attachments.length > 0 && (
+                  <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {attachments.map((att, idx) => {
+                      const isMp3 = att.type === 'file' && att.file && (att.file.type === 'audio/mp3' || att.file.type === 'audio/mpeg' || (att.name && att.name.toLowerCase().endsWith('.mp3')));
+                      const isPdf = att.type === 'file' && att.file && (att.file.type === 'application/pdf' || (att.name && att.name.toLowerCase().endsWith('.pdf')));
+                      const isMp4 = att.type === 'file' && att.file && (att.file.type === 'video/mp4' || (att.name && att.name.toLowerCase().endsWith('.mp4')));
+                      const isWord = att.type === 'file' && att.file && (att.file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || (att.name && /\.docx?$/i.test(att.name)));
+                      const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : isMp4 ? 'MP4' : isWord ? 'WORD' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
+                      const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : isMp4 ? '#7B1FA2' : isWord ? '#1976D2' : '#888';
+                      const linkColor = typeColor;
+                      const isFile = att.type === 'file' && att.file;
+                      // Truncate file name and type string
+                      const displayName = (att.name || att.url || 'Attachment').length > 22 ? (att.name || att.url || 'Attachment').slice(0, 19) + '...' : (att.name || att.url || 'Attachment');
+                      let typeString = '';
+                      if (isFile && att.file && att.file.type && !isMp3 && !isPdf && !isMp4 && !isWord) {
+                        typeString = att.file.type.toUpperCase();
+                        if (typeString.length > 28) typeString = typeString.slice(0, 25) + '...';
+                      } else {
+                        typeString = fileType;
+                      }
+                      return (
+                        <div
+                          key={idx}
+                          style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '10px 18px', minWidth: 220, maxWidth: 340, cursor: isFile ? 'pointer' : 'default' }}
+                          onClick={isFile ? () => handlePreviewAttachment(att) : undefined}
+                        >
+                          {/* File icon */}
+                          {isMp3 ? (
+                            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                              <rect width="32" height="40" rx="6" fill="#fff" stroke="#43a047" strokeWidth="2"/>
+                              <circle cx="16" cy="20" r="7" fill="#43a047"/>
+                              <rect x="22" y="13" width="3" height="14" rx="1.5" fill="#43a047"/>
+                              <text x="16" y="36" textAnchor="middle" fontSize="10" fill="#43a047" fontWeight="bold">MP3</text>
+                            </svg>
+                          ) : isPdf ? (
+                            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                              <rect width="32" height="40" rx="6" fill="#fff" stroke="#F44336" strokeWidth="2"/>
+                              <path d="M8 8h16v24H8z" fill="#fff"/>
+                              <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#F44336" fontWeight="bold">PDF</text>
+                            </svg>
+                          ) : isMp4 ? (
+                            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                              <rect width="32" height="40" rx="6" fill="#fff" stroke="#7B1FA2" strokeWidth="2"/>
+                              <polygon points="13,14 25,20 13,26" fill="#7B1FA2"/>
+                              <text x="16" y="36" textAnchor="middle" fontSize="10" fill="#7B1FA2" fontWeight="bold">MP4</text>
+                            </svg>
+                          ) : isWord ? (
+                            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                              <rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/>
+                              <path d="M8 8h16v24H8z" fill="#fff"/>
+                              <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">WORD</text>
+                            </svg>
+                          ) : getFileTypeIcon(att)}
+                          {/* File info */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{displayName}</div>
+                            <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
+                              <span style={{ color: typeColor }}>{typeString}</span>
+                              {isFile && <span style={{ color: '#b0b0b0', fontWeight: 700, fontSize: 15, margin: '0 2px' }}>•</span>}
+                              {isFile ? (
+                                <a
+                                  href={typeof att.file === 'string' ? att.file : URL.createObjectURL(att.file)}
+                                  download={att.name}
+                                  style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
+                                  onClick={e => { e.stopPropagation(); }}
+                                >
+                                  Download
+                                </a>
+                              ) : att.url ? (
+                                <a
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  Open
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                          {/* Remove button */}
+                          <button
+                            onClick={e => { e.stopPropagation(); handleRemoveAttachment(idx); }}
+                            style={{
+                              marginLeft: 10,
+                              background: 'none',
+                              border: 'none',
+                              color: '#888',
+                              fontWeight: 700,
+                              fontSize: 22,
+                              cursor: 'pointer',
+                              borderRadius: '50%',
+                              width: 32,
+                              height: 32,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'background 0.2s',
+                            }}
+                            title="Remove attachment"
+                            aria-label="Remove attachment"
+                            type="button"
+                            tabIndex={0}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveAttachment(idx); } }}
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ marginBottom: 10, position: 'relative', display: 'inline-block' }}>
                     <button
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '10px 18px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '8px 14px', fontWeight: 600, fontSize: 15, cursor: 'pointer', height: 32 }}
                       onClick={() => setAttachmentDropdownOpenId('new')}
                       type="button"
                     >
-                      <i className="fa fa-paperclip" style={{ fontSize: 18 }} /> Add Attachment
+                      <i className="fa fa-paperclip" style={{ fontSize: 15 }} /> Add Attachment
                     </button>
                     {attachmentDropdownOpenId === 'new' && (
-                      <div ref={attachmentMenuRef} style={{ position: 'absolute', top: 48, left: 0, background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px #324cdd22', padding: '10px 0', minWidth: 180, zIndex: 20 }}>
-                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('file')}>
-                          <i className="fa fa-file" style={{ fontSize: 18 }} /> File
+                      <div ref={attachmentMenuRef} style={{ position: 'absolute', top: 36, left: 0, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: '8px 0', minWidth: 130, zIndex: 20 }}>
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('file')}>
+                          <i className="fa fa-file" style={{ fontSize: 15 }} /> File
                         </div>
-                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('link')}>
-                          <i className="fa fa-globe" style={{ fontSize: 18 }} /> Link
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('link')}>
+                          <i className="fa fa-globe" style={{ fontSize: 15 }} /> Link
                         </div>
-                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('youtube')}>
-                          <i className="fa fa-youtube-play" style={{ fontSize: 18, color: '#f00' }} /> YouTube
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('youtube')}>
+                          <i className="fa fa-youtube-play" style={{ fontSize: 15, color: '#f00' }} /> YouTube
                         </div>
-                        <div style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => handleAttachmentOption('drive')}>
-                          <i className="fa fa-cloud-upload" style={{ fontSize: 18 }} /> Google Drive
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('drive')}>
+                          <i className="fa fa-cloud-upload" style={{ fontSize: 15 }} /> Google Drive
                         </div>
                       </div>
                     )}
@@ -1452,110 +1671,28 @@ const ClassroomDetailStudent = () => {
                   <div style={{ position: 'relative' }}>
                     <button
                       type="button"
-                      style={{ border: 'none', background: '#f7fafd', borderRadius: 8, padding: '8px 14px', fontSize: 18, cursor: 'pointer' }}
+                      style={{ border: 'none', background: '#f7fafd', borderRadius: 8, padding: '8px 14px', fontSize: 15, cursor: 'pointer', height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onClick={e => { e.preventDefault(); setShowEmojiPicker(v => !v); }}
                     >
-                      <i className="fa fa-smile" />
+                      <i className="fa fa-smile" style={{ fontSize: 15 }} />
                     </button>
                     {showEmojiPicker && (
-                      <div ref={emojiPickerRef} style={{ position: 'absolute', top: 44, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 30, minWidth: 260, maxWidth: 260, width: 260, maxHeight: 200, overflowY: 'auto' }}>
+                      <div ref={emojiPickerRef} style={{ position: 'absolute', top: 36, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 30, minWidth: 140, maxWidth: 200, width: 200, maxHeight: 140, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
                         {emojiList.map(emoji => (
-                          <span key={emoji} style={{ fontSize: 22, cursor: 'pointer', margin: 4 }} onClick={() => insertEmojiAtCursor(emoji)}>{emoji}</span>
+                          <span key={emoji} style={{ fontSize: 19, cursor: 'pointer', margin: 4, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.12s', padding: 0, userSelect: 'none' }} onClick={() => insertEmojiAtCursor(emoji)}>{emoji}</span>
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
-                {attachments.length > 0 && (
-                  <div style={{ margin: '12px 0 0 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {attachments.map((att, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '12px 18px', minWidth: 220, maxWidth: 340 }}>
-                        {getFileTypeIcon(att)}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>{att.name || att.url || 'Attachment'}</div>
-                          <div style={{ fontSize: 13, color: '#888' }}>{att.type === 'file' ? (att.file ? att.file.type.split('/')[1]?.toUpperCase() : 'FILE') : att.type.charAt(0).toUpperCase() + att.type.slice(1)}</div>
-                        </div>
-                        {att.type === 'file' && att.file ? (
-                          <a href={URL.createObjectURL(att.file)} download={att.name} style={{ fontSize: 14, color: '#1976d2', fontWeight: 500, marginLeft: 10, textDecoration: 'underline' }}>Download</a>
-                        ) : att.url ? (
-                          <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#1976d2', fontWeight: 500, marginLeft: 10, textDecoration: 'underline' }}>Open</a>
-                        ) : null}
-                        <button type="button" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))} style={{ marginLeft: 10, background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }} title="Remove attachment">
-                          <i className="fa fa-times-circle" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <button type="button" style={{ fontWeight: 500, borderRadius: 8, minWidth: 80, fontSize: 15, background: '#f7fafd', color: '#222', border: 'none', padding: '8px 20px', cursor: 'pointer' }} onClick={() => { setFormExpanded(false); setStudentAnnouncement(""); setAnnouncementTitle(""); setAllowComments(true); }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button type="button" style={{ fontWeight: 500, borderRadius: 8, minWidth: 80, fontSize: 14, background: '#f7fafd', color: '#222', border: 'none', padding: '8px 14px', cursor: 'pointer', height: 32 }} onClick={() => { setFormExpanded(false); setStudentAnnouncement(""); setAnnouncementTitle(""); setAllowComments(true); }}>
                     Cancel
                   </button>
-                  <button type="submit" style={{ fontWeight: 600, borderRadius: 8, minWidth: 100, fontSize: 15, background: '#7b8cff', color: '#fff', border: 'none', padding: '8px 20px', cursor: studentAnnouncement.trim() ? 'pointer' : 'not-allowed', opacity: studentAnnouncement.trim() ? 1 : 0.6 }} disabled={!studentAnnouncement.trim()}>
-                    <i className="ni ni-send" style={{ fontSize: 16, marginRight: 6 }} />
+                  <button type="submit" style={{ fontWeight: 600, borderRadius: 8, minWidth: 90, fontSize: 14, background: '#7b8cff', color: '#fff', border: 'none', padding: '8px 14px', cursor: studentAnnouncement.trim() ? 'pointer' : 'not-allowed', opacity: studentAnnouncement.trim() ? 1 : 0.6, height: 32 }} disabled={!studentAnnouncement.trim()}>
+                    <i className="ni ni-send" style={{ fontSize: 14, marginRight: 4 }} />
                     Post
                   </button>
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <button
-                      type="button"
-                      style={{
-                        background: '#fff',
-                        border: 'none',
-                        borderRadius: 12,
-                        width: 40,
-                        height: 48,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 12px rgba(44,62,80,0.07)',
-                        padding: 0,
-                        cursor: 'pointer',
-                        transition: 'box-shadow 0.15s',
-                      }}
-                      onClick={() => setShowPostOptionsDropdown(v => !v)}
-                    >
-                      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#444', display: 'block' }} />
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#444', display: 'block' }} />
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#444', display: 'block' }} />
-                      </span>
-                    </button>
-                    {showPostOptionsDropdown && (
-                      <div ref={postOptionsDropdownRef} style={{ position: 'absolute', bottom: 48, right: 0, background: '#fff', borderRadius: 10, boxShadow: '0 2px 12px #324cdd22', padding: '8px 0', minWidth: 140, zIndex: 30 }}>
-                        <div style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 500, color: '#222', fontSize: 15 }}
-                          onClick={() => { setShowScheduleModal(true); setShowPostOptionsDropdown(false); }}
-                        >
-                          <i className="fa fa-calendar" style={{ marginRight: 8, color: '#1976d2' }} /> Scheduled
-                        </div>
-                        <div style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 500, color: '#222', fontSize: 15 }}
-                          onClick={() => {
-                            if (!studentAnnouncement.trim() && !announcementTitle.trim()) return;
-                            const newDraft = {
-                              id: Date.now(),
-                              title: announcementTitle,
-                              content: studentAnnouncement,
-                              author: loggedInName,
-                              date: new Date().toISOString(),
-                              isPinned: false,
-                              reactions: { like: 0, likedBy: [] },
-                              comments: [],
-                              allowComments: allowComments,
-                              attachments: attachments
-                            };
-                            setDraftAnnouncements([newDraft, ...draftAnnouncements]);
-                            setStudentAnnouncement("");
-                            setAnnouncementTitle("");
-                            setAllowComments(true);
-                            setFormExpanded(false);
-                            setAttachments([]);
-                            setShowPostOptionsDropdown(false);
-                          }}
-                        >
-                          <i className="fa fa-file-alt" style={{ marginRight: 8, color: '#1976d2' }} /> Drafts
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </form>
             )}
@@ -1704,10 +1841,21 @@ const ClassroomDetailStudent = () => {
                             {announcement.attachments.map((att, idx) => {
                               const isMp3 = att.type === 'file' && att.file && (att.file.type === 'audio/mp3' || att.file.type === 'audio/mpeg' || (att.name && att.name.toLowerCase().endsWith('.mp3')));
                               const isPdf = att.type === 'file' && att.file && (att.file.type === 'application/pdf' || (att.name && att.name.toLowerCase().endsWith('.pdf')));
-                              const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
-                              const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : '#888';
-                              const linkColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : '#1976d2';
+                              const isMp4 = att.type === 'file' && att.file && (att.file.type === 'video/mp4' || (att.name && att.name.toLowerCase().endsWith('.mp4')));
+                              const isWord = att.type === 'file' && att.file && (att.file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || (att.name && /\.docx?$/i.test(att.name)));
+                              const fileType = isMp3 ? 'MP3' : isPdf ? 'PDF' : isMp4 ? 'MP4' : isWord ? 'WORD' : (att.file && att.file.type ? att.file.type.split('/')[1]?.toUpperCase() : att.type.charAt(0).toUpperCase() + att.type.slice(1));
+                              const typeColor = isMp3 ? '#43a047' : isPdf ? '#F44336' : isMp4 ? '#7B1FA2' : isWord ? '#1976D2' : '#888';
+                              const linkColor = typeColor;
                               const isFile = att.type === 'file' && att.file;
+                              // Truncate file name and type string
+                              const displayName = (att.name || att.url || 'Attachment').length > 22 ? (att.name || att.url || 'Attachment').slice(0, 19) + '...' : (att.name || att.url || 'Attachment');
+                              let typeString = '';
+                              if (isFile && att.file && att.file.type && !isMp3 && !isPdf && !isMp4 && !isWord) {
+                                typeString = att.file.type.toUpperCase();
+                                if (typeString.length > 28) typeString = typeString.slice(0, 25) + '...';
+                              } else {
+                                typeString = fileType;
+                              }
                               return (
                                 <div
                                   key={idx}
@@ -1728,18 +1876,30 @@ const ClassroomDetailStudent = () => {
                                       <path d="M8 8h16v24H8z" fill="#fff"/>
                                       <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#F44336" fontWeight="bold">PDF</text>
                                     </svg>
+                                  ) : isMp4 ? (
+                                    <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                                      <rect width="32" height="40" rx="6" fill="#fff" stroke="#7B1FA2" strokeWidth="2"/>
+                                      <polygon points="13,14 25,20 13,26" fill="#7B1FA2"/>
+                                      <text x="16" y="36" textAnchor="middle" fontSize="10" fill="#7B1FA2" fontWeight="bold">MP4</text>
+                                    </svg>
+                                  ) : isWord ? (
+                                    <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 14 }}>
+                                      <rect width="32" height="40" rx="6" fill="#fff" stroke="#1976D2" strokeWidth="2"/>
+                                      <path d="M8 8h16v24H8z" fill="#fff"/>
+                                      <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">WORD</text>
+                                    </svg>
                                   ) : getFileTypeIcon(att)}
                                   {/* File info */}
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{att.name || att.url || 'Attachment'}</div>
-                                    <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <span style={{ color: typeColor }}>{fileType}</span>
+                                    <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{displayName}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
+                                      <span style={{ color: typeColor }}>{typeString}</span>
                                       {isFile && <span style={{ color: '#b0b0b0', fontWeight: 700, fontSize: 15, margin: '0 2px' }}>•</span>}
                                       {isFile ? (
                                         <a
                                           href={typeof att.file === 'string' ? att.file : URL.createObjectURL(att.file)}
                                           download={att.name}
-                                          style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline' }}
+                                          style={{ fontSize: 13, color: linkColor, fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                           onClick={e => { e.stopPropagation(); }}
                                         >
                                           Download
@@ -1749,7 +1909,7 @@ const ClassroomDetailStudent = () => {
                                           href={att.url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline' }}
+                                          style={{ fontSize: 13, color: '#1976d2', fontWeight: 600, textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                           onClick={e => e.stopPropagation()}
                                         >
                                           Open
@@ -1757,6 +1917,33 @@ const ClassroomDetailStudent = () => {
                                       ) : null}
                                     </div>
                                   </div>
+                                  {/* Remove button */}
+                                  <button
+                                    onClick={e => { e.stopPropagation(); handleRemoveAttachment(idx); }}
+                                    style={{
+                                      marginLeft: 10,
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#888',
+                                      fontWeight: 700,
+                                      fontSize: 22,
+                                      cursor: 'pointer',
+                                      borderRadius: '50%',
+                                      width: 32,
+                                      height: 32,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'background 0.2s',
+                                    }}
+                                    title="Remove attachment"
+                                    aria-label="Remove attachment"
+                                    type="button"
+                                    tabIndex={0}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveAttachment(idx); } }}
+                                  >
+                                    &times;
+                                  </button>
                                 </div>
                               );
                             })}
@@ -1777,7 +1964,7 @@ const ClassroomDetailStudent = () => {
                                   <img src={comment.author === 'Prof. Smith' ? 'https://randomuser.me/api/portraits/men/32.jpg' : 'https://randomuser.me/api/portraits/men/75.jpg'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 600, fontSize: 14 }}>{comment.author} <span style={{ color: '#888', fontWeight: 400, fontSize: 12, marginLeft: 6 }}>{formatRelativeTime(comment.date)}</span></div>
+                                  <div style={{ fontWeight: 600, fontSize: 12 }}>{comment.author} <span style={{ color: '#888', fontWeight: 400, fontSize: 10, marginLeft: 5 }}>{formatRelativeTime(comment.date)}</span></div>
                                   {editingComment.announcementId === announcement.id && editingComment.idx === idx ? (
                                     <>
                                       <input
@@ -1792,7 +1979,7 @@ const ClassroomDetailStudent = () => {
                                       </div>
                                     </>
                                   ) : (
-                                    <div style={{ fontSize: 15, color: '#444' }}>{comment.text}</div>
+                                    <div style={{ fontSize: 12, color: '#444' }}>{comment.text}</div>
                                   )}
                                 </div>
                                 <div style={{ position: 'relative', marginLeft: 8 }}>
@@ -1814,28 +2001,28 @@ const ClassroomDetailStudent = () => {
                                   placeholder="Add a comment..."
                                   value={commentInputs[announcement.id] || ""}
                                   onChange={e => handleCommentInputChange(announcement.id, e.target.value)}
-                                  style={{ flex: 1, borderRadius: 10, border: '2px solid #bfcfff', padding: '10px 16px', fontSize: 15, outline: 'none', background: '#fff', transition: 'border 0.2s' }}
+                                  style={{ flex: 1, borderRadius: 7, border: '2px solid #bfcfff', padding: '6px 10px', fontSize: 12, outline: 'none', background: '#fff', transition: 'border 0.2s', height: 22 }}
                                   onKeyDown={e => { if (e.key === 'Enter') handlePostComment(announcement.id); }}
                                 />
                                 <div style={{ position: 'relative' }}>
                                   <button
                                     type="button"
-                                    style={{ background: '#fff', border: 'none', borderRadius: 8, padding: 6, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px #e9ecef' }}
+                                    style={{ background: '#fff', border: 'none', borderRadius: 6, padding: 3, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px #e9ecef' }}
                                     onClick={() => setShowCommentEmojiPicker(prev => ({ ...prev, [announcement.id]: !prev[announcement.id] }))}
                                   >
-                                    <i className="fa fa-smile" style={{ fontSize: 18 }} />
+                                    <i className="fa fa-smile" style={{ fontSize: 12 }} />
                                   </button>
                                   {showCommentEmojiPicker[announcement.id] && (
                                     <div ref={el => { if (el) commentEmojiPickerRefs.current[announcement.id] = el; }} style={{ position: 'absolute', top: 40, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 30, minWidth: 220, maxWidth: 220, width: 220, maxHeight: 180, overflowY: 'auto' }}>
                                       {emojiList.map(emoji => (
-                                        <span key={emoji} style={{ fontSize: 20, cursor: 'pointer', margin: 3 }} onClick={() => handleAddEmojiToComment(announcement.id, emoji)}>{emoji}</span>
+                                        <span key={emoji} style={{ fontSize: 20, cursor: 'pointer', margin: 4 }} onClick={() => handleAddEmojiToComment(announcement.id, emoji)}>{emoji}</span>
                                       ))}
                                     </div>
                                   )}
                                 </div>
                                 <button
                                   type="button"
-                                  style={{ background: '#7b8cff', border: 'none', borderRadius: 8, padding: 0, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18, boxShadow: '0 1px 4px #e9ecef' }}
+                                  style={{ background: '#7b8cff', border: 'none', borderRadius: 6, padding: 0, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, boxShadow: '0 1px 4px #e9ecef' }}
                                   onClick={() => handlePostComment(announcement.id)}
                                   disabled={!(commentInputs[announcement.id] || '').trim()}
                                 >

@@ -4,10 +4,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardBody, Button, Badge, Nav, NavItem, NavLink, TabContent, TabPane, Table, Modal, ModalBody, Input } from "reactstrap";
 import classnames from "classnames";
 import { Document, Page, pdfjs } from 'react-pdf';
+import QRGradingPanel from '../../components/QRGradingPanel';
 pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.js`;
 
 // Accepts prop: studentSubmissions (array of {id, studentName, avatar, status, score, file, isDraft})
-const TaskDetail = ({ studentSubmissions }) => {
+const TaskDetail = () => {
   const { taskId } = useParams();
   const navigate = useNavigate();
   const [task, setTask] = useState(null);
@@ -23,19 +24,20 @@ const TaskDetail = ({ studentSubmissions }) => {
   const [pdfZoom, setPdfZoom] = useState(1);
   const [numPages, setNumPages] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [qrGradingMode, setQrGradingMode] = useState(false);
 
   // Provide fake/mock data if no prop is passed
   const mockSubmissions = [
     {
       id: 1,
-      studentName: "Geraldine Ferreras",
+      studentName: "Anjela Sarmiento",
       avatar: "https://randomuser.me/api/portraits/women/1.jpg",
       status: "Assigned",
       score: 95,
       file: {
         name: "Geraldine_Ferreras_Resume.pdf",
         preview: null,
-        url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" // Replace with real resume PDF if available
+        url: "https://resume.tiiny.site" // Replace with real resume PDF if available
       },
       isDraft: true
     },
@@ -78,17 +80,23 @@ const TaskDetail = ({ studentSubmissions }) => {
         url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
       },
       isDraft: false
+    },
+    {
+      id: "2021305973",
+      studentName: "ANJELA SOFIA G. SARMIENTO",
+      avatar: "https://randomuser.me/api/portraits/women/6.jpg",
+      status: "Assigned",
+      score: undefined,
+      file: null,
+      isDraft: false,
+      program: "Bachelor of Science in Information Technology"
     }
   ];
 
-  // Use prop or fallback to mock data
-  const submissions = studentSubmissions && studentSubmissions.length > 0 ? studentSubmissions : mockSubmissions;
-
-  // Local state for grades
-  useEffect(() => {
-    setSubmissionsState(submissions.map(s => ({ ...s })));
-  }, [studentSubmissions]);
-
+  // Load students for the classroom
+  const [students, setStudents] = useState([]);
+  // In the TaskDetail component, after finding foundClass in useEffect, store it in state for navigation
+  const [classroomCode, setClassroomCode] = useState(null);
   useEffect(() => {
     // Try to find the task in any classroom's localStorage
     const teacherClasses = JSON.parse(localStorage.getItem("teacherClasses") || "[]");
@@ -99,16 +107,45 @@ const TaskDetail = ({ studentSubmissions }) => {
       if (foundTask) break;
     }
     setTask(foundTask);
+
+    // Find the classroom for this task
+    let foundClass = null;
+    for (const cls of teacherClasses) {
+      const tasks = JSON.parse(localStorage.getItem(`classroom_tasks_${cls.code}`) || "[]");
+      if (tasks.find(t => String(t.id) === String(taskId))) {
+        foundClass = cls;
+        break;
+      }
+    }
+    if (foundClass) {
+      // Try to load students for this classroom
+      const studentsKey = `classroom_students_${foundClass.code}`;
+      const loadedStudents = JSON.parse(localStorage.getItem(studentsKey) || "[]");
+      setStudents(loadedStudents);
+      setClassroomCode(foundClass.code);
+    } else {
+      setStudents([]);
+      setClassroomCode(null);
+    }
   }, [taskId]);
 
-  // Set default selected student (must not be conditional)
+  // Local state for grades
   useEffect(() => {
-    if (submissions.length > 0 && !selectedStudentId) {
-      setSelectedStudentId(submissions[0].id);
+    if (submissionsState.length === 0 && students.length > 0) {
+      setSubmissionsState(students.map(s => ({ ...s })));
+    }
+    // Do not reset submissionsState on every students change
+    // eslint-disable-next-line
+  }, [students]);
+
+  useEffect(() => {
+    // Set default selected student (must not be conditional)
+    if (students.length > 0 && !selectedStudentId) {
+      setSelectedStudentId(students[0].id);
     }
     // Only run when submissions or selectedStudentId changes
     // eslint-disable-next-line
-  }, [submissions, selectedStudentId]);
+  }, [students, selectedStudentId]);
 
   // Remove extra margins/paddings for a more compact, edge-to-edge look
   const outerStyle = {
@@ -125,7 +162,14 @@ const TaskDetail = ({ studentSubmissions }) => {
   };
 
   // Get selected student from local state
-  const selectedStudent = submissionsState.find(s => s.id === selectedStudentId) || submissionsState[0];
+  const assignedStudentIds = task && Array.isArray(task.assignedStudents) ? task.assignedStudents : null;
+  // Filter submissionsState to only assigned students if assignedStudentIds exists
+  const filteredSubmissions = Array.isArray(assignedStudentIds)
+    ? assignedStudentIds.length === 0
+      ? []
+      : submissionsState.filter(s => assignedStudentIds.map(String).includes(String(s.id)))
+    : submissionsState;
+  const selectedStudent = filteredSubmissions.find(s => s.id === selectedStudentId) || filteredSubmissions[0];
 
   // Helper: check file type
   const isImage = (file) => file && file.url && (file.url.endsWith('.jpg') || file.url.endsWith('.jpeg') || file.url.endsWith('.png') || file.url.endsWith('.gif') || file.url.endsWith('.webp'));
@@ -149,6 +193,23 @@ const TaskDetail = ({ studentSubmissions }) => {
     ));
     setGradeSaved(true);
     setTimeout(() => setGradeSaved(false), 1200);
+  };
+
+  // Handle grade submission from QRGradingPanel
+  const handleQRGradeSubmit = ({ studentId, score, feedback, attachments, dateGraded }) => {
+    setSubmissionsState(prev => prev.map(s => {
+      if (String(s.id) === String(studentId)) {
+        // Always update with the latest score, feedback, attachments, and dateGraded
+        return {
+          ...s,
+          score: score !== "" ? Number(score) : undefined,
+          feedback,
+          attachments: attachments && attachments.length > 0 ? attachments : undefined,
+          dateGraded
+        };
+      }
+      return s;
+    }));
   };
 
   // Modal content for file preview
@@ -223,29 +284,23 @@ const TaskDetail = ({ studentSubmissions }) => {
     );
   };
 
+  const turnedIn = filteredSubmissions.filter(s => s.status === 'Turned in').length;
+  const assigned = filteredSubmissions.length;
+
   if (!task) {
     return (
-      <div style={{ padding: 32, textAlign: "center" }}>
-        <h3>Task not found</h3>
-        <Button color="primary" onClick={() => navigate(-1)}>Back</Button>
-      </div>
+      <div style={{ textAlign: 'center', color: '#888', fontWeight: 600, fontSize: 22, margin: '32px 0' }}>Task not found</div>
     );
   }
-
-  const turnedIn = submissionsState.filter(s => s.status === 'Turned in').length;
-  const assigned = submissionsState.length;
 
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
-        {/* Instruction Section */}
-        <div style={{ marginBottom: 16, background: '#f8fafc', borderRadius: 12, padding: '12px 20px', boxShadow: '0 2px 8px #324cdd11', fontSize: 16, fontWeight: 500, color: '#324cdd', letterSpacing: 0.5 }}>
-          <span role="img" aria-label="info" style={{ marginRight: 10, fontSize: 20 }}>ℹ️</span>
-          Click the tabs below to view the task instructions or see student submissions for this task.
-        </div>
-        <Button color="secondary" onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>Back</Button>
         {/* Tabs */}
-        <Nav tabs style={{ marginBottom: 16, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11' }}>
+        {task && task.title && (
+          <h2 style={{ fontWeight: 700, textAlign: 'center', margin: '0 0 8px 0', fontSize: 28 }}>{task.title}</h2>
+        )}
+        <Nav tabs style={{ marginBottom: 0, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11' }}>
           <NavItem>
             <NavLink
               className={classnames({ active: activeTab === 'instructions' })}
@@ -305,7 +360,7 @@ const TaskDetail = ({ studentSubmissions }) => {
           </TabPane>
           <TabPane tabId="studentwork">
             {/* Summary Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 32, marginBottom: 18, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: '18px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 32, marginBottom: 24, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: '18px 24px' }}>
               <div style={{ fontWeight: 700, fontSize: 22 }}>{turnedIn}</div>
               <div style={{ color: '#888', fontWeight: 500, fontSize: 15, marginRight: 8 }}>Turned in</div>
               <div style={{ fontWeight: 700, fontSize: 22 }}>{assigned}</div>
@@ -345,73 +400,142 @@ const TaskDetail = ({ studentSubmissions }) => {
                     }}
                   />
                 </span>
+                {/* QR Grading Toggle */}
+                <span style={{ fontWeight: 500, fontSize: 15, marginLeft: 24 }}>
+                  {qrGradingMode ? 'QR Grading' : 'Manual Grading'}
+                </span>
+                <span
+                  onClick={() => setQrGradingMode(v => !v)}
+                  style={{
+                    display: 'inline-block',
+                    width: 44,
+                    height: 24,
+                    borderRadius: 16,
+                    background: qrGradingMode ? '#1976d2' : '#e0e0e0',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    verticalAlign: 'middle',
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={qrGradingMode}
+                >
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: qrGradingMode ? 22 : 2,
+                      top: 2,
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      boxShadow: '0 1px 4px #aaa',
+                      transition: 'left 0.2s',
+                      border: '1px solid #ccc',
+                    }}
+                  />
+                </span>
               </div>
             </div>
             {/* Main Panel */}
             <div style={{ display: 'flex', gap: 32, minHeight: 400 }}>
-              {/* Left: Student List */}
-              <div style={{ width: 320, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: 0, overflow: 'hidden', minHeight: 400 }}>
-                <div style={{ borderBottom: '1px solid #e9ecef', padding: '18px 18px 10px 18px', fontWeight: 700, fontSize: 16, color: '#324cdd', background: '#f8fafc' }}>All students</div>
-                <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                  {submissionsState.map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => setSelectedStudentId(s.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer', background: selectedStudent && selectedStudent.id === s.id ? '#e6f0ff' : '#fff', borderBottom: '1px solid #f3f3f3', transition: 'background 0.15s',
-                      }}
-                    >
-                      <img src={s.avatar} alt={s.studentName} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9ecef' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 15 }}>{s.studentName}</div>
-                        <div style={{ fontSize: 13, color: s.isDraft ? '#27ae60' : '#888', fontWeight: 500 }}>
-                          {s.isDraft ? 'Draft' : s.status}
-                        </div>
-                      </div>
-                      {s.score !== undefined && (
-                        <div style={{ fontWeight: 700, color: '#27ae60', fontSize: 16 }}>{s.score}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              {/* Left: Student Table */}
+              <div style={{ flex: 2, minWidth: 900, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: 0, overflow: 'hidden', minHeight: 400 }}>
+                <Table responsive hover style={{ background: '#fff', borderRadius: 8, fontSize: 15, margin: 0, minWidth: 900 }}>
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Score</th>
+                      <th>Attachment</th>
+                      <th>Feedback</th>
+                      <th>Date Graded</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSubmissions.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', color: '#bbb', fontSize: 16 }}>
+                          No students assigned to this task.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSubmissions.map((s) => (
+                        <tr
+                          key={s.id}
+                          onClick={!qrGradingMode ? () => setSelectedStudentId(s.id) : undefined}
+                          style={{
+                            background: !qrGradingMode && selectedStudentId === s.id ? '#e6f0ff' : undefined,
+                            cursor: !qrGradingMode ? 'pointer' : 'default',
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              <img src={s.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', marginRight: 8 }} />
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name || s.studentName}</div>
+                                <div style={{ fontSize: 13, color: '#888' }}>{s.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{s.score !== undefined ? `${s.score}/${task && task.points ? task.points : 100}` : `--/${task && task.points ? task.points : 100}`}</td>
+                          <td>
+                            {qrGradingMode
+                              ? (s.attachments && s.attachments.length > 0 ? s.attachments.map(a => a.name).join(', ') : '')
+                              : (s.file && s.file.name ? s.file.name : '')}
+                          </td>
+                          <td>{s.feedback || ''}</td>
+                          <td>{s.dateGraded || ''}</td>
+                          <td>{/* Actions can be added here if needed */}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
               </div>
               {/* Right: Submission Details */}
-              <div style={{ flex: 1, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: 32, minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                {selectedStudent ? (
-                  <>
-                    <img src={selectedStudent.avatar} alt={selectedStudent.studentName} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9ecef', marginBottom: 12 }} />
-                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6 }}>{selectedStudent.studentName}</div>
-                    <div style={{ color: '#888', fontWeight: 500, fontSize: 15, marginBottom: 12 }}>{selectedStudent.isDraft ? 'Draft' : selectedStudent.status}</div>
-                    {selectedStudent.score !== undefined && (
-                      <div style={{ fontWeight: 700, color: '#27ae60', fontSize: 18, marginBottom: 12 }}>Score: {selectedStudent.score}</div>
-                    )}
-                    {selectedStudent.file ? (
-                      <div style={{ marginTop: 12, marginBottom: 12, textAlign: 'center' }}>
-                        {selectedStudent.file.preview ? (
-                          <img
-                            src={selectedStudent.file.preview}
-                            alt="preview"
-                            style={{ width: 180, height: 120, objectFit: 'cover', borderRadius: 8, border: '1.5px solid #e9ecef', marginBottom: 8, cursor: 'pointer' }}
-                            onClick={() => handleOpenModal(selectedStudent.file, selectedStudent)}
-                          />
-                        ) : (
-                          <div
-                            style={{ color: '#1976d2', fontSize: 15, marginBottom: 8, textDecoration: 'underline', cursor: 'pointer', display: 'inline-block' }}
-                            onClick={() => handleOpenModal(selectedStudent.file, selectedStudent)}
-                          >
-                            {selectedStudent.file.name}
-                          </div>
-                        )}
-                        <div style={{ color: '#888', fontSize: 14 }}>{selectedStudent.file.name}</div>
-                      </div>
-                    ) : (
-                      <div style={{ color: '#bbb', fontSize: 16, marginTop: 24 }}>No file submitted</div>
-                    )}
-                  </>
-                ) : (
-                  <div style={{ color: '#bbb', fontSize: 18 }}>No student selected</div>
-                )}
-              </div>
+              {qrGradingMode ? (
+                <QRGradingPanel student={selectedStudent} onGradeSubmit={handleQRGradeSubmit} />
+              ) : (
+                <div style={{ width: 340, maxHeight: 600, overflowY: 'auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  {selectedStudent ? (
+                    <>
+                      <img src={selectedStudent.avatar} alt={selectedStudent.studentName} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9ecef', marginBottom: 12 }} />
+                      <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6 }}>{selectedStudent.studentName}</div>
+                      <div style={{ color: '#888', fontWeight: 500, fontSize: 15, marginBottom: 12 }}>{selectedStudent.isDraft ? 'Draft' : selectedStudent.status}</div>
+                      {selectedStudent.score !== undefined && (
+                        <div style={{ fontWeight: 700, color: '#27ae60', fontSize: 18, marginBottom: 12 }}>Score: {selectedStudent.score}</div>
+                      )}
+                      {selectedStudent.file ? (
+                        <div style={{ marginTop: 12, marginBottom: 12, textAlign: 'center' }}>
+                          {selectedStudent.file.preview ? (
+                            <img
+                              src={selectedStudent.file.preview}
+                              alt="preview"
+                              style={{ width: 180, height: 120, objectFit: 'cover', borderRadius: 8, border: '1.5px solid #e9ecef', marginBottom: 8, cursor: 'pointer' }}
+                              onClick={() => handleOpenModal(selectedStudent.file, selectedStudent)}
+                            />
+                          ) : (
+                            <div
+                              style={{ color: '#1976d2', fontSize: 15, marginBottom: 8, textDecoration: 'underline', cursor: 'pointer', display: 'inline-block' }}
+                              onClick={() => handleOpenModal(selectedStudent.file, selectedStudent)}
+                            >
+                              {selectedStudent.file.name}
+                            </div>
+                          )}
+                          <div style={{ color: '#888', fontSize: 14 }}>{selectedStudent.file.name}</div>
+                        </div>
+                      ) : (
+                        <div style={{ color: '#bbb', fontSize: 16, marginTop: 24 }}>No file submitted</div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ color: '#bbb', fontSize: 18 }}>No student selected</div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Modal for file preview */}
             <Modal isOpen={modalOpen} toggle={() => setModalOpen(false)} size="xl" centered style={{ maxWidth: '98vw', width: '98vw' }} contentClassName="p-0" backdropClassName="modal-backdrop-blur">

@@ -54,6 +54,7 @@
     "html5-qrcode": "^2.3.8",
     "jspdf": "^3.0.1",
     "jsqr": "^1.4.0",
+    "mammoth": "^1.9.1",
     "moment": "2.29.4",
     "nouislider": "15.4.0",
     "opencv.js": "^1.2.1",

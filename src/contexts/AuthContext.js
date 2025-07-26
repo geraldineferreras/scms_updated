@@ -41,6 +41,17 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // Listen for session timeout events
+  useEffect(() => {
+    const handleSessionTimeout = () => {
+      console.log('Session timeout detected, logging out user');
+      logout();
+    };
+
+    window.addEventListener('sessionTimeout', handleSessionTimeout);
+    return () => window.removeEventListener('sessionTimeout', handleSessionTimeout);
+  }, []);
+
   // Listen for localStorage changes (user switching)
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -56,29 +67,46 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await ApiService.login(email, password);
-      console.log('Login API response:', response); // Debugging line
 
       if (response && response.status) {
-        // Support both {token, user} and flat user+token
+        // Enhanced token extraction with better error handling
         let user, token;
-        if (response.data && response.data.user && response.data.token) {
-          user = response.data.user;
+        
+        // Check for token in various possible locations
+        if (response.data && response.data.token) {
           token = response.data.token;
-        } else if (response.data && response.data.token) {
-          // If user fields are at the top level of data
+          // Extract user data, excluding the token
           user = { ...response.data };
           delete user.token;
-          token = response.data.token;
+        } else if (response.token) {
+          token = response.token;
+          user = { ...response };
+          delete user.token;
+        } else if (response.data && response.data.user && response.data.user.token) {
+          token = response.data.user.token;
+          user = { ...response.data.user };
+          delete user.token;
         } else {
-          // fallback for flat structure
-          user = response.data;
-          token = response.data.token;
+          // If no token found, this is a critical error
+          console.error('No authentication token received from server');
+          return { success: false, message: 'Authentication failed: No token received' };
         }
+
+        // Validate token exists and is not empty
+        if (!token || token.trim() === '') {
+          console.error('Empty or invalid token received');
+          return { success: false, message: 'Authentication failed: Invalid token' };
+        }
+
+        // Store token and user data
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('scms_logged_in_user', JSON.stringify(user));
+        
+        // Update state
         setUser(user);
         setToken(token);
+        
         return { success: true, data: user };
       } else {
         return { success: false, message: response?.message || 'Login failed' };
@@ -127,7 +155,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAuthenticated = () => {
-    return !!user;
+    const storedToken = localStorage.getItem('token');
+    return !!user && !!storedToken;
+  };
+
+  const hasValidToken = () => {
+    const storedToken = localStorage.getItem('token');
+    return !!storedToken && storedToken.trim() !== '';
   };
 
   const hasRole = (role) => {
@@ -143,6 +177,7 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     refreshUserData,
     isAuthenticated,
+    hasValidToken,
     hasRole,
   };
 

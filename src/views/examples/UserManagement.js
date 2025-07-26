@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import ApiService from '../../services/api';
 // reactstrap components
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -68,14 +69,65 @@ const userManagementStyles = `
     border-radius: 16px;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
   }
+  /* Transparent Header Styles */
+  .header-section {
+    background: transparent;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: none;
+  }
+  .header-section h1 {
+    color: #32325d !important;
+    text-shadow: none;
+    font-weight: 700;
+  }
+  .header-section p {
+    color: #6c757d !important;
+  }
+  .header-section .badge {
+    background: #f7fafc !important;
+    color: #32325d !important;
+    border: 1px solid #e9ecef;
+    font-weight: 500;
+  }
+  .header-actions .btn {
+    background: #5e72e4 !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .header-actions .btn:hover {
+    background: #324cdd !important;
+    border: none !important;
+    color: #fff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  }
+  @media (max-width: 768px) {
+    .header-section {
+      padding: 1.5rem;
+    }
+    .header-section h1 {
+      font-size: 1.75rem;
+    }
+    .header-section .d-flex {
+      flex-direction: column;
+      text-align: center;
+    }
+    .header-actions {
+      margin-top: 1rem;
+    }
+  }
 `;
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("admin");
   const [entriesToShow, setEntriesToShow] = useState(10);
-  const [sortBy, setSortBy] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortBy, setSortBy] = useState("created_at"); // Default to 'Recently Added'
+  const [sortOrder, setSortOrder] = useState("desc"); // Default to most recent first
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isMobile, setIsMobile] = useState(false);
@@ -115,16 +167,19 @@ const UserManagement = () => {
           usersArr = data.data;
         }
         // Normalize user fields for consistent frontend usage
-        usersArr = usersArr.map(user => ({
-          ...user,
-          full_name: user.full_name || user.name || '',
-          program: user.program || (user.role === 'admin' ? 'Administration' : '') || user.department || '',
-          course_year_section: user.course_year_section || user.section || '',
-          last_login: user.last_login || user.lastLogin || '',
-          profile_pic: user.profile_pic || user.profileImageUrl || user.avatar || '',
-          cover_pic: user.cover_pic || user.coverPhotoUrl || '',
-          student_num: user.student_num || user.studentNumber || '',
-        }));
+        usersArr = usersArr.map(user => {
+          return {
+            ...user,
+            id: user.id || user.user_id || user.userId || '', // Add ID normalization
+            full_name: user.full_name || user.name || '',
+            program: user.program || (user.role === 'admin' ? 'Administration' : '') || user.department || '',
+            course_year_section: user.course_year_section || user.section || '',
+            last_login: user.last_login || user.lastLogin || '',
+            profile_pic: user.profile_pic || user.profileImageUrl || user.avatar || '',
+            cover_pic: user.cover_pic || user.coverPhotoUrl || '',
+            student_num: user.student_num || user.studentNumber || '',
+          };
+        });
         setUsers(usersArr);
         setLoading(false);
       })
@@ -147,7 +202,7 @@ const UserManagement = () => {
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     let aValue = a[sortBy];
     let bValue = b[sortBy];
-    if (sortBy === "last_login") {
+    if (sortBy === "last_login" || sortBy === "created_at") {
       aValue = new Date(aValue);
       bValue = new Date(bValue);
     }
@@ -165,69 +220,70 @@ const UserManagement = () => {
 
   const getStatusBadge = (status) => {
     return status === "active" ? (
-      <Badge color="success">Active</Badge>
+      <Badge color="success" className="badge-dot mr-4">
+        Active
+      </Badge>
     ) : (
-      <Badge color="secondary">Inactive</Badge>
-    );
-  };
-
-  const getRoleBadge = (role) => {
-    switch (role) {
-      case "admin":
-        return <Badge color="danger" className="badge-dot mr-2">Admin</Badge>;
-      case "teacher":
-        return <Badge color="warning" className="badge-dot mr-2">Teacher</Badge>;
-      case "student":
-        return <Badge color="info" className="badge-dot mr-2">Student</Badge>;
-      default:
-        return <Badge color="secondary" className="badge-dot mr-2">Unknown</Badge>;
-    }
-  };
-
-  const getRoleBadgeForBlock = (role) => {
-    return (
-      <Badge 
-        color="dark" 
-        className="badge-dot mr-2"
-        style={{
-          backgroundColor: '#172b4d',
-          color: '#fff',
-          padding: '0.25rem 0.5rem',
-          borderRadius: '0.375rem',
-          fontSize: '0.7rem',
-          fontWeight: '600'
-        }}
-      >
-        {role.charAt(0).toUpperCase() + role.slice(1)}
+      <Badge color="danger" className="badge-dot mr-4">
+        Inactive
       </Badge>
     );
   };
 
-  // Calculate pagination info
-  const getPaginationInfo = () => {
-    const totalItems = users.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const startItem = (currentPage - 1) * itemsPerPage + 1;
-    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-    
-    return { totalItems, totalPages, startItem, endItem };
+  const getRoleBadge = (role) => {
+    const roleColors = {
+      admin: "primary",
+      teacher: "info",
+      student: "warning"
+    };
+    const roleNames = {
+      admin: "Admin",
+      teacher: "Teacher",
+      student: "Student"
+    };
+    return (
+      <Badge color={roleColors[role] || "secondary"} className="badge-dot mr-4">
+        {roleNames[role] || role}
+      </Badge>
+    );
   };
 
-  // Handle page change
+  const getRoleBadgeForBlock = (role) => {
+    const roleColors = {
+      admin: "primary",
+      teacher: "info",
+      student: "warning"
+    };
+    const roleNames = {
+      admin: "Admin",
+      teacher: "Teacher",
+      student: "Student"
+    };
+    return (
+      <Badge color={roleColors[role] || "secondary"} className="badge-dot mr-4">
+        {roleNames[role] || role}
+      </Badge>
+    );
+  };
+
+  const getPaginationInfo = () => {
+    const start = startIndex + 1;
+    const end = Math.min(endIndex, sortedUsers.length);
+    return `Showing ${start} to ${end} of ${sortedUsers.length} entries`;
+  };
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
 
-  // Handle items per page change
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
   };
 
-  // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setCurrentPage(1); // Reset to first page when switching tabs
+    setCurrentPage(1);
   };
 
   const handleDeleteUser = (id, name) => {
@@ -241,504 +297,301 @@ const UserManagement = () => {
   };
 
   const confirmDeleteUser = async () => {
+    if (!deleteUserId) return;
+
     setIsDeleting(true);
-    
-    // Simulate loading time
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    let users = JSON.parse(localStorage.getItem('scms_users') || '[]');
-    users = users.filter(u => String(u.id) !== String(deleteUserId));
-    localStorage.setItem('scms_users', JSON.stringify(users));
-    
-    setIsDeleting(false);
-    setShowDeleteSuccess(true);
-    
-    // Hide success message after 3 seconds and close modal
-    setTimeout(() => {
-      setShowDeleteSuccess(false);
-      cancelDeleteUser();
-      // Restore tab and view mode after delete
-      const params = new URLSearchParams({ tab: activeTab, view: viewMode });
-      window.history.replaceState(null, '', `/admin/user-management?${params.toString()}`);
-    }, 3000);
+    try {
+      await ApiService.deleteUser(deleteUserId);
+      setShowDeleteSuccess(true);
+      
+      // Refresh the users list
+      const data = await ApiService.getUsersByRole(activeTab);
+      let usersArr = [];
+      if (Array.isArray(data)) {
+        usersArr = data;
+      } else if (Array.isArray(data.users)) {
+        usersArr = data.users;
+      } else if (Array.isArray(data.data)) {
+        usersArr = data.data;
+      }
+             usersArr = usersArr.map(user => ({
+         ...user,
+         id: user.id || user.user_id || user.userId || '', // Add ID normalization
+         full_name: user.full_name || user.name || '',
+         program: user.program || (user.role === 'admin' ? 'Administration' : '') || user.department || '',
+         course_year_section: user.course_year_section || user.section || '',
+         last_login: user.last_login || user.lastLogin || '',
+         profile_pic: user.profile_pic || user.profileImageUrl || user.avatar || '',
+         cover_pic: user.cover_pic || user.coverPhotoUrl || '',
+         student_num: user.student_num || user.studentNumber || '',
+       }));
+      setUsers(usersArr);
+      
+      setTimeout(() => {
+        setShowDeleteSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    } finally {
+      setIsDeleting(false);
+      setDeleteUserId(null);
+      setDeleteUserName("");
+    }
   };
 
-  // Generate random avatar for real people
   const getRandomAvatar = (userId) => {
-    if (userId === undefined || userId === null) return userDefault;
-    const avatarUrls = [
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop&crop=face"
-    ];
-    // Use userId to consistently get the same avatar for the same user
-    const idString = typeof userId === 'string' || typeof userId === 'number' ? userId.toString() : '0';
-    const index = Math.abs(idString.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % avatarUrls.length;
-    return avatarUrls[index];
+    // Generate a consistent avatar based on user ID
+    const colors = ['#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7', '#fa709a', '#fee140', '#a8edea', '#fed6e3'];
+    const color = colors[userId.toString().length % colors.length];
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(userId)}&background=${color.substring(1)}&color=fff&size=128&bold=true`;
   };
 
   const getAvatarForUser = (user) => {
-    if (!user) return userDefault;
-    // If user has a custom profile image, use it
-    if (user.profile_pic && user.profile_pic !== userDefault) {
+    if (user.profile_pic) {
+      // If it's a relative path, construct the full URL
+      if (user.profile_pic.startsWith('uploads/')) {
+        return `http://localhost/scms_new/${user.profile_pic}`;
+      }
       return user.profile_pic;
     }
-    // Assign random avatars to specific users based on role
-    if (user.role === 'admin') {
-      const adminUsers = [...users].filter(u => u.role === 'admin').sort((a, b) => a.id - b.id);
-      const adminIndex = adminUsers.findIndex(u => u.id === user.id);
-      if (adminIndex < 2) {
-        return getRandomAvatar(user.id);
+    return getRandomAvatar(user.id || user.full_name || 'User');
+  };
+
+  const getCoverPhotoForUser = (user) => {
+    if (user.cover_pic) {
+      // If it's a relative path, construct the full URL
+      if (user.cover_pic.startsWith('uploads/')) {
+        return `http://localhost/scms_new/${user.cover_pic}`;
       }
-    } else if (user.role === 'teacher') {
-      const teacherUsers = [...users].filter(u => u.role === 'teacher').sort((a, b) => a.id - b.id);
-      const teacherIndex = teacherUsers.findIndex(u => u.id === user.id);
-      if (teacherIndex < 9) {
-        return getRandomAvatar(user.id);
-      }
-    } else if (user.role === 'student') {
-      const studentUsers = [...users].filter(u => u.role === 'student').sort((a, b) => a.id - b.id);
-      const studentIndex = studentUsers.findIndex(u => u.id === user.id);
-      if (studentIndex < 15) {
-        return getRandomAvatar(user.id);
-      }
+      return user.cover_pic;
     }
-    // For all other users, use default avatar
-    return userDefault;
+    return defaultCoverPhotoSvg;
   };
 
   const handleUserRowClick = (user) => {
     setSelectedUser(user);
     setShowUserModal(true);
   };
+
   const closeUserModal = () => {
     setShowUserModal(false);
     setSelectedUser(null);
-    // Update URL to preserve tab and view
-    const params = new URLSearchParams({ tab: activeTab, view: viewMode });
-    window.history.replaceState(null, '', `/admin/user-management?${params.toString()}`);
+  };
+
+  // Edit user navigation
+  const handleEditUser = (user) => {
+    // Navigate to EditUser page with user ID and role
+    navigate(`/admin/edit-user/${user.id}?role=${user.role}`);
   };
 
   // Helper to abbreviate course names
   const getCourseAbbreviation = (course) => {
     if (!course) return '';
-    const map = {
+    const abbreviations = {
       'Bachelor of Science in Information Technology': 'BSIT',
       'Bachelor of Science in Information Systems': 'BSIS',
       'Bachelor of Science in Computer Science': 'BSCS',
       'Associate in Computer Technology': 'ACT',
-      // Add more mappings as needed
+      'Information Technology': 'IT',
+      'Computer Science': 'CS'
     };
-    return map[course] || course;
+    return abbreviations[course] || course;
   };
 
   const getColumnHeader = () => {
-    if (activeTab === 'student') return 'COURSE/YEAR/SECTION';
-    return 'PROGRAM';
+    return activeTab === "student" ? "Course/Year/Section" : "Program";
   };
 
   const renderUserTable = (users, title, color) => {
-    if (users.length === 0) return null;
-    
-    const { totalItems, totalPages, startItem, endItem } = getPaginationInfo();
-    
     return (
-      <div className="mb-4">
-        <h3 className="text-dark mb-3 pl-4">{title} ({users.length})</h3>
-        <Table className="align-items-center table-flush" responsive>
-          <thead className="thead-light">
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">{getColumnHeader()}</th>
-              <th scope="col">Status</th>
-              <th scope="col">Last Login</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedUsers.map((user) => {
-              let courseYearSection = user.course_year_section;
-              if (user.role === 'student') {
-                const course = getCourseAbbreviation(user.program);
-                const year = user.year ? user.year : '';
-                const section = user.course_year_section ? user.course_year_section.split(' ')[1] : '';
-                courseYearSection = [course, year, section].filter(Boolean).join(' ').replace(/  +/g, ' ');
-              }
-              return (
-                <tr key={user.id} style={{ cursor: 'pointer' }} onClick={e => {
-                  if (e.target.closest('button')) return;
-                  handleUserRowClick(user);
-                }}>
-                  <td>
-                    <div className="d-flex align-items-center">
-                      <div
-                        className="avatar avatar-sm rounded-circle bg-gradient-primary mr-3"
-                        style={{
-                          width: 40,
-                          height: 40,
-                          overflow: 'hidden',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: getAvatarForUser(user) !== userDefault ? 'transparent' : '#f8f9fa',
-                          border: getAvatarForUser(user) !== userDefault ? undefined : '1px solid #e9ecef'
-                        }}
-                      >
-                        <img 
-                          src={getAvatarForUser(user)} 
-                          alt={user.full_name} 
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover',
-                            backgroundColor: getAvatarForUser(user) === userDefault ? '#fff' : 'transparent'
-                          }} 
-                        />
-                      </div>
-                      <div>
-                        <span className="font-weight-bold">{user.full_name}</span>
-                        {user.role === 'student' && (<><br /><small className="text-muted">ID: {user.student_num}</small></>)}
-                      </div>
-                    </div>
-                  </td>
-                  <td>{user.email}</td>
-                  <td style={{ textAlign: 'center' }}>{user.role === 'student' ? courseYearSection : user.program}</td>
-                  <td>{getStatusBadge(user.status)}</td>
-                  <td>{user.last_login}</td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <Button
-                      color="primary"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => navigate(`/admin/edit-user/${user.id}?tab=${activeTab}&view=${viewMode}`)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      color="danger"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user.id, user.full_name)}
-                      disabled={!getAvatarForUser(user) && !users.find(u => String(u.id) === String(user.id))}
-                    >
-                      Delete
-                    </Button>
-                  </td>
+      <Card className="shadow">
+        <CardBody className="px-0 py-0">
+          <div className="table-responsive">
+            <Table className="table align-items-center table-flush" responsive>
+              <thead className="thead-light">
+                <tr>
+                  <th scope="col">User</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">{getColumnHeader()}</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Last Login</th>
+                  <th scope="col">Actions</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </Table>
-        
-        {/* Pagination */}
-        <div className="d-flex flex-row justify-content-between align-items-center w-100 mt-3 px-4">
-          <div className="d-flex flex-row align-items-center">
-            <span className="mr-2 text-muted small">Show</span>
-            <Input
-              type="select"
-              value={itemsPerPage}
-              onChange={e => handleItemsPerPageChange(parseInt(e.target.value))}
-              style={{ width: '80px', fontSize: '0.95rem', marginRight: '8px' }}
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </Input>
-            <span className="text-muted small" style={{ whiteSpace: 'nowrap' }}>
-              of {totalItems} entries
-            </span>
+              </thead>
+              <tbody>
+                {users.map((user, index) => (
+                  <tr key={user.id || index} style={{ cursor: 'pointer' }} onClick={() => handleUserRowClick(user)}>
+                    <th scope="row">
+                      <div className="media align-items-center">
+                        <div className="avatar-group">
+                          <a
+                            className="avatar avatar-sm rounded-circle"
+                            href="#pablo"
+                            onClick={(e) => e.preventDefault()}
+                          >
+                            <img
+                              alt="..."
+                              src={getAvatarForUser(user)}
+                              onError={(e) => {
+                                e.target.src = userDefault;
+                              }}
+                            />
+                          </a>
+                        </div>
+                        <div className="media-body ml-4">
+                          <span className="mb-0 text-sm font-weight-bold">
+                            {user.full_name}
+                          </span>
+                        </div>
+                      </div>
+                    </th>
+                    <td>{getRoleBadge(user.role)}</td>
+                    <td>
+                      <div className="d-flex align-items-center">
+                        <span className="mr-2">{user.email}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center">
+                        <span className="mr-2">
+                          {activeTab === "student" 
+                            ? `${getCourseAbbreviation(user.program)} - ${user.course_year_section || 'N/A'}`
+                            : user.program || 'N/A'
+                          }
+                        </span>
+                      </div>
+                    </td>
+                    <td>{getStatusBadge(user.status)}</td>
+                    <td>
+                      <div className="d-flex align-items-center">
+                        <span className="mr-2">
+                          {user.last_login 
+                            ? new Date(user.last_login).toLocaleDateString()
+                            : 'Never'
+                          }
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center">
+                        <Button
+                          color="info"
+                          size="sm"
+                          className="mr-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditUser(user);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          color="danger"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(user.id, user.full_name);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
           </div>
-          <Pagination size="sm" className="mb-0 justify-content-center">
-            <PaginationItem disabled={currentPage === 1}>
-              <PaginationLink
-                previous
-                onClick={() => handlePageChange(currentPage - 1)}
-                style={{ cursor: currentPage === 1 ? 'default' : 'pointer' }}
-              />
-            </PaginationItem>
-            
-            {/* Mobile-friendly page numbers - show fewer elements on small screens */}
-            {currentPage > 2 && !isMobile && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(1)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  1
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage > 3 && !isMobile && (
-              <PaginationItem disabled>
-                <PaginationLink style={{ textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}>...</PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage > 1 && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  {currentPage - 1}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            <PaginationItem active>
-              <PaginationLink style={{ textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}>
-                {currentPage}
-              </PaginationLink>
-            </PaginationItem>
-            
-            {currentPage < totalPages && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  {currentPage + 1}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage < totalPages - 2 && !isMobile && (
-              <PaginationItem disabled>
-                <PaginationLink style={{ textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}>...</PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage < totalPages - 1 && !isMobile && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(totalPages)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  {totalPages}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            <PaginationItem disabled={currentPage === totalPages}>
-              <PaginationLink
-                next
-                onClick={() => handlePageChange(currentPage + 1)}
-                style={{ cursor: currentPage === totalPages ? 'default' : 'pointer' }}
-              />
-            </PaginationItem>
-          </Pagination>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
     );
   };
 
   const renderUserBlocks = (users, title, color) => {
-    if (users.length === 0) return null;
-    
-    const { totalItems, totalPages, startItem, endItem } = getPaginationInfo();
-    
     return (
-      <div className="mb-4">
-        <h3 className="text-dark mb-3 pl-4">{title} ({users.length})</h3>
-        <Row>
-          {paginatedUsers.map((user) => (
-            <Col key={user.id} lg="4" md="6" sm="12" className="mb-3">
-              <Card className="shadow-sm position-relative">
-                <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 2 }} onClick={e => e.stopPropagation()}>
+      <div className="row">
+        {users.map((user, index) => (
+          <div key={user.id || index} className="col-lg-4 col-md-6 mb-4">
+            <Card className="shadow-sm h-100" style={{ cursor: 'pointer' }} onClick={() => handleUserRowClick(user)}>
+              <div className="position-relative">
+                <img
+                  src={getCoverPhotoForUser(user)}
+                  className="card-img-top"
+                  alt="Cover"
+                  style={{ height: '120px', objectFit: 'cover' }}
+                />
+                <div className="position-absolute" style={{ top: '80px', left: '20px' }}>
+                  <img
+                    src={getAvatarForUser(user)}
+                    className="rounded-circle border border-3 border-white"
+                    alt="Profile"
+                    style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.target.src = userDefault;
+                    }}
+                  />
+                </div>
+              </div>
+              <CardBody className="pt-5">
+                <h6 className="card-title mb-1">{user.full_name}</h6>
+                <p className="text-muted small mb-2">{user.email}</p>
+                <div className="mb-2">
+                  {getRoleBadgeForBlock(user.role)}
+                  {getStatusBadge(user.status)}
+                </div>
+                <p className="text-muted small mb-3">
+                  {activeTab === "student" 
+                    ? `${getCourseAbbreviation(user.program)} - ${user.course_year_section || 'N/A'}`
+                    : user.program || 'N/A'
+                  }
+                </p>
+                <div className="d-flex justify-content-between align-items-center">
+                  <small className="text-muted">
+                    Last login: {user.last_login 
+                      ? new Date(user.last_login).toLocaleDateString()
+                      : 'Never'
+                    }
+                  </small>
                   <UncontrolledDropdown>
                     <DropdownToggle
-                      color="link"
+                      className="btn-icon-only text-light"
+                      href="#pablo"
+                      role="button"
                       size="sm"
-                      className="text-muted p-0 user-block-menu-toggle"
-                      style={{ border: 'none', background: 'transparent', fontSize: '1.15rem', lineHeight: 1, borderRadius: '50%', transition: 'background 0.15s' }}
-                      aria-label="Actions"
+                      color=""
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <i className="fa fa-ellipsis-h" />
+                      <i className="fas fa-ellipsis-v" />
                     </DropdownToggle>
                     <DropdownMenu right>
                       <DropdownItem
-                        onClick={() => navigate(`/admin/edit-user/${user.id}?tab=${activeTab}&view=${viewMode}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditUser(user);
+                        }}
                         className="d-flex align-items-center"
                       >
-                        <i className="ni ni-settings-gear-65 mr-2"></i>
-                        Edit User
+                        <i className="fas fa-edit mr-2" />
+                        Edit
                       </DropdownItem>
                       <DropdownItem
-                        onClick={() => handleDeleteUser(user.id, user.full_name)}
-                        disabled={!getAvatarForUser(user) && !users.find(u => String(u.id) === String(user.id))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteUser(user.id, user.full_name);
+                        }}
                         className="d-flex align-items-center text-danger"
                       >
-                        <i className="fa fa-trash mr-2"></i>
-                        Delete User
+                        <i className="fas fa-trash mr-2" />
+                        Delete
                       </DropdownItem>
                     </DropdownMenu>
                   </UncontrolledDropdown>
                 </div>
-                <CardBody className="p-3" style={{ cursor: 'pointer' }} onClick={() => handleUserRowClick(user)}>
-                  <div className="d-flex align-items-center mb-3">
-                    <div
-                      className="avatar avatar-sm rounded-circle bg-gradient-primary mr-3"
-                      style={{
-                        width: 50,
-                        height: 50,
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: getAvatarForUser(user) !== userDefault ? 'transparent' : '#f8f9fa',
-                        border: getAvatarForUser(user) !== userDefault ? undefined : '1px solid #e9ecef'
-                      }}
-                    >
-                      <img 
-                        src={getAvatarForUser(user)} 
-                        alt={user.full_name} 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover',
-                          backgroundColor: getAvatarForUser(user) === userDefault ? '#fff' : 'transparent'
-                        }} 
-                      />
-                    </div>
-                    <div className="flex-grow-1">
-                      <h6 className="mb-0 font-weight-bold">{user.full_name}</h6>
-                      {user.role === 'student' && (<><br /><small className="text-muted">ID: {user.student_num}</small></>)}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <small className="text-muted d-block">
-                      <i className="ni ni-email-83 mr-1"></i>
-                      {user.email}
-                    </small>
-                    <small className="text-muted d-block">
-                      <i className="ni ni-badge mr-1"></i>
-                      {user.program || 'N/A'}
-                    </small>
-                    <small className="text-muted d-block">
-                      <i className="ni ni-calendar-grid-58 mr-1"></i>
-                      Last Login: {user.last_login}
-                    </small>
-                  </div>
-                  
-                  <div className="d-flex align-items-center">
-                    {getStatusBadge(user.status)}
-                  </div>
-                </CardBody>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-        
-        {/* Pagination */}
-        <div className="d-flex flex-row justify-content-between align-items-center w-100 mt-3 px-4">
-          <div className="d-flex flex-row align-items-center">
-            <span className="mr-2 text-muted small">Show</span>
-            <Input
-              type="select"
-              value={itemsPerPage}
-              onChange={e => handleItemsPerPageChange(parseInt(e.target.value))}
-              style={{ width: '80px', fontSize: '0.95rem', marginRight: '8px' }}
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </Input>
-            <span className="text-muted small" style={{ whiteSpace: 'nowrap' }}>
-              of {totalItems} entries
-            </span>
+              </CardBody>
+            </Card>
           </div>
-          <Pagination size="sm" className="mb-0 justify-content-center">
-            <PaginationItem disabled={currentPage === 1}>
-              <PaginationLink
-                previous
-                onClick={() => handlePageChange(currentPage - 1)}
-                style={{ cursor: currentPage === 1 ? 'default' : 'pointer' }}
-              />
-            </PaginationItem>
-            
-            {/* Mobile-friendly page numbers - show fewer elements on small screens */}
-            {currentPage > 2 && !isMobile && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(1)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  1
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage > 3 && !isMobile && (
-              <PaginationItem disabled>
-                <PaginationLink style={{ textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}>...</PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage > 1 && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  {currentPage - 1}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            <PaginationItem active>
-              <PaginationLink style={{ textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}>
-                {currentPage}
-              </PaginationLink>
-            </PaginationItem>
-            
-            {currentPage < totalPages && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  {currentPage + 1}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage < totalPages - 2 && !isMobile && (
-              <PaginationItem disabled>
-                <PaginationLink style={{ textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}>...</PaginationLink>
-              </PaginationItem>
-            )}
-            
-            {currentPage < totalPages - 1 && !isMobile && (
-              <PaginationItem>
-                <PaginationLink
-                  onClick={() => handlePageChange(totalPages)}
-                  style={{ cursor: 'pointer', textAlign: 'center', minWidth: '28px', fontSize: '0.875rem' }}
-                >
-                  {totalPages}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-            
-            <PaginationItem disabled={currentPage === totalPages}>
-              <PaginationLink
-                next
-                onClick={() => handlePageChange(currentPage + 1)}
-                style={{ cursor: currentPage === totalPages ? 'default' : 'pointer' }}
-              />
-            </PaginationItem>
-          </Pagination>
-        </div>
+        ))}
       </div>
     );
   };
@@ -746,270 +599,375 @@ const UserManagement = () => {
   return (
     <>
       <style>{userManagementStyles}</style>
-      <Header compact={false} showStats={false} customClass="pb-8 pt-8" />
-      {/* Header Background */}
-      <div className="header pb-6 pt-4 pt-md-7"></div>
-      <Container className="section-content-container" fluid>
-        {/* Table */}
-        <Row>
-          <div className="col">
-            <Card className="shadow section-content-card">
-              {/* Tabs and Add User Button Row */}
-              <Row className="mb-4 align-items-center">
-                <Col xs="12">
-                  <Nav tabs>
-                    <NavItem>
-                      <NavLink
-                        className={classnames({ active: activeTab === "admin" })}
-                        onClick={() => handleTabChange("admin")}
-                        style={{ 
-                          cursor: "pointer",
-                          borderBottom: activeTab === "admin" ? "3px solid #5e72e4" : "none"
-                        }}
-                      >
-                        Admins
-                      </NavLink>
-                    </NavItem>
-                    <NavItem>
-                      <NavLink
-                        className={classnames({ active: activeTab === "teacher" })}
-                        onClick={() => handleTabChange("teacher")}
-                        style={{ 
-                          cursor: "pointer",
-                          borderBottom: activeTab === "teacher" ? "3px solid #5e72e4" : "none"
-                        }}
-                      >
-                        Teachers
-                      </NavLink>
-                    </NavItem>
-                    <NavItem>
-                      <NavLink
-                        className={classnames({ active: activeTab === "student" })}
-                        onClick={() => handleTabChange("student")}
-                        style={{ 
-                          cursor: "pointer",
-                          borderBottom: activeTab === "student" ? "3px solid #5e72e4" : "none"
-                        }}
-                      >
-                        Students
-                      </NavLink>
-                    </NavItem>
-                  </Nav>
-                </Col>
-              </Row>
+      <Header />
+      
+      {/* Page content */}
+      <Container className="mt--7" fluid>
+        <div className="section-content-container">
+          {/* Enhanced Header Section */}
+          <div className="header-section mb-4">
+            <div className="d-flex justify-content-between align-items-center">
+              <div className="header-content">
+                <h1 className="display-4 font-weight-bold text-primary mb-2">
+                  <i className="fas fa-users mr-3"></i>
+                  User Management
+                </h1>
+                <p className="text-muted mb-0 fs-5">
+                  Manage administrators, teachers, and students across the system
+                </p>
+                <div className="mt-3">
+                  <Badge color="info" className="mr-2">
+                    <i className="fas fa-users mr-1"></i>
+                    Total: {users.length} users
+                  </Badge>
+                  <Badge color="success" className="mr-2">
+                    <i className="fas fa-check-circle mr-1"></i>
+                    Active: {users.filter(u => u.status === 'active').length}
+                  </Badge>
+                  <Badge color="warning">
+                    <i className="fas fa-clock mr-1"></i>
+                    Inactive: {users.filter(u => u.status === 'inactive').length}
+                  </Badge>
+                </div>
+              </div>
+              <div className="header-actions">
+                <Button
+                  color="primary"
+                  size="lg"
+                  onClick={() => navigate('/admin/create-user')}
+                  className="btn-icon"
+                >
+                  <i className="fas fa-plus" />
+                  <span className="ml-2">Add New User</span>
+                </Button>
+              </div>
+            </div>
+          </div>
 
-              {/* View Mode Tabs */}
-              <Row className="mb-3">
-                <Col xs="12">
-                  <div className="d-flex justify-content-end">
-                    <div className="btn-group" role="group" style={{ marginRight: '1rem' }}>
-                      <Button
-                        color={viewMode === "table" ? "primary" : "secondary"}
-                        outline={viewMode !== "table"}
-                        size="sm"
-                        onClick={() => setViewMode("table")}
-                        className="mr-1"
-                      >
-                        <i className="ni ni-chart-bar-32 mr-1"></i>
-                        Table View
-                      </Button>
-                      <Button
-                        color={viewMode === "block" ? "primary" : "secondary"}
-                        outline={viewMode !== "block"}
-                        size="sm"
-                        onClick={() => setViewMode("block")}
-                      >
-                        <i className="ni ni-app mr-1"></i>
-                        Block View
-                      </Button>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
+          <Card className="section-content-card">
+            <CardBody className="px-lg-5 py-lg-5">
 
-              {/* Search and Show Entries Row */}
+              {/* Search and Filters */}
               <Row className="mb-4">
-                <Col md="4" className="pl-4">
-                  <InputGroup>
+                <Col lg="6">
+                  <InputGroup className="input-group-alternative">
                     <InputGroupAddon addonType="prepend">
                       <InputGroupText>
-                        <i className="ni ni-zoom-split-in" />
+                        <i className="fas fa-search" />
                       </InputGroupText>
                     </InputGroupAddon>
                     <Input
                       placeholder="Search users..."
+                      type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </InputGroup>
                 </Col>
-                <Col md="2">
+                <Col lg="3">
                   <Input
                     type="select"
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={e => {
-                      const [field, order] = e.target.value.split('-');
-                      setSortBy(field);
-                      setSortOrder(order);
-                    }}
-                    className="text-dark"
-                    style={{ width: '200px', minWidth: '150px' }}
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
                   >
-                    <option value="full_name-asc">Name A to Z</option>
-                    <option value="full_name-desc">Name Z to A</option>
-                    <option value="email-asc">Email A to Z</option>
-                    <option value="email-desc">Email Z to A</option>
-                    <option value="program-asc">Department A to Z</option>
-                    <option value="program-desc">Department Z to A</option>
-                    <option value="status-asc">Status A to Z</option>
-                    <option value="status-desc">Status Z to A</option>
-                    <option value="last_login-desc">Last Login (Newest First)</option>
-                    <option value="last_login-asc">Last Login (Oldest First)</option>
+                    <option value="created_at">Recently Added</option>
+                    <option value="full_name">Name</option>
+                    <option value="email">Email</option>
+                    <option value="last_login">Last Login</option>
                   </Input>
                 </Col>
-                <Col md="6" className="text-right pr-4">
-                  <Button color="info" outline className="mr-2">
-                    <i className="ni ni-chart-bar-32 mr-2"></i>
-                    Export
-                  </Button>
-                  <Button color="primary" onClick={() => navigate(`/admin/create-user?tab=${activeTab}&view=${viewMode}`)}>
-                    <i className="ni ni-fat-add mr-2"></i>
-                    Add New User
-                  </Button>
+                <Col lg="3">
+                  <Input
+                    type="select"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                  >
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                  </Input>
                 </Col>
               </Row>
 
-              {/* Tabbed User Tables */}
-              <TabContent activeTab={activeTab}>
-                <TabPane tabId="admin">
-                  {viewMode === "table" ? renderUserTable(users, "Administrators", "danger") : renderUserBlocks(users, "Administrators", "danger")}
-                </TabPane>
-                <TabPane tabId="teacher">
-                  {viewMode === "table" ? renderUserTable(users, "Teachers", "warning") : renderUserBlocks(users, "Teachers", "warning")}
-                </TabPane>
-                <TabPane tabId="student">
-                  {viewMode === "table" ? renderUserTable(users, "Students", "info") : renderUserBlocks(users, "Students", "info")}
+              {/* View Mode Toggle */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <Button
+                    color={viewMode === "table" ? "primary" : "secondary"}
+                    size="sm"
+                    className="mr-2"
+                    onClick={() => setViewMode("table")}
+                  >
+                    <i className="fas fa-table mr-1" />
+                    Table
+                  </Button>
+                  <Button
+                    color={viewMode === "blocks" ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => setViewMode("blocks")}
+                  >
+                    <i className="fas fa-th-large mr-1" />
+                    Cards
+                  </Button>
+                </div>
+                <div className="text-muted small">
+                  {getPaginationInfo()}
+                </div>
+              </div>
+
+              {/* Role Tabs */}
+              <Nav tabs className="nav-fill flex-column flex-md-row">
+                <NavItem>
+                  <NavLink
+                    className={classnames("py-2 px-3", {
+                      active: activeTab === "admin"
+                    })}
+                    onClick={() => handleTabChange("admin")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <i className="fas fa-user-shield mr-2" />
+                    Admins
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={classnames("py-2 px-3", {
+                      active: activeTab === "teacher"
+                    })}
+                    onClick={() => handleTabChange("teacher")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <i className="fas fa-chalkboard-teacher mr-2" />
+                    Teachers
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={classnames("py-2 px-3", {
+                      active: activeTab === "student"
+                    })}
+                    onClick={() => handleTabChange("student")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <i className="fas fa-user-graduate mr-2" />
+                    Students
+                  </NavLink>
+                </NavItem>
+              </Nav>
+
+              {/* Content */}
+              <TabContent activeTab={activeTab} className="mt-4">
+                <TabPane tabId={activeTab}>
+                  {loading ? (
+                    <div className="text-center py-5">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="sr-only">Loading...</span>
+                      </div>
+                      <p className="mt-2 text-muted">Loading users...</p>
+                    </div>
+                  ) : error ? (
+                    <Alert color="danger">
+                      <i className="fas fa-exclamation-triangle mr-2" />
+                      {error}
+                    </Alert>
+                  ) : paginatedUsers.length === 0 ? (
+                    <div className="text-center py-5">
+                      <i className="fas fa-users fa-3x text-muted mb-3" />
+                      <h5 className="text-muted">No users found</h5>
+                      <p className="text-muted">Try adjusting your search or filters</p>
+                    </div>
+                  ) : (
+                    <>
+                      {viewMode === "table" 
+                        ? renderUserTable(paginatedUsers, `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}s`, "primary")
+                        : renderUserBlocks(paginatedUsers, `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}s`, "primary")
+                      }
+                      
+                      {/* Pagination */}
+                      {sortedUsers.length > itemsPerPage && (
+                        <div className="d-flex justify-content-center mt-4">
+                          <Pagination>
+                            <PaginationItem disabled={currentPage === 1}>
+                              <PaginationLink
+                                first
+                                href="#pablo"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(1);
+                                }}
+                              />
+                            </PaginationItem>
+                            <PaginationItem disabled={currentPage === 1}>
+                              <PaginationLink
+                                href="#pablo"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(currentPage - 1);
+                                }}
+                              >
+                                <i className="fa fa-angle-left" />
+                                <span className="sr-only">Previous</span>
+                              </PaginationLink>
+                            </PaginationItem>
+                            
+                            {Array.from({ length: Math.ceil(sortedUsers.length / itemsPerPage) }, (_, i) => i + 1)
+                              .filter(page => page === 1 || page === Math.ceil(sortedUsers.length / itemsPerPage) || 
+                                (page >= currentPage - 2 && page <= currentPage + 2))
+                              .map((page, index, array) => (
+                                <React.Fragment key={page}>
+                                  {index > 0 && array[index - 1] !== page - 1 && (
+                                    <PaginationItem disabled>
+                                      <PaginationLink href="#pablo">...</PaginationLink>
+                                    </PaginationItem>
+                                  )}
+                                  <PaginationItem active={page === currentPage}>
+                                    <PaginationLink
+                                      href="#pablo"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        handlePageChange(page);
+                                      }}
+                                    >
+                                      {page}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                </React.Fragment>
+                              ))}
+                            
+                            <PaginationItem disabled={currentPage === Math.ceil(sortedUsers.length / itemsPerPage)}>
+                              <PaginationLink
+                                href="#pablo"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(currentPage + 1);
+                                }}
+                              >
+                                <i className="fa fa-angle-right" />
+                                <span className="sr-only">Next</span>
+                              </PaginationLink>
+                            </PaginationItem>
+                            <PaginationItem disabled={currentPage === Math.ceil(sortedUsers.length / itemsPerPage)}>
+                              <PaginationLink
+                                last
+                                href="#pablo"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handlePageChange(Math.ceil(sortedUsers.length / itemsPerPage));
+                                }}
+                              />
+                            </PaginationItem>
+                          </Pagination>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </TabPane>
               </TabContent>
-            </Card>
-          </div>
-        </Row>
+            </CardBody>
+          </Card>
+        </div>
       </Container>
-      <Modal isOpen={!!deleteUserId} toggle={cancelDeleteUser} centered backdrop>
-        <ModalBody className="text-center">
-          {!isDeleting && !showDeleteSuccess ? (
-            <>
-              <div className="mb-3">
-                <div className="bg-danger rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '4rem', height: '4rem' }}>
-                  <i className="fa fa-trash text-white" style={{ fontSize: '2rem' }}></i>
-                </div>
-              </div>
-              <h5>Are you sure you want to delete <span className="text-danger">{deleteUserName}</span>?</h5>
-              <div className="mt-4 d-flex justify-content-center">
-                <Button color="secondary" onClick={cancelDeleteUser} className="mr-2">Cancel</Button>
-                <Button color="danger" onClick={confirmDeleteUser}>Delete</Button>
-              </div>
-            </>
-          ) : isDeleting ? (
-            <>
-              <div className="mb-3">
-                <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
-                  <span className="sr-only">Loading...</span>
-                </div>
-              </div>
-              <h5>Deleting User...</h5>
-              <p className="text-muted mb-0">Please wait while we process your request.</p>
-            </>
-          ) : (
-            <>
-              <div className="mb-3">
-                <div className="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '4rem', height: '4rem' }}>
-                  <i className="ni ni-check-bold text-white" style={{ fontSize: '2rem' }}></i>
-                </div>
-              </div>
-              <h5>User <span className="text-success">{deleteUserName}</span> has been deleted successfully!</h5>
-            </>
-          )}
-        </ModalBody>
-      </Modal>
-      <Modal isOpen={showUserModal} toggle={closeUserModal} centered size="md" className="user-details-modal">
-        <ModalHeader className="pb-0">
-          <button className="modal-close-btn" onClick={closeUserModal}>
-            <i className="ni ni-fat-remove" />
-          </button>
+
+      {/* User Detail Modal */}
+      <Modal isOpen={showUserModal} toggle={closeUserModal} size="lg" centered>
+        <ModalHeader toggle={closeUserModal}>
+          <h4 className="mb-0">User Details</h4>
         </ModalHeader>
-        <ModalBody className="p-0">
+        <ModalBody className="text-center">
           {selectedUser && (
             <div>
-              <div className="cover-photo-container mb-4">
-                <div className={`cover-photo-img-wrapper has-image`}>
+              <div className="position-relative mb-4">
+                <img
+                  src={getCoverPhotoForUser(selectedUser)}
+                  alt="Cover"
+                  className="img-fluid rounded"
+                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                />
+                <div className="position-absolute" style={{ top: '150px', left: '50%', transform: 'translateX(-50%)' }}>
                   <img
-                    alt="Cover Preview"
-                    src={selectedUser.cover_pic || defaultCoverPhotoSvg}
-                    className="cover-photo-img"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setPreviewImage({ src: selectedUser.cover_pic || defaultCoverPhotoSvg, type: 'cover' })}
-                  />
-                  <div className="cover-photo-fade" />
-                </div>
-                <div className="avatar-container has-image">
-                  <img
-                    alt="Profile Preview"
-                    className="avatar-img"
-                    src={selectedUser.profile_pic || require('./../../assets/img/theme/user-default.svg')}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setPreviewImage({ src: selectedUser.profile_pic || require('./../../assets/img/theme/user-default.svg'), type: 'avatar' })}
+                    src={getAvatarForUser(selectedUser)}
+                    alt="Profile"
+                    className="rounded-circle border border-4 border-white"
+                    style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.target.src = userDefault;
+                    }}
                   />
                 </div>
               </div>
-              <div className="mx-auto px-4 pb-4" style={{ maxWidth: 480, marginTop: 0 }}>
-                <div className="text-center mb-2" style={{ marginTop: 60, paddingTop: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 24, color: '#222', marginBottom: 2 }}>{selectedUser.full_name}</div>
-                  <div className="d-flex justify-content-center align-items-center mb-1">
-                    {getRoleBadgeForBlock(selectedUser.role)}
-                  </div>
-                  <div style={{ fontSize: 15, color: '#4fd165', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#4fd165', marginRight: 6 }}></span>
-                    Online
-                  </div>
+              
+              <h3 className="mb-2">{selectedUser.full_name}</h3>
+              <p className="text-muted mb-3">{selectedUser.email}</p>
+              
+              <div className="row text-left">
+                <div className="col-md-6">
+                  <p><strong>Role:</strong> {getRoleBadge(selectedUser.role)}</p>
+                  <p><strong>Status:</strong> {getStatusBadge(selectedUser.status)}</p>
+                  <p><strong>Program:</strong> {selectedUser.program || 'N/A'}</p>
                 </div>
-                <div className="bg-white shadow rounded-lg p-4 mb-3" style={{ border: '1px solid #f0f1f6', boxShadow: '0 2px 16px 0 rgba(44,62,80,.08)' }}>
-                  <div className="mb-3 font-weight-bold" style={{ color: '#222', fontSize: '1.1rem', letterSpacing: '0.01em' }}><i className="ni ni-single-02 mr-2" />Account Info</div>
-                  <div className="row account-info-row">
-                    <div className="col-12 col-md-6 mb-3">
-                      <span className="text-muted small"><i className="ni ni-email-83 mr-1" />Email</span>
-                      <div className="font-weight-bold account-info-value" id={`email-${selectedUser.id}`}>
-                        {selectedUser.email}
-                      </div>
-                      <UncontrolledTooltip placement="top" target={`email-${selectedUser.id}`}>
-                        {selectedUser.email}
-                      </UncontrolledTooltip>
-                    </div>
-                    <div className="col-12 col-md-6 mb-3">
-                      <span className="text-muted small"><i className="ni ni-badge mr-1" />{selectedUser.role === 'student' ? 'Course' : 'Department'}</span>
-                      <div className="font-weight-bold account-info-value" id={`course-${selectedUser.id}`}>
-                        {selectedUser.role === 'student' ? getCourseAbbreviation(selectedUser.program) : (selectedUser.program || 'N/A')}
-                      </div>
-                      <UncontrolledTooltip placement="top" target={`course-${selectedUser.id}`}>
-                        {selectedUser.role === 'student' ? getCourseAbbreviation(selectedUser.program) : (selectedUser.program || 'N/A')}
-                      </UncontrolledTooltip>
-                    </div>
-                    <div className="col-12 col-md-6 mb-3">
-                      <span className="text-muted small"><i className="ni ni-calendar-grid-58 mr-1" />Last Login</span>
-                      <div className="font-weight-bold account-info-value" id={`last_login-${selectedUser.id}`}>
-                        {selectedUser.last_login}
-                      </div>
-                      <UncontrolledTooltip placement="top" target={`last_login-${selectedUser.id}`}>
-                        {selectedUser.last_login}
-                      </UncontrolledTooltip>
-                    </div>
-                  </div>
+                <div className="col-md-6">
+                  <p><strong>Contact:</strong> {selectedUser.contact_num || 'N/A'}</p>
+                  <p><strong>Address:</strong> {selectedUser.address || 'N/A'}</p>
+                  <p><strong>Last Login:</strong> {selectedUser.last_login 
+                    ? new Date(selectedUser.last_login).toLocaleString()
+                    : 'Never'
+                  }</p>
                 </div>
               </div>
+              
+              {selectedUser.role === 'student' && (
+                <div className="mt-3">
+                  <p><strong>Student Number:</strong> {selectedUser.student_num || 'N/A'}</p>
+                  <p><strong>Section:</strong> {selectedUser.course_year_section || 'N/A'}</p>
+                </div>
+              )}
             </div>
           )}
         </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={closeUserModal}>
+            Close
+          </Button>
+        </ModalFooter>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteUserId} toggle={cancelDeleteUser} centered>
+        <ModalHeader toggle={cancelDeleteUser}>
+          <h4 className="mb-0">Confirm Delete</h4>
+        </ModalHeader>
+        <ModalBody className="text-center">
+          <i className="fas fa-exclamation-triangle fa-3x text-warning mb-3" />
+          <h5>Are you sure you want to delete this user?</h5>
+          <p className="text-muted">
+            This action cannot be undone. The user "{deleteUserName}" will be permanently removed from the system.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={cancelDeleteUser} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button color="danger" onClick={confirmDeleteUser} disabled={isDeleting}>
+            {isDeleting ? (
+              <>
+                <i className="fa fa-spinner fa-spin mr-2"></i>
+                Deleting...
+              </>
+            ) : (
+              'Delete User'
+            )}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Delete Success Alert */}
+      {showDeleteSuccess && (
+        <div className="position-fixed" style={{ top: '20px', right: '20px', zIndex: 9999 }}>
+          <Alert color="success" className="mb-0">
+            <i className="fas fa-check-circle mr-2" />
+            User deleted successfully!
+          </Alert>
+        </div>
+      )}
     </>
   );
 };

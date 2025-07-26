@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Button,
   Card,
@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { FaCheck, FaTimes, FaUser } from "react-icons/fa";
 import Select from 'react-select';
 import { components } from 'react-select';
+import ApiService from "../../services/api";
 
 const courseOptions = [
   { value: "bsit", label: "BSIT" },
@@ -156,6 +157,17 @@ const userManagementUsers = [
 // Use only students for the popup
 const userManagementStudents = userManagementUsers.filter(u => u.role === "student");
 
+// Helper to get student avatar URL
+const getStudentAvatar = (student) => {
+  if (student.profile_pic) {
+    if (student.profile_pic.startsWith('uploads/')) {
+      return `http://localhost/scms_new/${student.profile_pic}`;
+    }
+    return student.profile_pic;
+  }
+  return student.avatar || require('../../assets/img/theme/team-1-800x800.jpg');
+};
+
 const CreateSection = () => {
   const [course, setCourse] = useState("");
   const [sectionName, setSectionName] = useState("");
@@ -169,8 +181,133 @@ const CreateSection = () => {
   const [studentModal, setStudentModal] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
   const [isStudentSearchFocused, setIsStudentSearchFocused] = useState(false);
+  const [teachers, setTeachers] = useState([]);
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(true);
+  const [students, setStudents] = useState([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const navigate = useNavigate();
   const adviserInputRef = useRef();
+
+  // Fetch teachers for advisers
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        setIsLoadingTeachers(true);
+        const response = await ApiService.getTeachers();
+        console.log('=== Teachers API Response ===');
+        console.log('Full response:', response);
+        console.log('Response type:', typeof response);
+        console.log('Response is array:', Array.isArray(response));
+        console.log('Response.data:', response.data);
+        console.log('Response.data.data:', response.data?.data);
+        console.log('Direct response:', response);
+        
+        // Handle different response structures
+        const teachersData = response.data || response.data?.data || response || [];
+        console.log('Final teachers data:', teachersData);
+        
+        // Additional debugging for response structure
+        console.log('=== Response Structure Debug ===');
+        console.log('Response type:', typeof response);
+        console.log('Response keys:', Object.keys(response));
+        console.log('Response.data type:', typeof response.data);
+        console.log('Response.data keys:', response.data ? Object.keys(response.data) : 'No data');
+        if (response.data && Array.isArray(response.data)) {
+          console.log('Response.data is array with length:', response.data.length);
+        }
+        console.log('===============================');
+        
+        // Normalize teacher data (same as UserManagement)
+        const normalizedTeachers = teachersData.map(teacher => {
+          console.log('=== Teacher Data Debug ===');
+          console.log('Original teacher object:', teacher);
+          console.log('Available fields:', Object.keys(teacher));
+          console.log('ID field:', teacher.id || teacher.user_id || teacher.userId);
+          console.log('Profile pic field:', teacher.profile_pic || teacher.profileImageUrl || teacher.avatar);
+          console.log('========================');
+          
+          return {
+            ...teacher,
+            id: teacher.id || teacher.user_id || teacher.userId || '',
+            full_name: teacher.full_name || teacher.name || '',
+            email: teacher.email || '',
+            profile_pic: teacher.profile_pic || teacher.profileImageUrl || teacher.avatar || '',
+          };
+        });
+        
+        setTeachers(normalizedTeachers);
+      } catch (error) {
+        console.error('Failed to fetch teachers:', error);
+        // Fallback to mock data if API fails
+        setTeachers(userManagementUsers.filter(u => u.role === 'teacher'));
+      } finally {
+        setIsLoadingTeachers(false);
+      }
+    };
+
+    fetchTeachers();
+  }, []);
+
+  // Fetch students for selection
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setIsLoadingStudents(true);
+        const response = await ApiService.getStudents();
+        console.log('=== Students API Response ===');
+        console.log('Full response:', response);
+        console.log('Response type:', typeof response);
+        console.log('Response is array:', Array.isArray(response));
+        console.log('Response.data:', response.data);
+        console.log('Response.data.data:', response.data?.data);
+        console.log('Direct response:', response);
+        
+        // Handle different response structures
+        const studentsData = response.data || response.data?.data || response || [];
+        console.log('Final students data:', studentsData);
+        
+        // Additional debugging for response structure
+        console.log('=== Students Response Structure Debug ===');
+        console.log('Response type:', typeof response);
+        console.log('Response keys:', Object.keys(response));
+        console.log('Response.data type:', typeof response.data);
+        console.log('Response.data keys:', response.data ? Object.keys(response.data) : 'No data');
+        if (response.data && Array.isArray(response.data)) {
+          console.log('Response.data is array with length:', response.data.length);
+        }
+        console.log('========================================');
+        
+        // Normalize student data (same pattern as teachers)
+        const normalizedStudents = studentsData.map(student => {
+          console.log('=== Student Data Debug ===');
+          console.log('Original student object:', student);
+          console.log('Available fields:', Object.keys(student));
+          console.log('ID field:', student.id || student.user_id || student.userId);
+          console.log('Profile pic field:', student.profile_pic || student.profileImageUrl || student.avatar);
+          console.log('========================');
+          
+          return {
+            ...student,
+            id: student.id || student.user_id || student.userId || '',
+            full_name: student.full_name || student.name || '',
+            email: student.email || '',
+            profile_pic: student.profile_pic || student.profileImageUrl || student.avatar || '',
+            student_id: student.student_id || student.student_number || student.id || '',
+          };
+        });
+        
+        setStudents(normalizedStudents);
+      } catch (error) {
+        console.error('Failed to fetch students:', error);
+        // Fallback to mock data if API fails
+        setStudents(userManagementStudents);
+      } finally {
+        setIsLoadingStudents(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
 
   const handleStudentCheck = (id) => {
     setSelectedStudents((prev) =>
@@ -180,53 +317,110 @@ const CreateSection = () => {
 
   const removeStudent = (id) => setSelectedStudents(selectedStudents.filter(sid => sid !== id));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    // Map course short code to full name
+    const courseMap = {
+      bsit: "Bachelor of Science in Information Technology",
+      bscs: "Bachelor of Science in Computer Science",
+      bsis: "Bachelor of Science in Information Systems",
+      act: "Associate in Computer Technology"
+    };
+
+    // Get adviser object (should have .user_id or .id)
+    const selectedAdviser = teachers.find(t => String(t.id) === String(adviser));
+    const adviser_id = selectedAdviser?.user_id || selectedAdviser?.id || "";
+
+    // Get student IDs (should be the unique student code, not just numeric)
+    const student_ids = selectedStudents.map(id => {
+      const stu = students.find(s => s.id === id);
+      return stu?.student_id || stu?.user_id || stu?.id || "";
+    }).filter(Boolean);
+
+    const payload = {
+      section_name: sectionName,
+      program: courseMap[course] || course,
+      year_level: yearLevel.replace(/[^0-9]/g, '') || yearLevel, // e.g. "1st"
+      adviser_id,
+      semester,
+      academic_year: academicYear,
+      student_ids,
+    };
+
+    try {
+      await ApiService.createSection(payload);
       setShowSuccess(true);
-      
-      // Get the selected adviser details
-      const selectedAdviser = userManagementUsers.find(u => u.id === adviser);
-      
-      // Get the selected students details
-      const selectedStudentDetails = userManagementStudents.filter(s => selectedStudents.includes(s.id));
-      
-      // Save new section to localStorage for SectionManagement to pick up
-      const newSection = {
-        name: sectionName,
-        course,
-        year: yearLevel,
-        academicYear,
-        semester,
-        adviser: adviser,
-        adviserDetails: selectedAdviser, // Save full adviser details
-        maxStudents: 40,
-        students: selectedStudents,
-        studentDetails: selectedStudentDetails, // Save full student details
-        enrolled: selectedStudents.length, // Save the actual count
-      };
-      localStorage.setItem('newSection', JSON.stringify(newSection));
-      
       setTimeout(() => {
         setShowSuccess(false);
         navigate("/admin/section-management");
       }, 2000);
-    }, 1200);
+    } catch (err) {
+      alert("Failed to create section: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const filteredStudents = userManagementStudents.filter(
+  const filteredStudents = students.filter(
     (s) =>
-      s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-      s.email.toLowerCase().includes(studentSearch.toLowerCase())
+      (s.full_name && s.full_name.toLowerCase().includes(studentSearch.toLowerCase())) ||
+      (s.email && s.email.toLowerCase().includes(studentSearch.toLowerCase()))
   );
 
   // Adviser select custom option rendering
-  const adviserOptions = userManagementUsers.filter(u => u.role === 'teacher').map(t => ({ value: t.id, label: t.name + ' (' + t.email + ')', avatar: t.avatar, name: t.name, email: t.email }));
+  const adviserOptions = teachers.map(t => {
+    console.log('=== Processing Teacher for Adviser Options ===');
+    console.log('Teacher object:', t);
+    console.log('Profile pic value:', t.profile_pic);
+    console.log('Profile pic type:', typeof t.profile_pic);
+    console.log('Profile pic length:', t.profile_pic ? t.profile_pic.length : 0);
+    
+    // Handle profile picture URL - use same logic as UserManagement
+    let avatarUrl = require("../../assets/img/theme/team-1-800x800.jpg"); // default fallback
+    
+    if (t.profile_pic) {
+      // If it's a relative path, construct the full URL (same logic as UserManagement)
+      if (t.profile_pic.startsWith('uploads/')) {
+        avatarUrl = `http://localhost/scms_new/${t.profile_pic}`;
+        console.log('Constructed uploads URL:', avatarUrl);
+      } else {
+        avatarUrl = t.profile_pic;
+        console.log('Using original profile_pic as URL:', avatarUrl);
+      }
+    } else {
+      console.log('No profile_pic found, using default avatar');
+    }
+    
+    console.log(`Creating adviser option for ${t.full_name}:`, {
+      original_profile_pic: t.profile_pic,
+      final_avatar_url: avatarUrl
+    });
+    console.log('===============================================');
+    
+    return {
+      value: t.id || t.user_id, 
+      label: t.full_name + ' (' + t.email + ')', 
+      avatar: avatarUrl, 
+      name: t.full_name, 
+      email: t.email 
+    };
+  });
   const AdviserOption = (props) => (
     <div {...props.innerProps} style={{ display: 'flex', alignItems: 'center', padding: 8, background: props.isFocused ? '#f6f9fc' : 'white' }}>
-      <img src={props.data.avatar} alt={props.data.label} style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover' }} />
+      <img 
+        src={props.data.avatar} 
+        alt={props.data.label} 
+        style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover' }}
+        onLoad={() => {
+          console.log('Image loaded successfully:', props.data.avatar);
+        }}
+        onError={(e) => {
+          console.log('Image failed to load:', props.data.avatar);
+          e.target.src = require("../../assets/img/theme/team-1-800x800.jpg");
+        }}
+      />
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontWeight: 700, color: '#525F7F', fontSize: '0.74rem', lineHeight: 1 }}>{props.data.name}</span>
         <span style={{ color: '#7b8a9b', fontSize: '0.63rem', fontWeight: 400, marginTop: 1 }}>{props.data.email}</span>
@@ -241,7 +435,18 @@ const CreateSection = () => {
       padding: '6px 0',
       margin: '2px 0',
     }}>
-      <img src={props.data.avatar} alt={props.data.label} style={{ width: 24, height: 24, borderRadius: '50%', marginRight: 8, objectFit: 'cover' }} />
+      <img 
+        src={props.data.avatar} 
+        alt={props.data.label} 
+        style={{ width: 24, height: 24, borderRadius: '50%', marginRight: 8, objectFit: 'cover' }}
+        onLoad={() => {
+          console.log('Image loaded successfully (single value):', props.data.avatar);
+        }}
+        onError={(e) => {
+          console.log('Image failed to load (single value):', props.data.avatar);
+          e.target.src = require("../../assets/img/theme/team-1-800x800.jpg");
+        }}
+      />
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontWeight: 700, color: '#525F7F', fontSize: '0.74rem', lineHeight: 1 }}>{props.data.name}</span>
         <span style={{ color: '#7b8a9b', fontSize: '0.63rem', fontWeight: 400, marginTop: 1 }}>{props.data.email}</span>
@@ -274,7 +479,38 @@ const CreateSection = () => {
   return (
     <>
       <style>{createSectionStyles}</style>
+      <style>{`
+        .transparent-header-section {
+          background: transparent;
+          border-radius: 16px;
+          padding: 6rem 2rem 5rem 2rem;
+          margin-bottom: 2rem;
+          box-shadow: none;
+        }
+        .transparent-header-section h1 {
+          color: #32325d;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+        }
+        .transparent-header-section p {
+          color: #6c757d;
+          margin-bottom: 0;
+        }
+        @media (max-width: 768px) {
+          .transparent-header-section {
+            padding: 1.25rem 1rem 1rem 1rem;
+            text-align: center;
+          }
+          .transparent-header-section h1 {
+            font-size: 1.5rem;
+          }
+        }
+      `}</style>
       <Header showStats={false} />
+      {/* Transparent Page Header */}
+      <div className="transparent-header-section">
+       
+      </div>
       <Container className="section-content-container" fluid>
         <Row>
           <Col className="order-xl-1 mx-auto" xl="8" lg="8" md="10">
@@ -384,108 +620,124 @@ const CreateSection = () => {
                           <div
                             title="Select Adviser"
                           >
-                            <Select
-                              id="adviser"
-                              classNamePrefix="react-select"
-                              options={adviserOptions}
-                              value={adviserOptions.find(opt => String(opt.value) === String(adviser)) || null}
-                              onChange={opt => {
-                                setAdviser(opt ? opt.value : '');
-                                // Blur the select after choosing an option
-                                if (adviserInputRef.current) {
-                                  adviserInputRef.current.blur();
-                                }
-                              }}
-                              isClearable
-                              isSearchable={false}
-                              placeholder="Select Adviser..."
-                              styles={{
-                                control: (base, state) => ({
-                                  ...base,
-                                  minHeight: 44,
-                                  height: 44,
-                                  borderRadius: 8,
-                                  border: state.isFocused
-                                    ? '1.5px solid #8ecaff'
-                                    : '1.5px solid #e9ecef',
-                                  boxShadow: state.isFocused
-                                    ? '0 0 10px 3px rgba(142, 202, 255, 0.28)'
-                                    : '0 2px 6px rgba(50,50,93,.11), 0 1.5px 0 rgba(0,0,0,.04)',
-                                  backgroundColor: '#fff',
-                                  fontSize: '1rem',
-                                  fontWeight: 400,
-                                  color: '#8898aa',
-                                  paddingLeft: 16,
-                                  paddingRight: 56,
-                                  fontFamily: 'inherit',
-                                  transition: 'border-color .15s ease-in-out,box-shadow .15s ease-in-out,background 0.18s',
-                                  outline: 'none',
-                                  appearance: 'none',
-                                  position: 'relative',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }),
-                                valueContainer: (base) => ({
-                                  ...base,
-                                  padding: 0,
-                                  paddingLeft: 0,
-                                  height: '100%',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }),
-                                input: (base) => ({
-                                  ...base,
-                                  margin: 0,
-                                  padding: 0,
-                                }),
-                                menu: (base) => ({ ...base, zIndex: 9999, borderRadius: 8, marginTop: 2 }),
-                                menuList: (base) => ({ ...base, maxHeight: 160, paddingTop: 0, paddingBottom: 0 }),
-                                option: (base, state) => ({
-                                  ...base,
-                                  backgroundColor: state.isSelected ? '#eaf4fb' : state.isFocused ? '#f6f9fc' : '#fff',
-                                  color: '#222',
-                                  fontWeight: 400,
-                                  fontSize: '0.89rem',
-                                  padding: '8px 12px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }),
-                                singleValue: (base) => ({
-                                  ...base,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  color: '#8898aa',
-                                  height: '100%',
-                                }),
-                                placeholder: (base) => ({ ...base, color: '#8898aa', fontSize: '0.90rem', fontWeight: 400 }),
-                                indicatorSeparator: () => ({ display: 'none' }),
-                                dropdownIndicator: (base) => ({
-                                  ...base,
-                                  color: '#b5b5c3',
-                                  padding: 0,
-                                  width: 12,
-                                  height: 44,
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  display: 'flex',
-                                  position: 'absolute',
-                                  right: 20,
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                }),
-                                clearIndicator: (base, state) => ({
-                                  ...base,
-                                  color: state.isFocused ? '#e74c3c' : '#b0b7c3',
-                                  transition: 'color 0.15s',
-                                }),
-                              }}
-                              components={{
-                                Option: AdviserOption,
-                                SingleValue: AdviserSingleValue,
-                                DropdownIndicator: CustomDropdownIndicator,
-                              }}
-                              title="Select Adviser"
-                            />
+                            {isLoadingTeachers ? (
+                              <div style={{ 
+                                height: 44, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                padding: '0 16px',
+                                background: '#f8f9fa',
+                                border: '1px solid #e9ecef',
+                                borderRadius: 8,
+                                color: '#6c757d'
+                              }}>
+                                <i className="fas fa-spinner fa-spin mr-2"></i>
+                                Loading advisers...
+                              </div>
+                            ) : (
+                              <Select
+                                id="adviser"
+                                classNamePrefix="react-select"
+                                options={adviserOptions}
+                                value={adviserOptions.find(opt => String(opt.value) === String(adviser)) || null}
+                                onChange={opt => {
+                                  setAdviser(opt ? opt.value : '');
+                                  // Blur the select after choosing an option
+                                  if (adviserInputRef.current) {
+                                    adviserInputRef.current.blur();
+                                  }
+                                }}
+                                isClearable
+                                isSearchable={false}
+                                placeholder="Select Adviser..."
+                                styles={{
+                                  control: (base, state) => ({
+                                    ...base,
+                                    minHeight: 44,
+                                    height: 44,
+                                    borderRadius: 8,
+                                    border: state.isFocused
+                                      ? '1.5px solid #8ecaff'
+                                      : '1.5px solid #e9ecef',
+                                    boxShadow: state.isFocused
+                                      ? '0 0 10px 3px rgba(142, 202, 255, 0.28)'
+                                      : '0 2px 6px rgba(50,50,93,.11), 0 1.5px 0 rgba(0,0,0,.04)',
+                                    backgroundColor: '#fff',
+                                    fontSize: '1rem',
+                                    fontWeight: 400,
+                                    color: '#8898aa',
+                                    paddingLeft: 16,
+                                    paddingRight: 56,
+                                    fontFamily: 'inherit',
+                                    transition: 'border-color .15s ease-in-out,box-shadow .15s ease-in-out,background 0.18s',
+                                    outline: 'none',
+                                    appearance: 'none',
+                                    position: 'relative',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                  }),
+                                  valueContainer: (base) => ({
+                                    ...base,
+                                    padding: 0,
+                                    paddingLeft: 0,
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                  }),
+                                  input: (base) => ({
+                                    ...base,
+                                    margin: 0,
+                                    padding: 0,
+                                  }),
+                                  menu: (base) => ({ ...base, zIndex: 9999, borderRadius: 8, marginTop: 2 }),
+                                  menuList: (base) => ({ ...base, maxHeight: 160, paddingTop: 0, paddingBottom: 0 }),
+                                  option: (base, state) => ({
+                                    ...base,
+                                    backgroundColor: state.isSelected ? '#eaf4fb' : state.isFocused ? '#f6f9fc' : '#fff',
+                                    color: '#222',
+                                    fontWeight: 400,
+                                    fontSize: '0.89rem',
+                                    padding: '8px 12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                  }),
+                                  singleValue: (base) => ({
+                                    ...base,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: '#8898aa',
+                                    height: '100%',
+                                  }),
+                                  placeholder: (base) => ({ ...base, color: '#8898aa', fontSize: '0.90rem', fontWeight: 400 }),
+                                  indicatorSeparator: () => ({ display: 'none' }),
+                                  dropdownIndicator: (base) => ({
+                                    ...base,
+                                    color: '#b5b5c3',
+                                    padding: 0,
+                                    width: 12,
+                                    height: 44,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    display: 'flex',
+                                    position: 'absolute',
+                                    right: 20,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                  }),
+                                  clearIndicator: (base, state) => ({
+                                    ...base,
+                                    color: state.isFocused ? '#e74c3c' : '#b0b7c3',
+                                    transition: 'color 0.15s',
+                                  }),
+                                }}
+                                components={{
+                                  Option: AdviserOption,
+                                  SingleValue: AdviserSingleValue,
+                                  DropdownIndicator: CustomDropdownIndicator,
+                                }}
+                                title="Select Adviser"
+                              />
+                            )}
                           </div>
                         </FormGroup>
                       </Col>
@@ -512,12 +764,12 @@ const CreateSection = () => {
                             </div>
                           ) : (
                             selectedStudents.map(id => {
-                              const s = userManagementStudents.find(stu => stu.id === id);
+                              const s = students.find(stu => stu.id === id);
                               return s ? (
                                 <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e0e3ea', borderRadius: 10, padding: '0 4px 0 1px', fontSize: 9, fontWeight: 500 }}>
-                                  <img src={s.avatar} alt={s.name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
+                                  <img src={getStudentAvatar(s)} alt={s.full_name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
                                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 9 }}>{s.name}</span>
+                                    <span style={{ fontWeight: 700, fontSize: 9 }}>{s.full_name}</span>
                                     <span style={{ color: '#888', fontWeight: 400, fontSize: 8 }}>{s.email}</span>
                                   </span>
                                   <FaTimes className="student-pill-x" style={{ marginLeft: 8, cursor: 'pointer', color: '#5e72e4', fontSize: 10 }} onClick={() => removeStudent(id)} />
@@ -586,12 +838,12 @@ const CreateSection = () => {
                                 style={{ display: 'flex', alignItems: 'center', padding: '6px 10px' }}
                               >
                                 <img
-                                  src={s.avatar}
-                                  alt={s.name}
+                                  src={getStudentAvatar(s)}
+                                  alt={s.full_name}
                                   style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 10, objectFit: 'cover', border: '1px solid #e9ecef' }}
                                 />
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 500, fontSize: '0.97rem', color: '#425466' }}>{s.name}</div>
+                                  <div style={{ fontWeight: 500, fontSize: '0.97rem', color: '#425466' }}>{s.full_name}</div>
                                   <div style={{ fontSize: '0.85rem', color: '#7b8a9b' }}>{s.email}</div>
                                 </div>
                                 <div>
@@ -612,12 +864,12 @@ const CreateSection = () => {
                             </div>
                           ) : (
                             selectedStudents.map(id => {
-                              const s = userManagementStudents.find(stu => stu.id === id);
+                              const s = students.find(stu => stu.id === id);
                               return s ? (
                                 <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e0e3ea', borderRadius: 10, padding: '0 4px 0 1px', fontSize: 9, fontWeight: 500 }}>
-                                  <img src={s.avatar} alt={s.name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
+                                  <img src={getStudentAvatar(s)} alt={s.full_name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
                                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 9 }}>{s.name}</span>
+                                    <span style={{ fontWeight: 700, fontSize: 9 }}>{s.full_name}</span>
                                     <span style={{ color: '#888', fontWeight: 400, fontSize: 8 }}>{s.email}</span>
                                   </span>
                                   <FaTimes className="student-pill-x" style={{ marginLeft: 8, cursor: 'pointer', color: '#5e72e4', fontSize: 10 }} onClick={() => removeStudent(id)} />

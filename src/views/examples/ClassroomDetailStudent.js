@@ -1528,7 +1528,51 @@ const ClassroomDetailStudent = () => {
                   placeholder="Share an announcement with your class..."
                   style={{ width: '100%', fontSize: 15, minHeight: 44, borderRadius: 8, padding: '10px 14px', border: 'none', background: '#f7fafd', boxShadow: 'none', resize: 'vertical', outline: 'none', color: '#222', marginBottom: 10, height: 34 }}
                 />
-                {/* Attachments preview before posting */}
+              
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ marginBottom: 10, position: 'relative', display: 'inline-block' }}>
+                    <button
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '8px 14px', fontWeight: 600, fontSize: 15, cursor: 'pointer', height: 32 }}
+                      onClick={() => setAttachmentDropdownOpenId('new')}
+                      type="button"
+                    >
+                      <i className="fa fa-paperclip" style={{ fontSize: 15 }} /> Add Attachment
+                    </button>
+                    {attachmentDropdownOpenId === 'new' && (
+                      <div ref={attachmentMenuRef} style={{ position: 'absolute', top: 36, left: 0, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: '8px 0', minWidth: 130, zIndex: 20 }}>
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('file')}>
+                          <i className="fa fa-file" style={{ fontSize: 15 }} /> File
+                        </div>
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('link')}>
+                          <i className="fa fa-globe" style={{ fontSize: 15 }} /> Link
+                        </div>
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('youtube')}>
+                          <i className="fa fa-youtube-play" style={{ fontSize: 15, color: '#f00' }} /> YouTube
+                        </div>
+                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('drive')}>
+                          <i className="fa fa-cloud-upload" style={{ fontSize: 15 }} /> Google Drive
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      style={{ border: 'none', background: '#f7fafd', borderRadius: 8, padding: '8px 14px', fontSize: 15, cursor: 'pointer', height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={e => { e.preventDefault(); setShowEmojiPicker(v => !v); }}
+                    >
+                      <i className="fa fa-smile" style={{ fontSize: 15 }} />
+                    </button>
+                    {showEmojiPicker && (
+                      <div ref={emojiPickerRef} style={{ position: 'absolute', top: 36, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 30, minWidth: 140, maxWidth: 200, width: 200, maxHeight: 140, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+                        {emojiList.map(emoji => (
+                          <span key={emoji} style={{ fontSize: 19, cursor: 'pointer', margin: 4, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.12s', padding: 0, userSelect: 'none' }} onClick={() => insertEmojiAtCursor(emoji)}>{emoji}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Attachments preview below the buttons */}
                 {attachments && attachments.length > 0 && (
                   <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {attachments.map((att, idx) => {
@@ -1581,7 +1625,7 @@ const ClassroomDetailStudent = () => {
                               <path d="M8 8h16v24H8z" fill="#fff"/>
                               <text x="16" y="28" textAnchor="middle" fontSize="10" fill="#1976D2" fontWeight="bold">WORD</text>
                             </svg>
-                          ) : getFileTypeIcon(att)}
+                          ) : null}
                           {/* File info */}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 15, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{displayName}</div>
@@ -1642,49 +1686,6 @@ const ClassroomDetailStudent = () => {
                     })}
                   </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <div style={{ marginBottom: 10, position: 'relative', display: 'inline-block' }}>
-                    <button
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '8px 14px', fontWeight: 600, fontSize: 15, cursor: 'pointer', height: 32 }}
-                      onClick={() => setAttachmentDropdownOpenId('new')}
-                      type="button"
-                    >
-                      <i className="fa fa-paperclip" style={{ fontSize: 15 }} /> Add Attachment
-                    </button>
-                    {attachmentDropdownOpenId === 'new' && (
-                      <div ref={attachmentMenuRef} style={{ position: 'absolute', top: 36, left: 0, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: '8px 0', minWidth: 130, zIndex: 20 }}>
-                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('file')}>
-                          <i className="fa fa-file" style={{ fontSize: 15 }} /> File
-                        </div>
-                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('link')}>
-                          <i className="fa fa-globe" style={{ fontSize: 15 }} /> Link
-                        </div>
-                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('youtube')}>
-                          <i className="fa fa-youtube-play" style={{ fontSize: 15, color: '#f00' }} /> YouTube
-                        </div>
-                        <div style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }} onClick={() => handleAttachmentOption('drive')}>
-                          <i className="fa fa-cloud-upload" style={{ fontSize: 15 }} /> Google Drive
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      style={{ border: 'none', background: '#f7fafd', borderRadius: 8, padding: '8px 14px', fontSize: 15, cursor: 'pointer', height: 32, width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      onClick={e => { e.preventDefault(); setShowEmojiPicker(v => !v); }}
-                    >
-                      <i className="fa fa-smile" style={{ fontSize: 15 }} />
-                    </button>
-                    {showEmojiPicker && (
-                      <div ref={emojiPickerRef} style={{ position: 'absolute', top: 36, left: 0, background: '#fff', border: '1px solid #e9ecef', borderRadius: 8, boxShadow: '0 2px 8px #324cdd22', padding: 8, zIndex: 30, minWidth: 140, maxWidth: 200, width: 200, maxHeight: 140, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
-                        {emojiList.map(emoji => (
-                          <span key={emoji} style={{ fontSize: 19, cursor: 'pointer', margin: 4, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.12s', padding: 0, userSelect: 'none' }} onClick={() => insertEmojiAtCursor(emoji)}>{emoji}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                   <button type="button" style={{ fontWeight: 500, borderRadius: 8, minWidth: 80, fontSize: 14, background: '#f7fafd', color: '#222', border: 'none', padding: '8px 14px', cursor: 'pointer', height: 32 }} onClick={() => { setFormExpanded(false); setStudentAnnouncement(""); setAnnouncementTitle(""); setAllowComments(true); }}>
                     Cancel

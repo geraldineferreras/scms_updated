@@ -63,10 +63,11 @@ const Teacher = (props) => {
     <>
       <TeacherSidebar
         {...props}
+        routes={routes}
         logo={{
           innerLink: "/teacher/index",
-          imgSrc: require("../assets/img/brand/argon-react.png"),
-          imgAlt: "...",
+          imgSrc: require("../assets/img/brand/logo-scms.png"),
+          imgAlt: "SCMS Logo",
         }}
       />
       <div className="main-content" ref={mainContent}>

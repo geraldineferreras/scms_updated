@@ -15,7 +15,8 @@ import {
   Label,
   Modal,
   ModalBody,
-  Container
+  Container,
+  Alert
 } from "reactstrap";
 import { QrReader } from "react-qr-reader";
 import Header from "components/Headers/Header.js";
@@ -24,6 +25,7 @@ import userDefault from "../../assets/img/theme/user-default.svg";
 import Cropper from 'react-easy-crop';
 import "./CreateUser.css";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import apiService from "../../services/api";
 
 const defaultCoverPhotoSvg =
   "data:image/svg+xml;utf8,<svg width='600' height='240' viewBox='0 0 600 240' fill='none' xmlns='http://www.w3.org/2000/svg'><rect width='600' height='240' fill='%23f7f7f7'/><path d='M0 180 Q150 120 300 180 T600 180 V240 H0 Z' fill='%23e3eafc'/><path d='M0 200 Q200 140 400 200 T600 200 V240 H0 Z' fill='%23cfd8dc' opacity='0.7'/></svg>";
@@ -68,6 +70,10 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
   const [coverZoom, setCoverZoom] = useState(1);
   const [coverCroppedAreaPixels, setCoverCroppedAreaPixels] = useState(null);
   const [coverTempImage, setCoverTempImage] = useState(null);
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [coverPhotoFile, setCoverPhotoFile] = useState(null);
+  const [error, setError] = useState("");
+  const [apiError, setApiError] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,6 +102,16 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
     }
   }, [editMode, editUser]);
 
+  // Remove QR scanner and manual generate button, and auto-generate QR code for students
+  useEffect(() => {
+    if (role === 'student' && studentNumber && fullName && department) {
+      setQrData(`IDNo: ${studentNumber}\nFull Name: ${fullName}\nProgram: ${department}`);
+    } else if (role === 'student') {
+      setQrData("");
+    }
+    // For other roles, do not set qrData
+  }, [role, studentNumber, fullName, department]);
+
   const handleQrScan = (result, error) => {
     if (!!result) {
       setQrData(result?.text);
@@ -121,6 +137,7 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
     setProfileImage(null);
     setProfileImageUrl(null);
     setProfileImageName("");
+    setProfileImageFile(null);
   };
 
   const getCroppedImg = async (imageSrc, crop) => {
@@ -156,11 +173,30 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
   }
 
   const handleCropSave = async () => {
-    const croppedUrl = await getCroppedImg(tempImage, croppedAreaPixels);
-    setProfileImageUrl(croppedUrl);
-    setProfileImage(null); // You can store the blob if you want
-    setCropModal(false);
-    setTempImage(null);
+    try {
+      const croppedUrl = await getCroppedImg(tempImage, croppedAreaPixels);
+      
+      // Convert base64 to blob
+      const response = await fetch(croppedUrl);
+      const blob = await response.blob();
+      
+      // Create a file from the blob
+      const file = new File([blob], profileImageName || 'profile.jpg', { type: 'image/jpeg' });
+      
+      // Store the file for later use in registration
+      setProfileImageFile(file);
+      setProfileImageUrl(croppedUrl); // Keep base64 for preview
+      
+      setProfileImage(null);
+      setCropModal(false);
+      setTempImage(null);
+    } catch (error) {
+      console.error('Error processing profile image:', error);
+      alert('Failed to process profile image. Please try again.');
+      setProfileImage(null);
+      setCropModal(false);
+      setTempImage(null);
+    }
   };
 
   // Password strength checker
@@ -180,38 +216,49 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
   // Check for duplicate name
   const checkDuplicateName = (name) => {
     if (!name.trim()) return "";
-    const users = JSON.parse(localStorage.getItem('scms_users') || '[]');
-    const existingUser = users.find(user => 
-      user.name.toLowerCase() === name.toLowerCase() && 
-      (!editMode || String(user.id) !== String(editUser?.id))
-    );
-    return existingUser ? "A user with this name already exists." : "";
+    
+    // Basic validation for name format
+    if (name.length < 2) {
+      return "Name must be at least 2 characters long.";
+    }
+    
+    // In edit mode, allow unchanged name
+    if (editMode && editUser && name.toLowerCase() === editUser.name?.toLowerCase()) return "";
+    
+    // Note: Duplicate checking will be handled by the backend API
+    return "";
   };
 
   // Check for duplicate email
   const checkDuplicateEmail = (email) => {
     if (!email.trim()) return "";
-    const users = JSON.parse(localStorage.getItem('scms_users') || '[]');
-    const existingUser = users.find(user => 
-      user.email.toLowerCase() === email.toLowerCase() && 
-      (!editMode || String(user.id) !== String(editUser?.id))
-    );
+    
+    // Basic validation for email format
+    if (!validateEmail(email)) {
+      return "Please enter a valid email address.";
+    }
+    
     // In edit mode, allow unchanged email
-    if (editMode && editUser && email.toLowerCase() === editUser.email.toLowerCase()) return "";
-    return existingUser ? "A user with this email already exists." : "";
+    if (editMode && editUser && email.toLowerCase() === editUser.email?.toLowerCase()) return "";
+    
+    // Note: Duplicate checking will be handled by the backend API
+    return "";
   };
 
   // Check for duplicate student number
   const checkDuplicateStudentNumber = (studentNumber) => {
     if (!studentNumber.trim() || role !== 'student') return "";
-    const users = JSON.parse(localStorage.getItem('scms_users') || '[]');
-    const existingUser = users.find(user => 
-      user.studentNumber === studentNumber && 
-      (!editMode || String(user.id) !== String(editUser?.id))
-    );
+    
+    // Basic validation for student number format
+    if (studentNumber.length < 8) {
+      return "Student number must be at least 8 characters long.";
+    }
+    
     // In edit mode, allow unchanged student number
     if (editMode && editUser && studentNumber === editUser.studentNumber) return "";
-    return existingUser ? "A user with this student number already exists." : "";
+    
+    // Note: Duplicate checking will be handled by the backend API
+    return "";
   };
 
   const handleCreateUser = async (e) => {
@@ -221,77 +268,143 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
     setNameError("");
     setEmailError("");
     setStudentNumberError("");
+    setApiError("");
     
-    // Check for duplicates
-    const nameErrorMsg = checkDuplicateName(fullName);
-    const emailErrorMsg = checkDuplicateEmail(email);
-    const studentNumberErrorMsg = checkDuplicateStudentNumber(studentNumber);
-    
-    if (nameErrorMsg) {
-      setNameError(nameErrorMsg);
+    // Basic validation
+    if (!role || !fullName || !email || !password) {
+      setError("Please fill in all required fields.");
       return;
     }
     
-    if (emailErrorMsg) {
-      setEmailError(emailErrorMsg);
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address.");
       return;
     }
     
-    if (studentNumberErrorMsg) {
-      setStudentNumberError(studentNumberErrorMsg);
-      return;
+    // Admin-specific validation
+    if (role === 'admin') {
+      if (!address.trim()) {
+        setError("Address is required for admins.");
+        return;
+      }
+      if (!contactNumber.trim()) {
+        setError("Contact number is required for admins.");
+        return;
+      }
+    }
+    
+    // Teacher-specific validation
+    if (role === 'teacher') {
+      if (!address.trim()) {
+        setError("Address is required for teachers.");
+        return;
+      }
+      if (!contactNumber.trim()) {
+        setError("Contact number is required for teachers.");
+        return;
+      }
+      if (!department.trim()) {
+        setError("Department is required for teachers.");
+        return;
+      }
+    }
+    
+    // Student-specific validation
+    if (role === 'student') {
+      if (!studentNumber.trim()) {
+        setStudentNumberError("Student number is required for students.");
+        return;
+      }
+      if (!department) {
+        setError("Please select a course for the student.");
+        return;
+      }
+      if (!address.trim()) {
+        setError("Address is required for students.");
+        return;
+      }
+      if (!contactNumber.trim()) {
+        setError("Contact number is required for students.");
+        return;
+      }
+      if (studentNumber.length < 8) {
+        setStudentNumberError("Student number must be at least 8 characters long.");
+        return;
+      }
     }
     
     // Start loading modal
     setShowLoadingModal(true);
+    setIsLoading(true);
     
-    // Simulate loading time
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    const newUser = {
-      id: editMode && editUser ? editUser.id : Date.now(),
-      role,
-      name: fullName,
-      email,
-      password,
-      address,
-      contactNumber,
-      department,
-      studentNumber,
-      section,
-      year,
-      qrData,
-      profileImageUrl,
-      coverPhotoUrl,
-      status,
-      createdAt: editMode && editUser ? editUser.createdAt : new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
-    
-    let users = JSON.parse(localStorage.getItem('scms_users') || '[]');
-    if (editMode && editUser) {
-      users = users.map(u => String(u.id) === String(editUser.id) ? newUser : u);
-      setSuccessMessage(`User ${fullName} has been updated successfully!`);
-    } else {
-      users.push(newUser);
-      setSuccessMessage(`User ${fullName} has been created successfully!`);
-    }
-    
-    localStorage.setItem('scms_users', JSON.stringify(users));
-    
-    // Hide loading modal and show success modal
-    setShowLoadingModal(false);
-    setShowSuccessModal(true);
-    
-    // Hide success modal after 3 seconds and navigate
-    setTimeout(() => {
-      setShowSuccessModal(false);
-      if (editMode && onEditDone) {
-        onEditDone();
-      } else {
-        navigate(`/admin/user-management?tab=${tab}&view=${view}`);
+    try {
+      // Create FormData to send images with user data
+      const formData = new FormData();
+      
+      // Add user data fields
+      formData.append('role', role);
+      formData.append('full_name', fullName);
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('contact_num', contactNumber);
+      formData.append('address', address);
+      
+      // Add role-specific fields
+      if (role === 'admin') {
+        formData.append('program', 'administration');
+      } else if (role === 'teacher') {
+        formData.append('program', department || 'Information Technology');
+      } else if (role === 'student') {
+        formData.append('program', department);
+        formData.append('student_num', studentNumber);
+        if (section && section.trim()) {
+          formData.append('section_id', parseInt(section) || 1);
+        }
+        formData.append('qr_code', qrData || `IDNo: ${studentNumber}\nFull Name: ${fullName}\nProgram: ${department}`);
       }
-    }, 3000);
+      
+      // Add images if they exist
+      if (profileImageFile) {
+        formData.append('profile_pic', profileImageFile);
+      }
+      if (coverPhotoFile) {
+        formData.append('cover_pic', coverPhotoFile);
+      }
+      
+      // Debug: Log what we're sending
+      
+      
+      // Call API to create or update user
+      let response;
+      if (editMode && editUser) {
+        response = await apiService.updateUserWithImages(editUser.id, formData);
+        setSuccessMessage(`User ${fullName} has been updated successfully!`);
+      } else {
+        response = await apiService.registerWithImages(formData);
+        setSuccessMessage(`User ${fullName} has been created successfully!`);
+      }
+      
+      // Hide loading modal and show success modal
+      setShowLoadingModal(false);
+      setIsLoading(false);
+      setShowSuccessModal(true);
+      
+      // Hide success modal after 1.5 seconds and navigate (faster response)
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        if (editMode && onEditDone) {
+          onEditDone();
+        } else {
+          navigate(`/admin/user-management?tab=${tab}&view=${view}`);
+        }
+      }, 1500);
+      
+    } catch (error) {
+      setShowLoadingModal(false);
+      setIsLoading(false);
+      setApiError(error.message || "Failed to create user. Please try again.");
+      console.error("Error creating user:", error);
+    }
   };
 
   // Handle cover photo change (open crop modal)
@@ -335,11 +448,30 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
 
   // Save cropped cover photo
   const handleCoverCropSave = async () => {
-    const croppedUrl = await getCroppedCoverImg(coverTempImage, coverCroppedAreaPixels);
-    setCoverPhotoUrl(croppedUrl);
-    setCoverPhoto(null);
-    setCoverCropModal(false);
-    setCoverTempImage(null);
+    try {
+      const croppedUrl = await getCroppedCoverImg(coverTempImage, coverCroppedAreaPixels);
+      
+      // Convert base64 to blob
+      const response = await fetch(croppedUrl);
+      const blob = await response.blob();
+      
+      // Create a file from the blob
+      const file = new File([blob], coverPhotoName || 'cover.jpg', { type: 'image/jpeg' });
+      
+      // Store the file for later use in registration
+      setCoverPhotoFile(file);
+      setCoverPhotoUrl(croppedUrl); // Keep base64 for preview
+      
+      setCoverPhoto(null);
+      setCoverCropModal(false);
+      setCoverTempImage(null);
+    } catch (error) {
+      console.error('Error processing cover photo:', error);
+      alert('Failed to process cover photo. Please try again.');
+      setCoverPhoto(null);
+      setCoverCropModal(false);
+      setCoverTempImage(null);
+    }
   };
 
   // Handle cover photo delete
@@ -347,6 +479,7 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
     setCoverPhoto(null);
     setCoverPhotoUrl(null);
     setCoverPhotoName("");
+    setCoverPhotoFile(null);
     setCoverTempImage(null);
     setCoverCropModal(false);
   };
@@ -469,6 +602,17 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                   <div style={{ height: '2.5rem' }} />
                 </div>
                 <Form onSubmit={handleCreateUser}>
+                  {/* Error Alert */}
+                  {error && (
+                    <Alert color="danger" className="mb-4">
+                      {error}
+                    </Alert>
+                  )}
+                  {apiError && (
+                    <Alert color="danger" className="mb-4">
+                      {apiError}
+                    </Alert>
+                  )}
                   <h6 className="heading-small text-muted mb-4">User information</h6>
                   <div className="pl-lg-4">
                     <Row>
@@ -553,6 +697,39 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                         </FormGroup>
                       </Col>
                     </Row>
+                    {/* Address and Contact Number for Admin - positioned below email/password */}
+                    {role === 'admin' && (
+                      <Row>
+                        <Col lg="6">
+                          <FormGroup>
+                            <label className="form-control-label" htmlFor="address">Address *</label>
+                            <Input 
+                              className="form-control-alternative" 
+                              type="text" 
+                              id="address" 
+                              value={address} 
+                              onChange={e => setAddress(e.target.value)} 
+                              required
+                              placeholder="Enter admin's address"
+                            />
+                          </FormGroup>
+                        </Col>
+                        <Col lg="6">
+                          <FormGroup>
+                            <label className="form-control-label" htmlFor="contactNumber">Contact Number *</label>
+                            <Input 
+                              className="form-control-alternative" 
+                              type="text" 
+                              id="contactNumber" 
+                              value={contactNumber} 
+                              onChange={e => setContactNumber(e.target.value)} 
+                              required
+                              placeholder="Enter contact number"
+                            />
+                          </FormGroup>
+                        </Col>
+                      </Row>
+                    )}
                   </div>
                   <hr className="my-4" />
                   <h6 className="heading-small text-muted mb-4">Account Status</h6>
@@ -601,22 +778,46 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                         <Row>
                           <Col lg="12">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="address">Address</label>
-                              <Input className="form-control-alternative" type="text" id="address" value={address} onChange={e => setAddress(e.target.value)} />
+                              <label className="form-control-label" htmlFor="address">Address *</label>
+                              <Input 
+                                className="form-control-alternative" 
+                                type="text" 
+                                id="address" 
+                                value={address} 
+                                onChange={e => setAddress(e.target.value)} 
+                                required
+                                placeholder="Enter teacher's address"
+                              />
                             </FormGroup>
                           </Col>
                         </Row>
                         <Row>
                           <Col lg="6">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="contactNumber">Contact Number</label>
-                              <Input className="form-control-alternative" type="text" id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
+                              <label className="form-control-label" htmlFor="contactNumber">Contact Number *</label>
+                              <Input 
+                                className="form-control-alternative" 
+                                type="text" 
+                                id="contactNumber" 
+                                value={contactNumber} 
+                                onChange={e => setContactNumber(e.target.value)} 
+                                required
+                                placeholder="Enter contact number"
+                              />
                             </FormGroup>
                           </Col>
                           <Col lg="6">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="department">Department</label>
-                              <Input className="form-control-alternative" type="text" id="department" value={department} onChange={e => setDepartment(e.target.value)} />
+                              <label className="form-control-label" htmlFor="department">Department *</label>
+                              <Input 
+                                className="form-control-alternative" 
+                                type="text" 
+                                id="department" 
+                                value={department} 
+                                onChange={e => setDepartment(e.target.value)} 
+                                required
+                                placeholder="Enter department"
+                              />
                             </FormGroup>
                           </Col>
                         </Row>
@@ -631,21 +832,37 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                         <Row>
                           <Col lg="12">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="address">Address</label>
-                              <Input className="form-control-alternative" type="text" id="address" value={address} onChange={e => setAddress(e.target.value)} />
+                              <label className="form-control-label" htmlFor="address">Address *</label>
+                              <Input 
+                                className="form-control-alternative" 
+                                type="text" 
+                                id="address" 
+                                value={address} 
+                                onChange={e => setAddress(e.target.value)} 
+                                required
+                                placeholder="Enter student's address"
+                              />
                             </FormGroup>
                           </Col>
                         </Row>
                         <Row>
                           <Col lg="6">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="contactNumber">Contact Number</label>
-                              <Input className="form-control-alternative" type="text" id="contactNumber" value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
+                              <label className="form-control-label" htmlFor="contactNumber">Contact Number *</label>
+                              <Input 
+                                className="form-control-alternative" 
+                                type="text" 
+                                id="contactNumber" 
+                                value={contactNumber} 
+                                onChange={e => setContactNumber(e.target.value)} 
+                                required
+                                placeholder="Enter contact number"
+                              />
                             </FormGroup>
                           </Col>
                           <Col lg="6">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="studentNumber">Student Number</label>
+                              <label className="form-control-label" htmlFor="studentNumber">Student Number *</label>
                               <Input 
                                 className={`form-control-alternative ${studentNumberError ? 'is-invalid' : ''}`}
                                 type="text" 
@@ -655,6 +872,8 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                                   setStudentNumber(e.target.value);
                                   setStudentNumberError(checkDuplicateStudentNumber(e.target.value));
                                 }}
+                                required
+                                placeholder="Enter student number (min. 8 characters)"
                               />
                               {studentNumberError && (
                                 <small className="text-danger">{studentNumberError}</small>
@@ -665,7 +884,7 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                         <Row>
                           <Col lg="12">
                             <FormGroup>
-                              <label className="form-control-label" htmlFor="course">Course</label>
+                              <label className="form-control-label" htmlFor="course">Course *</label>
                               <Input 
                                 className="form-control-alternative" 
                                 type="select" 
@@ -709,25 +928,31 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                       <h6 className="heading-small text-muted mb-4">QR Code</h6>
                       <div className="pl-lg-4">
                         <FormGroup>
-                          <label className="form-control-label">QR Code</label>
-                          <div className="d-flex align-items-center">
-                            <Input className="form-control-alternative mr-2" type="text" value={qrData} readOnly placeholder="Scan QR code..." />
-                            <label
-                              htmlFor="qrScanButton"
-                              className="btn btn-info btn-sm mb-0"
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => setQrModal(true)}
-                            >
-                              <i className="ni ni-camera-compact mr-1" /> Scan
-                            </label>
-                          </div>
+                          <label className="form-control-label">QR Code Data</label>
+                          <Input
+                            className="form-control-alternative"
+                            type="text"
+                            value={qrData}
+                            readOnly
+                            placeholder="QR code will be generated automatically..."
+                          />
+                          <small className="text-muted">
+                            This will be generated automatically from Student Number, Full Name, and Course.
+                          </small>
                         </FormGroup>
                       </div>
                     </>
                   )}
                   <div className="text-center">
-                    <Button color="primary" type="submit">
-                      {editMode ? 'Update User' : 'Create User'}
+                    <Button color="primary" type="submit" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                          {editMode ? 'Updating...' : 'Creating...'}
+                        </>
+                      ) : (
+                        editMode ? 'Update User' : 'Create User'
+                      )}
                     </Button>
                   </div>
                 </Form>
@@ -758,33 +983,11 @@ const CreateUser = ({ editUser, editMode, onEditDone }) => {
                   </div>
                 </div>
                 <h5>
-                  {editMode ? (
-                    <>User <span className="text-success">{fullName}</span> has been updated successfully!</>
-                  ) : (
-                    <>User <span className="text-success">{fullName}</span> has been created successfully!</>
-                  )}
+                  {successMessage}
                 </h5>
               </ModalBody>
             </Modal>
 
-            <Modal isOpen={qrModal} toggle={() => setQrModal(!qrModal)} centered>
-              <ModalBody>
-                <div className="d-flex justify-content-center mb-3">
-                  <div style={{ width: 320, height: 300 }}>
-                    <QrReader
-                      constraints={{ facingMode: "environment" }}
-                      onResult={handleQrScan}
-                      style={{ width: "100%", height: "100%" }}
-                    />
-                  </div>
-                </div>
-                <div className="text-center">
-                  <Button color="secondary" onClick={() => setQrModal(false)}>
-                    Close
-                  </Button>
-                </div>
-              </ModalBody>
-            </Modal>
             <Modal isOpen={cropModal} toggle={() => setCropModal(false)} centered size="lg">
               <ModalBody>
                 <div style={{ position: 'relative', width: '100%', height: 300, background: '#333' }}>

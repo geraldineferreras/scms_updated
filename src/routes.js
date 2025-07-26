@@ -17,7 +17,7 @@
 */
 import Index from "views/Index.js";
 import Profile from "views/examples/Profile.js";
-import Maps from "views/examples/Maps.js";
+
 import Register from "views/examples/Register.js";
 import Login from "views/examples/Login.js";
 import Tables from "views/examples/Tables.js";
@@ -65,6 +65,8 @@ import StudentExcuseLetter from "views/examples/StudentExcuseLetter.js";
 import StudentNotifications from "views/examples/StudentNotifications.js";
 import TeacherFastGrade from "views/examples/TeacherFastGrade.js";
 import TaskDetail from "views/examples/TaskDetail.js";
+import TestUserData from "views/examples/TestUserData.js";
+import TestProfilePics from "views/examples/TestProfilePics.js";
 
 var routes = [
   {
@@ -95,13 +97,7 @@ var routes = [
     component: <SectionManagement />,
     layout: "/admin",
   },
-  {
-    path: "/maps",
-    name: "Maps",
-    icon: "ni ni-pin-3 text-orange",
-    component: <Maps />,
-    layout: "/admin",
-  },
+
   {
     path: "/user-profile",
     name: "User Profile",
@@ -173,6 +169,20 @@ var routes = [
     layout: "/admin",
   },
   {
+    path: "/test-user-data",
+    name: "Test User Data",
+    icon: "ni ni-chart-bar-32 text-info",
+    component: <TestUserData />,
+    layout: "/admin",
+  },
+  {
+    path: "/test-profile-pics",
+    name: "Test Profile Pics",
+    icon: "ni ni-image text-info",
+    component: <TestProfilePics />,
+    layout: "/admin",
+  },
+  {
     path: "/index",
     name: "Dashboard",
     icon: "ni ni-tv-2 text-primary",
@@ -193,13 +203,7 @@ var routes = [
     component: <SectionManagement />,
     layout: "/student",
   },
-  {
-    path: "/maps",
-    name: "Maps",
-    icon: "ni ni-pin-3 text-orange",
-    component: <Maps />,
-    layout: "/student",
-  },
+
   {
     path: "/user-profile",
     name: "User Profile",

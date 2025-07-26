@@ -396,14 +396,19 @@ const fileToBase64 = (file) => {
   });
 };
 
+
 // Add this function for truncating text
 const truncate = (str, n) => (str && str.length > n ? str.substr(0, n - 1) + '...' : str);
 
 const ClassroomDetail = () => {
+  const [expandedAnnouncementComments, setExpandedAnnouncementComments] = useState({});
+  const [openCommentMenu, setOpenCommentMenu] = useState({});
   const formExpandedRef = useRef(); // <-- This must be the first hook!
   const navigate = useNavigate();
   const { code } = useParams();
   const location = useLocation();
+
+  
   // Read tab from query parameter on mount
   const getInitialTab = () => {
     const params = new URLSearchParams(location.search);
@@ -1962,24 +1967,12 @@ useEffect(() => {
   };
 
   // 3. Delete comment handler
-  const handleDeleteComment = (itemId, idx) => {
-    if (!window.confirm("Delete this comment?")) return;
-    // Check if item is in assignments (classwork)
-    const classworkItem = assignments.find(a => a.id === itemId);
-    if (classworkItem) {
-      setAssignments(prev => prev.map(a =>
-        a.id === itemId
-          ? { ...a, comments: (a.comments || []).filter((_, i) => i !== idx) }
-          : a
-      ));
-    } else {
-      // Otherwise, update announcements
+  const handleDeleteComment = (announcementId, idx) => {
       setAnnouncements(prev => prev.map(a =>
-        a.id === itemId
+      a.id === announcementId
           ? { ...a, comments: (a.comments || []).filter((_, i) => i !== idx) }
           : a
       ));
-    }
   };
 
   const handleLikeAnnouncement = (announcementId) => {
@@ -3251,11 +3244,11 @@ useEffect(() => {
           </NavItem>
           <NavItem>
             <NavLink
-              className={classnames({ active: activeTab === "classwork" })}
-              onClick={() => setActiveTab("classwork")}
+              className={classnames({ active: activeTab === "grades" })}
+              onClick={() => setActiveTab("grades")}
               style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
             >
-              <i className="ni ni-archive-2 mr-2" style={{ color: '#6c5ce7' }}></i> Classwork
+              <i className="ni ni-hat-3 mr-2 text-primary"></i> Grades
             </NavLink>
           </NavItem>
           <NavItem>
@@ -3265,15 +3258,6 @@ useEffect(() => {
               style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
             >
               <i className="ni ni-single-02 mr-2 text-success"></i> People
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink
-              className={classnames({ active: activeTab === "grades" })}
-              onClick={() => setActiveTab("grades")}
-              style={{ cursor: "pointer", fontWeight: 600, fontSize: 16 }}
-            >
-              <i className="ni ni-chart-bar-32 mr-2 text-warning"></i> Grades
             </NavLink>
           </NavItem>
         </Nav>
@@ -3356,11 +3340,40 @@ useEffect(() => {
                             <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>Scheduled for: {announcement.scheduledFor ? `${announcement.scheduledFor.date} ${announcement.scheduledFor.time}` : ''}</div>
                             {announcement.attachments && announcement.attachments.length > 0 && (
                               <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {announcement.attachments.map((att, idx2) => (
-                                  <div key={idx2} style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '10px 18px', minWidth: 220, maxWidth: 340 }}>
-                                    <span style={{ fontWeight: 600 }}>{att.name || att.url || 'Attachment'}</span>
-                                  </div>
-                                ))}
+                                {announcement.attachments.map((att, idx2) => {
+                                  const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                  let url = undefined;
+                                  if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                    url = URL.createObjectURL(att.file);
+                                  } else if (att.url) {
+                                    url = att.url;
+                                  }
+                                  const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                                  const displayName = isLink ? att.url : att.name;
+                                  return (
+                                    <div
+                                      key={idx2}
+                                      style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '10px 18px', minWidth: 220, maxWidth: 340, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+                                      onClick={() => {
+                                        if (isLink && att.url) {
+                                          window.open(att.url, '_blank', 'noopener,noreferrer');
+                                        } else {
+                                          handlePreviewAttachment(att);
+                                        }
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                        <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                          {type}
+                                          {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                          {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -3474,6 +3487,14 @@ useEffect(() => {
                           value={newAnnouncement}
                           onChange={e => setNewAnnouncement(e.target.value)}
                           style={{ width: '100%', minHeight: 48, borderRadius: 7, border: '1px solid #e9ecef', padding: '8px 12px', fontSize: 14, marginBottom: 14, background: '#f7fafd', height: 38 }}
+                        />
+                        {/* Hidden file input for attachments */}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          style={{ display: 'none' }}
+                          multiple
+                          onChange={handleFileChange}
                         />
                         {/* Attachment and Emoji buttons */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0, position: 'relative' }}>
@@ -3618,6 +3639,65 @@ useEffect(() => {
                             )}
                           </button>
                         </div>
+                        {attachments && attachments.length > 0 && (
+                              <div style={{ margin: '10px 0 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {attachments.map((att, idx) => {
+                                  const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                  let url = undefined;
+                                  if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                    url = URL.createObjectURL(att.file);
+                                  } else if (att.url) {
+                                    url = att.url;
+                                  }
+                                  const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                                  const displayName = isLink ? att.url : att.name;
+                                  return (
+                                    <div
+                                      key={idx}
+                                      style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e9ecef', padding: '10px 18px', minWidth: 220, maxWidth: 340, display: 'flex', alignItems: 'center', gap: 12 }}
+                                    >
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                        <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                          {type}
+                                          {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                        </div>
+                                      </div>
+                                      <button
+                                      type="button"
+                                      onClick={e => { e.stopPropagation(); handleRemoveAttachment(idx); }}
+                                      style={{
+                                        position: 'absolute',
+                                        right: 16, // or 18, to match your card padding
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#888',
+                                        fontWeight: 700,
+                                        fontSize: 22,
+                                        cursor: 'pointer',
+                                        borderRadius: '50%',
+                                        width: 32,
+                                        height: 32,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'background 0.2s'
+                                      }}
+                                      title="Remove attachment"
+                                      aria-label="Remove attachment"
+                                      tabIndex={0}
+                                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleRemoveAttachment(idx); } }}
+                                    >
+                                      &times;
+                                    </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                         {/* Action buttons */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
                           <button
@@ -3680,14 +3760,86 @@ useEffect(() => {
                           {/* Like and menu group in upper right */}
                           <div style={{ position: 'absolute', top: 16, right: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
                             <div
-                              style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#b0b0b0', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-                              // onClick={() => handleLike(announcement)}
+                              style={{ display: 'flex', alignItems: 'center', gap: 4, color: (announcement.reactions?.likedBy?.includes('Prof. Smith') ? '#324cdd' : '#b0b0b0'), fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                              onClick={() => handleLikeAnnouncement(announcement.id)}
                               title={'Like'}
                             >
-                              <i className="fa fa-thumbs-up" style={{ color: '#b0b0b0', fontSize: 18 }} />
-                              <span>{announcement.reactions?.like || 0}</span>
+                              <i className="fa fa-thumbs-up" style={{ color: (announcement.reactions?.likedBy?.includes('Prof. Smith') ? '#324cdd' : '#b0b0b0'), fontSize: 18 }} />
+                              <span style={{ color: (announcement.reactions?.likedBy?.includes('Prof. Smith') ? '#324cdd' : '#b0b0b0') }}>{announcement.reactions?.like || 0}</span>
                             </div>
-                            <i className="fa fa-ellipsis-v" /* onClick logic for menu */ />
+                            <div style={{ position: 'relative' }}>
+                              <i
+                                className="fa fa-ellipsis-v"
+                                style={{ cursor: 'pointer' }}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setAnnouncementDropdowns(prev => ({ ...prev, [announcement.id]: !prev[announcement.id] }));
+                                }}
+                                aria-label="Open announcement menu"
+                              />
+                              {announcementDropdowns[announcement.id] && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: 28,
+                                    right: 0,
+                                    background: '#fff',
+                                    borderRadius: 10,
+                                    boxShadow: '0 4px 16px rgba(44,62,80,0.13)',
+                                    zIndex: 100,
+                                    minWidth: 120,
+                                    padding: '8px 0',
+                                    border: '1px solid #e9ecef',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0
+                                  }}
+                                >
+                                  <button
+                                    style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      setEditingAnnouncementId(announcement.id);
+                                      setEditAnnouncementData({
+                                        title: announcement.title,
+                                        content: announcement.content,
+                                        attachments: announcement.attachments ? [...announcement.attachments] : [],
+                                        allowComments: announcement.allowComments,
+                                      });
+                                      setEditSelectedStudents(announcement.visibleTo || []);
+                                      setAnnouncementDropdowns({});
+                                    }}
+                                  >Edit</button>
+                                  <button
+                                    style={{ background: 'none', border: 'none', color: '#e74c3c', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      handleDeleteAnnouncement(announcement.id);
+                                      setAnnouncementDropdowns({});
+                                    }}
+                                  >Delete</button>
+                                  {announcement.isPinned ? (
+                                    <button
+                                      style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        handlePinAnnouncement(announcement.id);
+                                        setAnnouncementDropdowns({});
+                                      }}
+                                    >Unpin</button>
+                                  ) : (
+                                    <button
+                                      style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        handlePinAnnouncement(announcement.id);
+                                        setAnnouncementDropdowns({});
+                                      }}
+                                    >Pin</button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           {/* Author info, date, and pinned badge */}
                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
@@ -3706,13 +3858,373 @@ useEffect(() => {
                               </div>
                             </div>
                           </div>
-                          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
-                          <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content}</div>
-                          {/* Comments preview */}
-                          <div style={{ background: '#f7fafd', borderRadius: 10, padding: '12px 18px', marginTop: 10 }}>
-                            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}>
-                              Comments ({announcement.comments?.length || 0})
+                          {editingAnnouncementId === announcement.id ? (
+                            <form
+                              onSubmit={e => {
+                                e.preventDefault();
+                                handleSaveEditAnnouncement(announcement.id);
+                              }}
+                              style={{ marginBottom: 16 }}
+                            >
+                              {/* Allow comments at the top */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                                <input
+                                  type="checkbox"
+                                  id="editAllowComments"
+                                  checked={editAnnouncementData.allowComments}
+                                  onChange={e => setEditAnnouncementData(prev => ({ ...prev, allowComments: e.target.checked }))}
+                                  style={{ margin: 0 }}
+                                />
+                                <label htmlFor="editAllowComments" style={{ margin: 0, fontSize: 15, fontWeight: 500, color: '#444' }}>
+                                  Allow comments
+                                </label>
+                              </div>
+                              <input
+                                type="text"
+                                value={editAnnouncementData.title}
+                                onChange={e => setEditAnnouncementData(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Announcement title (optional)"
+                                style={{
+                                  width: '100%',
+                                  fontWeight: 700,
+                                  fontSize: 17,
+                                  marginBottom: 6,
+                                  borderRadius: 8,
+                                  border: '1px solid #e9ecef',
+                                  padding: '8px 12px',
+                                  color: '#232b3b',
+                                  background: '#f7fafd',
+                                  boxSizing: 'border-box',
+                                }}
+                                autoFocus
+                              />
+                              <textarea
+                                value={editAnnouncementData.content}
+                                onChange={e => setEditAnnouncementData(prev => ({ ...prev, content: e.target.value }))}
+                                placeholder="Share an announcement with your class..."
+                                style={{
+                                  width: '100%',
+                                  fontSize: 15,
+                                  borderRadius: 8,
+                                  border: '1px solid #e9ecef',
+                                  padding: '8px 12px',
+                                  color: '#232b3b',
+                                  background: '#f7fafd',
+                                  boxSizing: 'border-box',
+                                  minHeight: 60,
+                                  marginBottom: 8
+                                }}
+                              />
+                              <div style={{ margin: '16px 0 0 0' }}>
+                                <button
+                                  type="button"
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: 'none', borderRadius: 12, boxShadow: '0 2px 8px #e9ecef', padding: '12px 18px', fontWeight: 600, fontSize: 17, marginBottom: 12, cursor: 'pointer', marginRight: 0
+                                  }}
+                                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                >
+                                  <i className="fa fa-paperclip" style={{ fontSize: 22, marginRight: 8 }} /> Add Attachment
+                                </button>
+                                <input
+                                  type="file"
+                                  ref={fileInputRef}
+                                  style={{ display: 'none' }}
+                                  multiple
+                                  onChange={handleEditFileChange}
+                                />
+                                <div style={{ marginBottom: 10 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 500, color: '#222', marginBottom: 6 }}>
+                                    <i className="fa fa-user" style={{ fontSize: 18 }} />
+                                    Who can view this announcement?
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <button
+                                      type="button"
+                                      style={{ background: editSelectedStudents.length > 0 ? '#232b3b' : '#bfc0c2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer', marginTop: 4, minWidth: 180, opacity: 1, display: 'flex', alignItems: 'center', gap: 8 }}
+                                      onClick={() => setShowStudentSelectModal(true)}
+                                    >
+                                      + Select students
+                                    </button>
+                                    {editSelectedStudents.length > 0 && (
+                                      <span style={{ background: '#324cdd', color: '#fff', borderRadius: '50%', padding: '2px 10px', fontWeight: 700, fontSize: 15, marginLeft: 2, minWidth: 28, textAlign: 'center', display: 'inline-block' }}>
+                                        {editSelectedStudents.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEditAnnouncement}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#525F7F',
+                                    fontWeight: 500,
+                                    fontSize: 14,
+                                    cursor: 'pointer',
+                                    padding: '4px 10px',
+                                    height: 32,
+                                    borderRadius: 6
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  style={{
+                                    background: '#22c55e',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    fontWeight: 700,
+                                    fontSize: 14,
+                                    padding: '4px 18px',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 8px #22c55e22',
+                                    transition: 'background 0.15s',
+                                    height: 32
+                                  }}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <>
+                              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{announcement.title}</div>
+                              <div style={{ color: '#444', fontSize: 15, marginBottom: 12 }}>{announcement.content}</div>
+                            </>
+                          )}
+                          {/* Attachments preview for announcement post */}
+                          {announcement.attachments && announcement.attachments.length > 0 && (
+                            <div style={{ marginTop: 8, marginBottom: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                              {announcement.attachments.map((att, idx) => {
+                                const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                let url = undefined;
+                                if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                  url = URL.createObjectURL(att.file);
+                                } else if (att.url) {
+                                  url = att.url;
+                                }
+                                const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                                const displayName = isLink ? att.url : att.name;
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: isLink ? 'pointer' : 'pointer' }}
+                                    onClick={() => {
+                                      if (isLink && att.url) {
+                                        window.open(att.url, '_blank', 'noopener,noreferrer');
+                                      } else {
+                                        handlePreviewAttachment(att);
+                                      }
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                      <div style={{ fontSize: 13, color: color || '#90A4AE', marginTop: 2 }}>
+                                        {type}
+                                        {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                        {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
+                          )}
+                          {/* Comments preview toggle and section */}
+                          <div style={{ background: '#f7fafd', borderRadius: 10, padding: '12px 18px', marginTop: 10 }}>
+                            <div
+                              style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center' }}
+                              onClick={() =>
+                                setExpandedAnnouncementComments(prev => ({
+                                  ...prev,
+                                  [announcement.id]: !prev[announcement.id]
+                                }))
+                              }
+                            >
+                              Comments ({announcement.comments?.length || 0})
+                              <i
+                                className={`fa fa-chevron-${expandedAnnouncementComments[announcement.id] ? 'up' : 'down'}`}
+                                style={{ marginLeft: 8, fontSize: 13, color: '#888' }}
+                              />
+                            </div>
+                            {expandedAnnouncementComments[announcement.id] && (
+                              <div>
+                                {/* Render all comments here */}
+                                {announcement.comments && announcement.comments.length > 0 ? (
+                                  announcement.comments.map((comment, idx) => {
+                                    const isEditing = editingComment[announcement.id] === idx;
+                                    return (
+            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 10, position: 'relative' }}>
+              <img
+                src={getAvatarForUser(findUserByName(comment.author))}
+                alt={comment.author}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  marginRight: 10,
+                  border: '1px solid #e9ecef'
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                                          <div style={{ fontWeight: 600, fontSize: 14, color: '#232b3b' }}>{comment.author}</div>
+                    <div style={{ fontSize: 12, color: '#8898AA' }}>
+                      {new Date(comment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                                            </div>
+                  </div>
+                  {/* 3-dots menu */}
+                  <div style={{ position: 'relative', marginLeft: 8 }}>
+                    <button
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                onClick={e => {
+                                                  e.stopPropagation();
+                        setOpenCommentMenu(prev => ({ ...prev, [`${announcement.id}-${idx}`]: !prev[`${announcement.id}-${idx}`] }));
+                                                }}
+                                                aria-label="Open comment menu"
+                    >
+                      <span style={{ display: 'inline-block', fontSize: 18, color: '#6c7a89', lineHeight: 1 }}>
+                        <i className="fa fa-ellipsis-v" />
+                      </span>
+                    </button>
+                    {openCommentMenu[`${announcement.id}-${idx}`] && (
+                                                <div
+                                                  style={{
+                                                    position: 'absolute',
+                          top: 24,
+                                                    right: 0,
+                                                    background: '#fff',
+                                                    borderRadius: 10,
+                                                    boxShadow: '0 4px 16px rgba(44,62,80,0.13)',
+                                                    zIndex: 100,
+                                                    minWidth: 120,
+                                                    padding: '8px 0',
+                                                    border: '1px solid #e9ecef',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: 0
+                                                  }}
+                                                >
+                                                  <button
+                                                    style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                                    onClick={e => {
+                                                      e.stopPropagation();
+                            setEditingComment({ [announcement.id]: idx });
+                            setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: comment.text || '' }));
+                            setOpenCommentMenu({});
+                                                    }}
+                                                  >Edit</button>
+                                                  <button
+                          style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                                    onClick={e => {
+                                                      e.stopPropagation();
+                                                      handleDeleteComment(announcement.id, idx);
+                            setOpenCommentMenu({});
+                                                    }}
+                                                  >Delete</button>
+                                                </div>
+                                              )}
+                                          </div>
+                                        </div>
+                                        {isEditing ? (
+                  <div style={{ width: '100%' }}>
+                                            <input
+                                              type="text"
+                      value={editingCommentText[`${announcement.id}-${idx}`] || ''}
+                      onChange={e => setEditingCommentText(prev => ({ ...prev, [`${announcement.id}-${idx}`]: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        fontSize: 15,
+                        borderRadius: 8,
+                        border: '1px solid #e9ecef',
+                        padding: '6px 12px',
+                        margin: '6px 0 0 0',
+                        fontWeight: 500,
+                        color: '#232b3b',
+                        background: '#fff',
+                        boxSizing: 'border-box',
+                        minHeight: 32,
+                        height: 36
+                      }}
+                      autoFocus
+                    />
+                    <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center' }}>
+                                            <button
+                                              type="button"
+                        onClick={() => handleCancelEditComment(announcement.id, idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#525F7F',
+                          fontWeight: 500,
+                          fontSize: 14,
+                          cursor: 'pointer',
+                          padding: '4px 10px',
+                          height: 32,
+                          borderRadius: 6
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEditComment(announcement.id, idx)}
+                        style={{
+                          background: '#22c55e',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 6,
+                          fontWeight: 700,
+                          fontSize: 14,
+                          padding: '4px 18px',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px #22c55e22',
+                          transition: 'background 0.15s',
+                          height: 32
+                        }}
+                                            >
+                                              Save
+                                            </button>
+                    </div>
+                                          </div>
+                                        ) : (
+                  <div style={{ fontSize: 15, color: '#232b3b', marginTop: 2 }}>{comment.text}</div>
+                                        )}
+              </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+        <div style={{ color: '#888', fontSize: 14, marginBottom: 8 }}>No comments yet.</div>
+                                )}
+                                {/* Comment input */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+        <Input
+                                    type="text"
+          placeholder="Add a comment..."
+          value={commentInputs[announcement.id] || ""}
+          onChange={e => setCommentInputs(inputs => ({ ...inputs, [announcement.id]: e.target.value }))}
+          style={{ flex: 1, borderRadius: 8, border: '1px solid #e9ecef' }}
+        />
+        <Button
+          color="primary"
+          size="sm"
+          onClick={() => handlePostComment(announcement.id)}
+          style={{ borderRadius: 8, padding: '8px 16px' }}
+        >
+          <i className="fa fa-paper-plane" />
+        </Button>
+      </div>
+    </div>
+  )}
                           </div>
                         </div>
                       </div>
@@ -3746,8 +4258,8 @@ useEffect(() => {
                           const filtered = students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()));
                           const allSelected = filtered.length > 0 && filtered.every(s => tempSelectedStudents.includes(s.id));
                           return (
-                            <button
-                              type="button"
+                                  <button
+                                    type="button"
                               style={{ background: 'none', border: 'none', color: '#5e72e4', fontWeight: 500, fontSize: 12, cursor: 'pointer', padding: '1px 6px', margin: 0 }}
                               onClick={() => {
                                 if (allSelected) {
@@ -3758,10 +4270,10 @@ useEffect(() => {
                               }}
                             >
                               {allSelected ? 'Unselect All' : 'Select All'}
-                            </button>
+                                  </button>
                           );
                         })()}
-                      </div>
+                                </div>
                       <div style={{ flex: 1, maxHeight: 180, overflowY: 'auto', border: 'none', borderRadius: 12, background: '#f9fafd', padding: '0 8px 0 0', marginBottom: 8 }}>
                         {students.filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase())).length === 0 ? (
                           <div className="text-center text-muted py-5">No students found</div>
@@ -3785,7 +4297,7 @@ useEffect(() => {
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontWeight: 600, fontSize: 14, color: '#2d3748', textTransform: 'none' }}>{s.name}</div>
                                   <div style={{ fontSize: 12, color: '#7b8a9b', fontWeight: 400 }}>{s.email || ''}</div>
-                                </div>
+                              </div>
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
@@ -3803,15 +4315,15 @@ useEffect(() => {
                               </div>
                             );
                           })
-                        )}
-                      </div>
+                            )}
+                          </div>
                       {/* Selected students pills in modal */}
                       <div style={{ minHeight: 40, maxHeight: 80, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: tempSelectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'flex-start', background: '#f7f8fa', borderRadius: 10, padding: 10, border: '1.5px solid #e9ecef', marginTop: 10, marginBottom: 0 }}>
                             {tempSelectedStudents.length === 0 ? (
                               <div style={{ gridColumn: '1 / -1', width: '100%', height: '100%', minHeight: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 15, textAlign: 'center' }}>
                                 <i className="fa fa-user-plus" style={{ marginBottom: 8, fontSize: 28, display: 'block' }} />
                                 <div style={{ fontSize: 16, fontWeight: 500 }}>No students selected</div>
-                              </div>
+                        </div>
                             ) : (
                               tempSelectedStudents.map(id => {
                                 const s = students.find(stu => stu.id === id);
@@ -3832,7 +4344,7 @@ useEffect(() => {
                                 ) : null;
                               })
                             )}
-                          </div>
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
                         <button onClick={() => setShowStudentSelectModal(false)} style={{ background: '#f7fafd', color: '#222', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
                         <button onClick={() => { setSelectedAnnouncementStudents(tempSelectedStudents); setShowStudentSelectModal(false); }} style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>Confirm</button>
@@ -3901,8 +4413,8 @@ useEffect(() => {
                       <CardBody style={{ maxHeight: 320, overflowY: 'auto' }}>
                         <h5>Scheduled Tasks</h5>
                         {taskScheduled.length === 0 ? (
-                          <div style={{ color: '#888' }}>No scheduled tasks.</div>
-                        ) : (
+                        <div style={{ color: '#888' }}>No scheduled tasks.</div>
+                      ) : (
                           [...taskScheduled].sort((a, b) => {
                             const aDate = new Date(a.scheduledFor?.date + ' ' + a.scheduledFor?.time);
                             const bDate = new Date(b.scheduledFor?.date + ' ' + b.scheduledFor?.time);
@@ -3927,14 +4439,14 @@ useEffect(() => {
                                 fontWeight: 600
                               }}
                             >
-                              <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 700, fontSize: 15, color: '#232b3b', marginBottom: 2, fontFamily: 'inherit', letterSpacing: 0.5 }}>{item.title || '(No Title)'}</div>
                                 <div style={{ fontWeight: 500, fontSize: 13, color: '#232b3b', opacity: 0.85, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
                                   {truncate(item.text, 60)}
-                                </div>
+                                        </div>
                                 <div style={{ fontSize: 11, color: '#8898AA', marginTop: 2 }}>
                                   Scheduled for {item.scheduledFor.date} at {item.scheduledFor.time}
-                                </div>
+                                      </div>
                                 <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12 }}>
                                     <i className="fa fa-paperclip" style={{ marginRight: 3, fontSize: 12 }} />
@@ -3946,11 +4458,11 @@ useEffect(() => {
                                       ? `${item.visibleTo.length} student${item.visibleTo.length !== 1 ? 's' : ''} selected`
                                       : '0 students selected'}
                                   </span>
-                                </div>
+                                    </div>
                               </div>
-                            </div>
-                          ))
-                        )}
+                          </div>
+                        ))
+                      )}
                       </CardBody>
                     </Card>
                   </Collapse>
@@ -4010,12 +4522,12 @@ useEffect(() => {
                                 <div style={{ fontWeight: 700, fontSize: 15, color: '#232b3b', marginBottom: 2, fontFamily: 'inherit', letterSpacing: 0.5 }}>{draft.title || '(No Title)'}</div>
                                 <div style={{ fontWeight: 500, fontSize: 13, color: '#232b3b', opacity: 0.85, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
                                   {truncate(draft.text, 60)}
-                                </div>
+                                  </div>
                                 <div style={{ fontSize: 12, color: '#7D8FA9', marginTop: 2, display: 'flex', gap: 12, alignItems: 'center' }}>
                                   <span><b>Type:</b> {draft.type || 'Assignment'}</span>
                                   <span><b>Points:</b> {draft.points || '-'}</span>
                                   <span><b>Due:</b> {draft.dueDate || '-'}</span>
-                                </div>
+                              </div>
                                 <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
                                   <span style={{ color: '#7D8FA9', fontWeight: 700, fontSize: 12 }}>
                                     <i className="fa fa-paperclip" style={{ marginRight: 3, fontSize: 12 }} />
@@ -4033,9 +4545,9 @@ useEffect(() => {
                                 Last edited<br />
                                 {formatRelativeTime(draft.lastEdited)}
                               </div>
-                            </div>
-                          ))
-                        )}
+                          </div>
+                        ))
+                      )}
                       </CardBody>
                     </Card>
                   </Collapse>
@@ -4059,7 +4571,7 @@ useEffect(() => {
                               Editing Draft
                             </span>
                           )}
-                        </div>
+                    </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {taskFormExpanded && (
                             <>
@@ -4068,21 +4580,21 @@ useEffect(() => {
                                   {taskAssignedStudents.length}
                                 </span>
                               )}
-                              <button
-                                type="button"
+                      <button
+                        type="button"
                                 className="btn"
-                                style={{
+                        style={{
                                   borderRadius: 6,
                                   fontWeight: 600,
                                   width: 'auto',
                                   textAlign: 'center',
                                   padding: '6px 12px',
-                                  border: 'none',
+                          border: 'none',
                                   background: 'none',
                                   color: '#444',
                                   fontSize: 14,
                                   display: 'inline-flex',
-                                  alignItems: 'center',
+                          alignItems: 'center',
                                   gap: 4,
                                   boxShadow: 'none',
                                   transition: 'background 0.15s, color 0.15s',
@@ -4120,8 +4632,8 @@ useEffect(() => {
                           </button>
                         ) : null}
 
-                      </div>
-                    </div>
+                              </div>
+                              </div>
                     <Collapse isOpen={taskFormExpanded}>
                       <Form onSubmit={handlePostTask}>
                       <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
@@ -4168,8 +4680,8 @@ useEffect(() => {
       menu: base => ({ ...base, zIndex: 9999 }),
       option: (base, state) => ({
         ...base,
-        display: 'flex',
-        alignItems: 'center',
+                              display: 'flex',
+                              alignItems: 'center',
         padding: '8px 12px',
         background: state.isSelected ? '#e6f0ff' : state.isFocused ? '#f0f4fa' : '#fff',
         color: state.isDisabled ? '#aaa' : '#222',
@@ -4214,8 +4726,8 @@ useEffect(() => {
                 src={data.avatar}
                 alt="avatar"
                 style={{
-                  width: 32,
-                  height: 32,
+                              width: 32,
+                              height: 32,
                   minWidth: 32,
                   minHeight: 32,
                   borderRadius: '50%',
@@ -4226,7 +4738,7 @@ useEffect(() => {
               />
             ) : (
               <div
-                style={{
+                                style={{
                   width: 32,
                   height: 32,
                   minWidth: 32,
@@ -4247,8 +4759,8 @@ useEffect(() => {
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-              <span
-                style={{
+                                  <span
+                                    style={{
                   fontWeight: 600,
                   fontSize: 12,
                   maxWidth: 120,
@@ -4289,9 +4801,9 @@ useEffect(() => {
                 borderRadius: '50%',
                 background: '#bfcfff',
                 color: '#222',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
                 fontWeight: 700,
                 fontSize: 12,
                 marginRight: 6,
@@ -4443,24 +4955,24 @@ useEffect(() => {
                                 `}</style>
                               </div>
                             )}
-                          </div>
+                        </div>
                         </div>
                       </div>
                       {taskAttachments.length > 0 && (
                         <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                          {taskAttachments.map((att, idx) => {
-                            const { preview, type, color } = getFileTypeIconOrPreview(att);
-                            let url = undefined;
-                            if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
-                              url = URL.createObjectURL(att.file);
-                            } else if (att.url) {
-                              url = att.url;
-                            }
-                            const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
-                            const displayName = isLink ? att.url : att.name;
-                            return (
-                              <div
-                                key={idx}
+                                {taskAttachments.map((att, idx) => {
+                                  const { preview, type, color } = getFileTypeIconOrPreview(att);
+                                  let url = undefined;
+                                  if (att.file && (att.file instanceof File || att.file instanceof Blob)) {
+                                    url = URL.createObjectURL(att.file);
+                                  } else if (att.url) {
+                                    url = att.url;
+                                  }
+                                  const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                                  const displayName = isLink ? att.url : att.name;
+                                  return (
+                                    <div
+                                      key={idx}
                                 style={{ background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e9ecef', padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12, minWidth: 180, maxWidth: 320, width: '100%', cursor: 'pointer' }}
                                 onClick={() => {
                                   if (isLink && att.url) {
@@ -4469,22 +4981,22 @@ useEffect(() => {
                                     handlePreviewAttachment(att);
                                   }
                                 }}
-                              >
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
-                                  <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
-                                    {type}
-                                    {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
+                                    >
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 8 }}>{preview}</div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 16, color: '#232b3b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={displayName}>{displayName}</div>
+                                        <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 2 }}>
+                                          {type}
+                                          {url && <>&bull; <a href={url} download={att.name} style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>Download</a></>}
                                     {isLink && <>&bull; <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: color, fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>View Link</a></>}
-                                  </div>
-                                </div>
+                                        </div>
+                                      </div>
                                 <button onClick={() => handleRemoveTaskAttachment(idx)} style={{ fontSize: 18, marginLeft: 4, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>×</button>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                            )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <input
@@ -4513,7 +5025,7 @@ useEffect(() => {
                           <button
                             type="submit"
                             className="btn btn-primary"
-                            style={{ 
+                            style={{
                               borderRadius: 8, 
                               padding: '8px 12px', 
                               fontSize: 18, 
@@ -4562,7 +5074,7 @@ useEffect(() => {
                                 <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'currentColor' }}></div>
                                 <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'currentColor' }}></div>
                                 <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'currentColor' }}></div>
-                              </div>
+                        </div>
                             </DropdownToggle>
                             <DropdownMenu style={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '8px 0' }}>
                               <DropdownItem 
@@ -4596,8 +5108,8 @@ useEffect(() => {
                       </div>
                     </Form>
                     </Collapse>
-                  </div>
-                )}
+                    </div>
+                  )}
                 {activeTab === "class" && (
                   <div style={{ width: '100%' }}>
                     {tasks.map((task) => (
@@ -4691,7 +5203,7 @@ useEffect(() => {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                               <button
-                                onClick={() => handleLikeTask(task.id)}
+                              onClick={() => handleLikeTask(task.id)}
                                 style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 6, color: task.isLiked ? '#e74c3c' : '#666', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
                               >
                                 <i className={`ni ${task.isLiked ? 'ni-favourite-28' : 'ni-like-2'}`} />
@@ -4713,38 +5225,151 @@ useEffect(() => {
                           </div>
                           {task.allowComments && taskCommentsOpen[task.id] && (
                             <div style={{ borderTop: '1px solid #e9ecef', paddingTop: 16 }}>
-                              {task.comments && task.comments.map((comment, idx) => (
-                                <div key={idx} style={{ marginBottom: 12, padding: '12px 16px', background: '#f8fafc', borderRadius: 8 }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontWeight: 600, fontSize: 14 }}>
-                                        {comment.author.charAt(0).toUpperCase()}
-                                      </div>
+                              {task.comments && task.comments.map((comment, idx) => {
+                                const isEditing = editingComment[task.id] === idx;
+                                return (
+                                  <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 10, position: 'relative' }}>
+                                    <img
+                                      src={getAvatarForUser(findUserByName(comment.author))}
+                                      alt={comment.author}
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        objectFit: 'cover',
+                                        marginRight: 10,
+                                        border: '1px solid #e9ecef'
+                                      }}
+                                    />
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                       <div>
                                         <div style={{ fontWeight: 600, fontSize: 14, color: '#232b3b' }}>{comment.author}</div>
-                                        <div style={{ fontSize: 12, color: '#8898AA' }}>{formatRelativeTime(comment.date)}</div>
+                                          <div style={{ fontSize: 12, color: '#8898AA' }}>
+                                            {new Date(comment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                                       </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: 4 }}>
+                                        {/* 3-dots menu */}
+                                        <div style={{ position: 'relative', marginLeft: 8 }}>
                                       <button
-                                        onClick={() => handleEditTaskComment(task.id, idx, comment.text)}
-                                        style={{ background: 'none', border: 'none', fontSize: 12, color: '#666', cursor: 'pointer' }}
-                                      >
-                                        <i className="ni ni-ruler-pencil" />
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                              setOpenCommentMenu(prev => ({ ...prev, [`${task.id}-${idx}`]: !prev[`${task.id}-${idx}`] }));
+                                            }}
+                                            aria-label="Open comment menu"
+                                          >
+                                            <span style={{ display: 'inline-block', fontSize: 18, color: '#6c7a89', lineHeight: 1 }}>
+                                              <i className="fa fa-ellipsis-v" />
+                                            </span>
                                       </button>
-                                      <button
-                                        onClick={() => handleDeleteTaskComment(task.id, idx)}
-                                        style={{ background: 'none', border: 'none', fontSize: 12, color: '#e74c3c', cursor: 'pointer' }}
-                                      >
-                                        <i className="ni ni-fat-remove" />
+                                          {openCommentMenu[`${task.id}-${idx}`] && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                                top: 24,
+                                    right: 0,
+                                    background: '#fff',
+                                    borderRadius: 10,
+                                    boxShadow: '0 4px 16px rgba(44,62,80,0.13)',
+                                    zIndex: 100,
+                                    minWidth: 120,
+                                    padding: '8px 0',
+                                    border: '1px solid #e9ecef',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0
+                                  }}
+                                >
+                                  <button
+                                    style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                                  setEditingComment({ [task.id]: idx });
+                                                  setEditingCommentText(prev => ({ ...prev, [`${task.id}-${idx}`]: comment.text || '' }));
+                                                  setOpenCommentMenu({});
+                                    }}
+                                  >Edit</button>
+                                  <button
+                                                style={{ background: 'none', border: 'none', color: '#525F7F', fontWeight: 500, fontSize: 15, padding: '8px 18px', textAlign: 'left', cursor: 'pointer', borderRadius: 0 }}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                                  handleDeleteComment(task.id, idx);
+                                                  setOpenCommentMenu({});
+                                    }}
+                                  >Delete</button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {isEditing ? (
+                                        <div style={{ width: '100%' }}>
+                                          <input
+                                            type="text"
+                                            value={editingCommentText[`${task.id}-${idx}`] || ''}
+                                            onChange={e => setEditingCommentText(prev => ({ ...prev, [`${task.id}-${idx}`]: e.target.value }))}
+                                            style={{
+                                              width: '100%',
+                                              fontSize: 15,
+                                              borderRadius: 8,
+                                              border: '1px solid #e9ecef',
+                                              padding: '6px 12px',
+                                              margin: '6px 0 0 0',
+                                              fontWeight: 500,
+                                              color: '#232b3b',
+                                              background: '#fff',
+                                              boxSizing: 'border-box',
+                                              minHeight: 32,
+                                              height: 36
+                                            }}
+                                            autoFocus
+                                          />
+                                          <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center' }}>
+                                    <button
+                                              type="button"
+                                              onClick={() => handleCancelEditComment(task.id, idx)}
+                                              style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#525F7F',
+                                                fontWeight: 500,
+                                                fontSize: 14,
+                                                cursor: 'pointer',
+                                                padding: '4px 10px',
+                                                height: 32,
+                                                borderRadius: 6
+                                              }}
+                                            >
+                                              Cancel
+                                            </button>
+                                    <button
+                                              type="button"
+                                              onClick={() => handleSaveEditComment(task.id, idx)}
+                                              style={{
+                                                background: '#22c55e',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: 6,
+                                                fontWeight: 700,
+                                                fontSize: 14,
+                                                padding: '4px 18px',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 2px 8px #22c55e22',
+                                                transition: 'background 0.15s',
+                                                height: 32
+                                              }}
+                                            >
+                                              Save
                                       </button>
                                     </div>
                                   </div>
-                                  <div style={{ fontSize: 14, color: '#232b3b', marginTop: 8 }}>
-                                    {comment.text}
+                                      ) : (
+                                        <div style={{ fontSize: 15, color: '#232b3b', marginTop: 2 }}>{comment.text}</div>
+                                      )}
                                   </div>
                                 </div>
-                              ))}
+                                );
+                              })}
                               <div style={{ marginTop: 12 }}>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                                   <Input
@@ -4764,12 +5389,12 @@ useEffect(() => {
                                   </Button>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                                </div>
+                              )}
                         </CardBody>
                       </Card>
                     ))}
-                  </div>
+                            </div>
                 )}
               </CardBody>
             </Card>
@@ -4784,7 +5409,7 @@ useEffect(() => {
                   <Button size="sm" style={{ borderRadius: "8px", backgroundColor: "#7B8CFF", borderColor: "#7B8CFF", color: "white" }} onClick={() => setShowInviteModal(true)}>
                     <i className="fa fa-user-plus mr-1" style={{ color: "white" }}></i> Invite
                   </Button>
-                </div>
+                          </div>
                 
                 <Table responsive>
                   <thead>
@@ -4814,7 +5439,7 @@ useEffect(() => {
                               }}
                             />
                             <span style={{ fontWeight: 600, color: '#232b3b', fontSize: '14px' }}>{student.name}</span>
-                          </div>
+                              </div>
                         </td>
                         <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>{student.email}</td>
                         <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
@@ -4849,7 +5474,6 @@ useEffect(() => {
                     <i className="ni ni-fat-add mr-1"></i> Add Grade
                   </Button>
                 </div>
-                
                 <Table responsive>
                   <thead>
                     <tr>
@@ -5250,8 +5874,8 @@ useEffect(() => {
                     Download File
                   </Button>
                 </div>
-              )}
-            </div>
+                                  )}
+                                </div>
           )}
         </ModalBody>
       </Modal>
@@ -5289,7 +5913,7 @@ useEffect(() => {
                 >
                   Switch Camera
                 </Button>
-        </div>
+                              </div>
               {cameraError && (
                 <div style={{ color: 'red', marginBottom: 8, fontWeight: 600 }}>{cameraError}</div>
               )}
@@ -5301,8 +5925,8 @@ useEffect(() => {
                       <div>Camera not started</div>
                       <div style={{ fontSize: 12, marginTop: 8, color: '#ccc' }}>
                         Click "Start Camera" to begin
-                      </div>
-                    </div>
+                            </div>
+                          </div>
                   </div>
                 ) : (
                   <>

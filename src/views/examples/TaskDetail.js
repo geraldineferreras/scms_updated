@@ -497,7 +497,7 @@ const TaskDetail = () => {
               </div>
               {/* Right: Submission Details */}
               {qrGradingMode ? (
-                <QRGradingPanel student={selectedStudent} onGradeSubmit={handleQRGradeSubmit} />
+                <QRGradingPanel student={filteredSubmissions} onGradeSubmit={handleQRGradeSubmit} />
               ) : (
                 <div style={{ width: 340, maxHeight: 600, overflowY: 'auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #324cdd11', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   {selectedStudent ? (

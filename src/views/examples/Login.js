@@ -66,7 +66,7 @@ const Login = () => {
         } else {
           navigate("/");
         }
-        console.log('Login successful:', result);
+
       } else {
         setError(result.message || 'Login failed');
       }

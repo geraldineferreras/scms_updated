@@ -301,7 +301,16 @@ const UserManagement = () => {
 
     setIsDeleting(true);
     try {
-      await ApiService.deleteUser(deleteUserId);
+      // Use role-specific delete methods based on active tab
+      let response;
+      if (activeTab === 'admin') {
+        response = await ApiService.deleteAdminUser(deleteUserId);
+      } else if (activeTab === 'teacher') {
+        response = await ApiService.deleteTeacherUser(deleteUserId);
+      } else if (activeTab === 'student') {
+        response = await ApiService.deleteStudentUser(deleteUserId);
+      }
+      
       setShowDeleteSuccess(true);
       
       // Refresh the users list
@@ -314,24 +323,24 @@ const UserManagement = () => {
       } else if (Array.isArray(data.data)) {
         usersArr = data.data;
       }
-             usersArr = usersArr.map(user => ({
-         ...user,
-         id: user.id || user.user_id || user.userId || '', // Add ID normalization
-         full_name: user.full_name || user.name || '',
-         program: user.program || (user.role === 'admin' ? 'Administration' : '') || user.department || '',
-         course_year_section: user.course_year_section || user.section || '',
-         last_login: user.last_login || user.lastLogin || '',
-         profile_pic: user.profile_pic || user.profileImageUrl || user.avatar || '',
-         cover_pic: user.cover_pic || user.coverPhotoUrl || '',
-         student_num: user.student_num || user.studentNumber || '',
-       }));
+      usersArr = usersArr.map(user => ({
+        ...user,
+        id: user.id || user.user_id || user.userId || '', // Add ID normalization
+        full_name: user.full_name || user.name || '',
+        program: user.program || (user.role === 'admin' ? 'Administration' : '') || user.department || '',
+        course_year_section: user.course_year_section || user.section || '',
+        last_login: user.last_login || user.lastLogin || '',
+        profile_pic: user.profile_pic || user.profileImageUrl || user.avatar || '',
+        cover_pic: user.cover_pic || user.coverPhotoUrl || '',
+        student_num: user.student_num || user.studentNumber || '',
+      }));
       setUsers(usersArr);
       
       setTimeout(() => {
         setShowDeleteSuccess(false);
       }, 3000);
     } catch (error) {
-      console.error("Error deleting user:", error);
+      // Error handling without debug log
     } finally {
       setIsDeleting(false);
       setDeleteUserId(null);

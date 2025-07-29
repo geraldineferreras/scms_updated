@@ -265,12 +265,9 @@ class ApiService {
         }
       }
       
-      console.log('Updating admin user - has files:', hasFiles);
-      
       let response;
       if (hasFiles) {
         // Send as multipart/form-data using POST
-        console.log('Sending FormData with files to admin update');
         response = await axios.post(`${API_BASE}/admin/update`, formData, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -285,7 +282,6 @@ class ApiService {
           jsonData[key] = value;
         }
         
-        console.log('Sending JSON data to admin update:', jsonData);
         response = await axios.put(`${API_BASE}/admin/update`, jsonData, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -295,7 +291,6 @@ class ApiService {
         });
       }
       
-      console.log('Admin update response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Full admin update error:', error);
@@ -323,12 +318,9 @@ class ApiService {
         }
       }
       
-      console.log('Updating teacher user - has files:', hasFiles);
-      
       let response;
       if (hasFiles) {
         // Send as multipart/form-data using POST
-        console.log('Sending FormData with files to teacher update');
         response = await axios.post(`${API_BASE}/teacher/update`, formData, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -343,7 +335,6 @@ class ApiService {
           jsonData[key] = value;
         }
         
-        console.log('Sending JSON data to teacher update:', jsonData);
         response = await axios.put(`${API_BASE}/teacher/update`, jsonData, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -353,7 +344,6 @@ class ApiService {
         });
       }
       
-      console.log('Teacher update response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Full teacher update error:', error);
@@ -381,12 +371,9 @@ class ApiService {
         }
       }
       
-      console.log('Updating student user - has files:', hasFiles);
-      
       let response;
       if (hasFiles) {
         // Send as multipart/form-data using POST
-        console.log('Sending FormData with files to student update');
         response = await axios.post(`${API_BASE}/student/update`, formData, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -401,7 +388,6 @@ class ApiService {
           jsonData[key] = value;
         }
         
-        console.log('Sending JSON data to student update:', jsonData);
         response = await axios.put(`${API_BASE}/student/update`, jsonData, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -411,7 +397,6 @@ class ApiService {
         });
       }
       
-      console.log('Student update response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Full student update error:', error);
@@ -533,6 +518,97 @@ class ApiService {
       method: 'GET',
       requireAuth: true,
     });
+  }
+
+  // Role-specific delete methods
+  async deleteAdminUser(userId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    try {
+      const response = await axios.delete(`${API_BASE}/admin/delete`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: { 
+          user_id: userId,
+          role: 'admin'
+        },
+        timeout: 30000,
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Full admin delete error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Admin delete failed';
+      console.error('Admin delete error:', message);
+      throw new Error(message);
+    }
+  }
+
+  async deleteTeacherUser(userId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    try {
+      const response = await axios.delete(`${API_BASE}/teacher/delete`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: { 
+          user_id: userId,
+          role: 'teacher'
+        },
+        timeout: 30000,
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Full teacher delete error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Teacher delete failed';
+      console.error('Teacher delete error:', message);
+      throw new Error(message);
+    }
+  }
+
+  async deleteStudentUser(userId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    try {
+      const response = await axios.delete(`${API_BASE}/student/delete`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: { 
+          user_id: userId,
+          role: 'student'
+        },
+        timeout: 30000,
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Full student delete error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Student delete failed';
+      console.error('Student delete error:', message);
+      throw new Error(message);
+    }
   }
 }
 

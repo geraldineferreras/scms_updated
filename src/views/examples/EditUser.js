@@ -456,12 +456,6 @@ const EditUser = () => {
         formData.append('cover_pic', coverPhotoFile);
       }
       
-      // Debug: Log what we're sending
-      console.log('Sending FormData with role:', formRole);
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value instanceof File ? `File: ${value.name}` : value);
-      }
-      
       // Use role-specific update methods (now supports both files and text)
       let response;
       if (formRole === 'admin') {
@@ -471,8 +465,6 @@ const EditUser = () => {
       } else if (formRole === 'student') {
         response = await ApiService.updateStudentUser(formData);
       }
-      
-      console.log('Update response:', response);
       
       // Hide loading modal and show success modal
       setShowLoadingModal(false);

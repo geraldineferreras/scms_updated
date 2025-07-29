@@ -147,6 +147,11 @@ const SectionManagement = () => {
   const [sectionStudents, setSectionStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState(null);
+  const [deletingSection, setDeletingSection] = useState(false);
+
   // Add state to track original sections for each course
   const [originalSections, setOriginalSections] = useState({});
 
@@ -169,6 +174,19 @@ const SectionManagement = () => {
     loadInitialData();
   }, []);
 
+  // Refresh sections when component becomes visible (e.g., after navigation)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !loading) {
+        console.log('Page became visible, refreshing sections data...');
+        loadSectionsForCourse(activeCourseTab);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [activeCourseTab, loading]);
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -176,6 +194,8 @@ const SectionManagement = () => {
       
       // Load sections for the active course tab
       const sectionsData = await apiService.getSectionsByCourse(activeCourseTab);
+      
+      console.log('Initial sections data received:', sectionsData);
       
       // Load supporting data (courses, teachers, students)
       const [coursesData, teachersData, studentsData] = await Promise.all([
@@ -185,19 +205,31 @@ const SectionManagement = () => {
       ]);
 
       // Validate and clean sections data
-      const cleanSections = (sectionsData.data || sectionsData || []).map(section => ({
-        id: section.id || Math.random(),
-        name: section.name || section.section_name || 'Unnamed Section',
-        course: section.course || activeCourseTab,
-        year: section.year || section.year_level || '1st Year',
-        adviserId: section.adviserId || section.adviser_id || null,
-        adviserDetails: section.adviserDetails || section.adviser_details || null,
-        enrolled: section.enrolled || section.student_count || 0,
-        ay: section.ay || section.academic_year || '2024-2025',
-        semester: section.semester || '1st Semester',
-        ...section // Keep any other properties
-      }));
+      const cleanSections = (sectionsData.data || sectionsData || []).map(section => {
+        const rawName = section.name || section.section_name || 'Unnamed Section';
+        const rawYear = section.year || section.year_level || '1st Year';
+        const program = section.course || activeCourseTab;
+        
+        console.log(`Processing section: ${rawName}, year: ${rawYear}, program: ${program}`);
+        
+        return {
+          id: section.id || Math.random(),
+          name: formatSectionName(rawName, program, rawYear), // Format: "BSIT 4A"
+          originalName: rawName, // Keep original for editing
+          course: program,
+          year: rawYear, // Keep original year format for filtering
+          yearFormatted: formatYearLevel(rawYear), // Store formatted version for display
+          originalYear: rawYear, // Keep original for editing
+          adviserId: section.adviserId || section.adviser_id || null,
+          adviserDetails: section.adviserDetails || section.adviser_details || null,
+          enrolled: section.enrolled || section.student_count || 0,
+          ay: section.ay || section.academic_year || '2024-2025',
+          semester: section.semester || '1st Semester',
+          ...section // Keep any other properties
+        };
+      });
 
+      console.log(`Processed ${cleanSections.length} sections for initial load`);
       setSections(cleanSections);
       setTeachers(teachersData.data || teachersData || []);
       setCourses(coursesData.data || coursesData || []);
@@ -222,20 +254,36 @@ const SectionManagement = () => {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
+      console.log(`Loading sections for course: ${course}`);
+      
       const sectionsData = await apiService.getSectionsByCourse(course);
+      console.log(`Raw sections data received for ${course}:`, sectionsData);
       
       // Validate and clean sections data
-      const cleanSections = (sectionsData.data || sectionsData || []).map(section => {
+      const sectionsArray = sectionsData.data || sectionsData || [];
+      console.log(`Sections array length: ${sectionsArray.length}`);
+      console.log(`Sections array:`, sectionsArray);
+      
+      const cleanSections = sectionsArray.map(section => {
+        console.log(`Processing section:`, section);
         const rawName = section.name || section.section_name || 'Unnamed Section';
         const rawYear = section.year || section.year_level || '1st Year';
         const program = section.course || course;
         
-        return {
+        // Log enrollment data specifically
+        console.log(`Section ${section.id} enrollment data:`, {
+          enrolled: section.enrolled,
+          student_count: section.student_count,
+          final_enrolled: section.enrolled || section.student_count || 0
+        });
+        
+        const processedSection = {
           id: section.id || Math.random(),
           name: formatSectionName(rawName, program, rawYear), // Format: "BSIT 4A"
           originalName: rawName, // Keep original for editing
           course: program,
-          year: formatYearLevel(rawYear), // Format: "4th Year"
+          year: rawYear, // Keep original year format for filtering
+          yearFormatted: formatYearLevel(rawYear), // Store formatted version for display
           originalYear: rawYear, // Keep original for editing
           adviserId: section.adviserId || section.adviser_id || null,
           adviserDetails: section.adviserDetails || section.adviser_details || null,
@@ -244,9 +292,19 @@ const SectionManagement = () => {
           semester: section.semester || '1st Semester',
           ...section // Keep any other properties
         };
+        
+        console.log(`Processed section:`, processedSection);
+        return processedSection;
       });
       
       console.log(`Setting ${cleanSections.length} sections for course ${course}`);
+      console.log(`Final clean sections:`, cleanSections);
+      
+      // Log enrollment counts for debugging
+      cleanSections.forEach(section => {
+        console.log(`Section "${section.name}": ${section.enrolled} students enrolled`);
+      });
+      
       setSections(cleanSections);
       
       // Store original sections for this course
@@ -307,7 +365,8 @@ const SectionManagement = () => {
               name: formatSectionName(rawName, program, rawYear), // Format: "BSIT 4A"
               originalName: rawName, // Keep original for editing
               course: program,
-              year: formatYearLevel(rawYear), // Format: "4th Year"
+              year: rawYear, // Keep original year format for filtering
+              yearFormatted: formatYearLevel(rawYear), // Store formatted version for display
               originalYear: rawYear, // Keep original for editing
               adviserId: section.adviserId || section.adviser_id || null,
               adviserDetails: section.adviserDetails || section.adviser_details || null,
@@ -327,12 +386,32 @@ const SectionManagement = () => {
         
         // Filter sections by year for ALL programs
         const yearFilter = yearLevel + ' Year';
-        const filteredSections = allSections.filter(section => 
-          section.year === yearFilter || 
-          section.year === yearLevel ||
-          section.year_level === yearLevel ||
-          section.year_level === yearLevel + ' Year'
-        );
+        const yearFilterShort = yearLevel; // Just the ordinal (1st, 2nd, 3rd, 4th)
+        
+        console.log(`Filtering sections for year: ${yearLevel}`);
+        console.log(`Year filter options: "${yearFilter}", "${yearFilterShort}"`);
+        console.log(`Total sections to filter: ${allSections.length}`);
+        
+        const filteredSections = allSections.filter(section => {
+          const sectionYear = section.year || section.year_level || '';
+          const sectionYearFormatted = section.yearFormatted || formatYearLevel(sectionYear);
+          
+          const matches = sectionYear === yearFilter || 
+                         sectionYear === yearFilterShort ||
+                         sectionYearFormatted === yearFilterShort ||
+                         sectionYear.includes(yearLevel) ||
+                         sectionYearFormatted.includes(yearLevel);
+          
+          if (matches) {
+            console.log(`Section "${section.name}" matches year filter:`, {
+              originalYear: sectionYear,
+              formattedYear: sectionYearFormatted,
+              yearLevel: yearLevel
+            });
+          }
+          
+          return matches;
+        });
         
         console.log(`Filtered ${filteredSections.length} sections for year ${yearLevel} in ${course}`);
         setSections(filteredSections);
@@ -384,6 +463,19 @@ const SectionManagement = () => {
   // Handle section operations
   const handleEditSection = async (section) => {
     try {
+      console.log('Editing section with data:', section);
+      console.log('Section properties:', {
+        id: section.id,
+        name: section.name,
+        course: section.course,
+        year: section.year,
+        originalYear: section.originalYear,
+        yearFormatted: section.yearFormatted,
+        ay: section.ay,
+        semester: section.semester,
+        adviserId: section.adviserId,
+        adviserDetails: section.adviserDetails
+      });
       navigate('/admin/edit-section', { state: { section } });
     } catch (error) {
       console.error('Error editing section:', error);
@@ -392,16 +484,34 @@ const SectionManagement = () => {
   };
 
   const handleDeleteSection = async (section) => {
-    if (window.confirm(`Are you sure you want to delete section "${section.name}"? This action cannot be undone.`)) {
-      try {
-        await apiService.deleteSection(section.id);
-        setSections(prevSections => prevSections.filter(s => s.id !== section.id));
-        alert('Section deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting section:', error);
-        setError('Failed to delete section. Please try again.');
-      }
+    setSectionToDelete(section);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteSection = async () => {
+    if (!sectionToDelete) return;
+    
+    try {
+      setDeletingSection(true);
+      await apiService.deleteSection(sectionToDelete.id);
+      setSections(prevSections => prevSections.filter(s => s.id !== sectionToDelete.id));
+      setShowDeleteModal(false);
+      setSectionToDelete(null);
+      setDeletingSection(false);
+      // Show success message
+      setError(null);
+      // You can add a success toast or alert here if needed
+    } catch (error) {
+      console.error('Error deleting section:', error);
+      setError('Failed to delete section. Please try again.');
+      setDeletingSection(false);
     }
+  };
+
+  const cancelDeleteSection = () => {
+    setShowDeleteModal(false);
+    setSectionToDelete(null);
+    setDeletingSection(false);
   };
 
   const handleExportSections = async () => {
@@ -930,6 +1040,18 @@ const SectionManagement = () => {
                       {currentCourseName} ({filteredAndSortedSections.length})
                     </div>
                     <div>
+                      <Button 
+                        color="secondary" 
+                        outline 
+                        className="mr-2" 
+                        size="sm" 
+                        style={{ padding: '3px 10px', fontSize: '0.75rem' }} 
+                        onClick={() => loadSectionsForCourse(activeCourseTab)}
+                        disabled={loading}
+                      >
+                        <i className={`ni ni-refresh ${loading ? 'fa-spin' : ''} mr-2`} /> 
+                        {loading ? 'Loading...' : 'Refresh'}
+                      </Button>
                       <Button color="info" outline className="mr-2" size="sm" style={{ padding: '3px 10px', fontSize: '0.75rem' }} onClick={handleExportSections}>
                         <i className="ni ni-archive-2 mr-2" /> Export
                       </Button>
@@ -1144,6 +1266,64 @@ const SectionManagement = () => {
         </Row>
       </Container>
       {renderStudentsModal()}
+      
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={showDeleteModal} toggle={cancelDeleteSection} centered>
+        <ModalHeader toggle={cancelDeleteSection} className="border-0 pb-0">
+          <div className="d-flex align-items-center">
+            <div className="bg-danger rounded-circle d-flex align-items-center justify-content-center mr-3" style={{ width: '40px', height: '40px' }}>
+              <i className="ni ni-fat-remove text-white" style={{ fontSize: '1.2rem' }}></i>
+            </div>
+            <div>
+              <h4 className="mb-0 text-danger">Delete Section</h4>
+              <p className="text-muted mb-0 small">This action cannot be undone</p>
+            </div>
+          </div>
+        </ModalHeader>
+        <ModalBody className="pt-3">
+          <div className="text-center mb-4">
+            <div className="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style={{ width: '80px', height: '80px' }}>
+              <i className="ni ni-fat-remove text-danger" style={{ fontSize: '2.5rem' }}></i>
+            </div>
+            <h5 className="mb-2">Are you sure?</h5>
+            <p className="text-muted mb-0">
+              You are about to delete the section <strong>"{sectionToDelete?.name}"</strong>.
+              <br />
+              This will permanently remove the section and all associated data.
+            </p>
+          </div>
+          
+          <div className="d-flex justify-content-center gap-3">
+            <Button
+              color="secondary"
+              outline
+              onClick={cancelDeleteSection}
+              disabled={deletingSection}
+              style={{ minWidth: '120px' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onClick={confirmDeleteSection}
+              disabled={deletingSection}
+              style={{ minWidth: '120px' }}
+            >
+              {deletingSection ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <i className="ni ni-fat-remove mr-2"></i>
+                  Delete Section
+                </>
+              )}
+            </Button>
+          </div>
+        </ModalBody>
+      </Modal>
     </>
   );
 };

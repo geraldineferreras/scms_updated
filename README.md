@@ -1,14 +1,14 @@
-# [Argon Dashboard React](https://demos.creative-tim.com/argon-dashboard-react?ref=adr-github-readme) [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&logo=twitter)](https://twitter.com/home?status=Argon%20Dashboard%20is%20a%20Free%20Bootstrap%204,%20React%20and%20Reactstrap%20Dashboard%20made%20using%20create-react-app%20%E2%9D%A4%EF%B8%8F%0Ahttps%3A//demos.creative-tim.com/argon-dashboard-react%20%23react%20%23reactstrap%20%23createreactapp%20%23argon%20%23argondesign%20%23reactdashboard%20%23argonreact%20%23reactdesign%20%23bootstrap%20%23material%20%23design%20%23uikit%20%23freebie%20%20via%20%40CreativeTim)
+# [SCMS - Student Class Management System](https://demos.creative-tim.com/argon-dashboard-react?ref=adr-github-readme) [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&logo=twitter)](https://twitter.com/home?status=SCMS%20is%20a%20comprehensive%20Student%20Class%20Management%20System%20built%20with%20React%20and%20Bootstrap%204%20%E2%9D%A4%EF%B8%8F%0Ahttps%3A//demos.creative-tim.com/argon-dashboard-react%20%23react%20%23reactstrap%20%23createreactapp%20%23scms%20%23student%20%23class%20%23management%20%23system%20%23education%20%23dashboard%20%23reactdesign%20%23bootstrap%20%23material%20%23design%20%23uikit%20%23freebie%20%20via%20%40CreativeTim)
 
 ![version](https://img.shields.io/badge/version-1.2.4-blue.svg) ![license](https://img.shields.io/badge/license-MIT-blue.svg) [![GitHub issues open](https://img.shields.io/github/issues/creativetimofficial/argon-dashboard-react.svg?maxAge=2592000)](https://github.com/creativetimofficial/argon-dashboard-react/issues?q=is%3Aopen+is%3Aissue) [![GitHub issues closed](https://img.shields.io/github/issues-closed-raw/creativetimofficial/argon-dashboard-react.svg?maxAge=2592000)](https://github.com/creativetimofficial/argon-dashboard-react/issues?q=is%3Aissue+is%3Aclosed) [![Join the chat at https://gitter.im/NIT-dgp/General](https://badges.gitter.im/NIT-dgp/General.svg)](https://gitter.im/creative-tim-general/Lobby) [![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg)](https://discord.gg/E4aHAQy)
 
 ![Product Gif](https://raw.githubusercontent.com/creativetimofficial/public-assets/master/argon-dashboard-react/argon-dashboard-react.gif)
 
-Start your development with a Dashboard for [Bootstrap 4](https://getbootstrap.com/?ref=creativetim), [React](https://reactjs.org/?ref=creativetim) and [Reactstrap](https://reactstrap.github.io/?ref=creativetim), made with [create-react-app](https://facebook.github.io/create-react-app/?ref=creativetim). It is open source, free and it features many components that can help you create amazing websites.
+Start your development with SCMS - Student Class Management System, a comprehensive dashboard for [Bootstrap 4](https://getbootstrap.com/?ref=creativetim), [React](https://reactjs.org/?ref=creativetim) and [Reactstrap](https://reactstrap.github.io/?ref=creativetim), made with [create-react-app](https://facebook.github.io/create-react-app/?ref=creativetim). It is open source, free and it features many components that can help you create amazing educational management websites.
 
 **Fully Coded Components**
 
-Argon Dashboard React is built with over 100 individual components, giving you the freedom of choosing and combining. All components can take variations in color, that you can easily modify using SASS files.
+SCMS is built with over 100 individual components, giving you the freedom of choosing and combining. All components can take variations in color, that you can easily modify using SASS files.
 You will save a lot of time going from prototyping to full-functional code, because all elements are implemented. This Dashboard is coming with pre-built examples, so the development process is seamless, switching from our pages to the real website is very easy to be done.
 Every element has multiple states for colors, styles, hover, focus, that you can easily access and use.
 
@@ -82,104 +82,104 @@ The documentation for the Material Kit is hosted at our [website](https://demos.
 Within the download you'll find the following directories and files:
 
 ```
-Argon Dashboard React
+SCMS
 .
 ├── Documentation
-│   └── documentation.html
+│   └── documentation.html
 ├── CHANGELOG.md
 ├── ISSUE_TEMPLATE.md
 ├── LICENSE
 ├── README.md
 ├── package.json
 ├── public
-│   ├── favicon.ico
-│   ├── index.html
-│   └── manifest.json
+│   ├── favicon.ico
+│   ├── index.html
+│   └── manifest.json
 └── src
     ├── assets
-    │   ├── css
-    │   │   ├── argon-dashboard-react.css
-    │   │   ├── argon-dashboard-react.css.map
-    │   │   └── argon-dashboard-react.min.css
-    │   ├── fonts
-    │   │   └── nucleo
-    │   ├── img
-    │   │   ├── brand
-    │   │   ├── icons
-    │   │   │   └── common
-    │   │   └── theme
-    │   ├── scss
-    │   │   ├── argon-dashboard-react.scss
-    │   │   ├── bootstrap
-    │   │   │   ├── mixins
-    │   │   │   └── utilities
-    │   │   ├── core
-    │   │   │   ├── alerts
-    │   │   │   ├── avatars
-    │   │   │   ├── badges
-    │   │   │   ├── buttons
-    │   │   │   ├── cards
-    │   │   │   ├── charts
-    │   │   │   ├── close
-    │   │   │   ├── custom-forms
-    │   │   │   ├── dropdowns
-    │   │   │   ├── footers
-    │   │   │   ├── forms
-    │   │   │   ├── headers
-    │   │   │   ├── icons
-    │   │   │   ├── list-groups
-    │   │   │   ├── maps
-    │   │   │   ├── masks
-    │   │   │   ├── mixins
-    │   │   │   ├── modals
-    │   │   │   ├── navbars
-    │   │   │   ├── navs
-    │   │   │   ├── paginations
-    │   │   │   ├── popovers
-    │   │   │   ├── progresses
-    │   │   │   ├── separators
-    │   │   │   ├── tables
-    │   │   │   ├── type
-    │   │   │   ├── utilities
-    │   │   │   └── vendors
-    │   │   ├── custom
-    │   │   └── react
-    │   └── vendor
-    │       ├── @fortawesome
-    │       │   └── fontawesome-free
-    │       │       ├── LICENSE.txt
-    │       │       ├── css
-    │       │       ├── js
-    │       │       ├── less
-    │       │       ├── scss
-    │       │       ├── sprites
-    │       │       ├── svgs
-    │       │       │   ├── brands
-    │       │       │   ├── regular
-    │       │       │   └── solid
-    │       │       └── webfonts
-    │       └── nucleo
-    │           ├── css
-    │           └── fonts
+    │   ├── css
+    │   │   ├── argon-dashboard-react.css
+    │   │   ├── argon-dashboard-react.css.map
+    │   │   └── argon-dashboard-react.min.css
+    │   ├── fonts
+    │   │   └── nucleo
+    │   ├── img
+    │   │   ├── brand
+    │   │   ├── icons
+    │   │   │   └── common
+    │   │   └── theme
+    │   ├── scss
+    │   │   ├── argon-dashboard-react.scss
+    │   │   ├── bootstrap
+    │   │   │   ├── mixins
+    │   │   │   └── utilities
+    │   │   ├── core
+    │   │   │   ├── alerts
+    │   │   │   ├── avatars
+    │   │   │   ├── badges
+    │   │   │   ├── buttons
+    │   │   │   ├── cards
+    │   │   │   ├── charts
+    │   │   │   ├── close
+    │   │   │   ├── custom-forms
+    │   │   │   ├── dropdowns
+    │   │   │   ├── footers
+    │   │   │   ├── forms
+    │   │   │   ├── headers
+    │   │   │   ├── icons
+    │   │   │   ├── list-groups
+    │   │   │   ├── maps
+    │   │   │   ├── masks
+    │   │   │   ├── mixins
+    │   │   │   ├── modals
+    │   │   │   ├── navbars
+    │   │   │   ├── navs
+    │   │   │   ├── paginations
+    │   │   │   ├── popovers
+    │   │   │   ├── progresses
+    │   │   │   ├── separators
+    │   │   │   ├── tables
+    │   │   │   ├── type
+    │   │   │   ├── utilities
+    │   │   │   └── vendors
+    │   │   ├── custom
+    │   │   └── react
+    │   └── vendor
+    │       ├── @fortawesome
+    │       │   └── fontawesome-free
+    │       │       ├── LICENSE.txt
+    │       │       ├── css
+    │       │       ├── js
+    │       │       ├── less
+    │       │       ├── scss
+    │       │       ├── sprites
+    │       │       ├── svgs
+    │       │       │   ├── brands
+    │       │       │   ├── regular
+    │       │       │   └── solid
+    │       │       └── webfonts
+    │       └── nucleo
+    │           ├── css
+    │           └── fonts
     ├── components
-    │   ├── Footers
-    │   │   ├── AdminFooter.jsx
-    │   │   └── AuthFooter.jsx
-    │   ├── Headers
-    │   │   ├── Header.jsx
-    │   │   └── UserHeader.jsx
-    │   ├── Navbars
-    │   │   ├── AdminNavbar.jsx
-    │   │   └── AuthNavbar.jsx
-    │   └── Sidebar
-    │       └── Sidebar.jsx
+    │   ├── Footers
+    │   │   ├── AdminFooter.jsx
+    │   │   └── AuthFooter.jsx
+    │   ├── Headers
+    │   │   ├── Header.jsx
+    │   │   └── UserHeader.jsx
+    │   ├── Navbars
+    │   │   ├── AdminNavbar.jsx
+    │   │   └── AuthNavbar.jsx
+    │   └── Sidebar
+    │       └── Sidebar.jsx
     ├── index.js
     ├── layouts
-    │   ├── Admin.jsx
-    │   └── Auth.jsx
+    │   ├── Admin.jsx
+    │   └── Auth.jsx
     ├── routes.js
     ├── variables
-    │   └── charts.jsx
+    │   └── charts.jsx
     └── views
         ├── Index.jsx
         └── examples

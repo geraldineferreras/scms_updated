@@ -18,7 +18,7 @@ import {
   Badge,
   Spinner,
 } from "reactstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "components/Headers/Header.js";
 import ApiService from "../../services/api.js";
 import userDefault from "../../assets/img/theme/user-default.svg";
@@ -31,6 +31,56 @@ const courseOptions = [
   { value: "bsis", label: "BSIS" },
   { value: "act", label: "ACT" },
 ];
+
+// Helper function to normalize course value
+const normalizeCourse = (courseValue) => {
+  if (!courseValue) return 'bsit';
+  
+  const normalized = courseValue.toLowerCase();
+  if (normalized.includes('bsit')) return 'bsit';
+  if (normalized.includes('bscs')) return 'bscs';
+  if (normalized.includes('bsis')) return 'bsis';
+  if (normalized.includes('act')) return 'act';
+  
+  return 'bsit'; // default
+};
+
+// Helper function to normalize year level
+const normalizeYearLevel = (yearValue) => {
+  if (!yearValue) return '1';
+  
+  const normalized = yearValue.toLowerCase();
+  if (normalized.includes('1st') || normalized.includes('1')) return '1';
+  if (normalized.includes('2nd') || normalized.includes('2')) return '2';
+  if (normalized.includes('3rd') || normalized.includes('3')) return '3';
+  if (normalized.includes('4th') || normalized.includes('4')) return '4';
+  
+  return '1'; // default
+};
+
+// Helper function to normalize semester
+const normalizeSemester = (semesterValue) => {
+  if (!semesterValue) return '1st Semester';
+  
+  const normalized = semesterValue.toLowerCase();
+  if (normalized.includes('1st') || normalized.includes('1')) return '1st Semester';
+  if (normalized.includes('2nd') || normalized.includes('2')) return '2nd Semester';
+  if (normalized.includes('summer')) return 'Summer';
+  
+  return '1st Semester'; // default
+};
+
+// Helper function to format semester for API
+const formatSemesterForAPI = (semesterValue) => {
+  if (!semesterValue) return '1st';
+  
+  const normalized = semesterValue.toLowerCase();
+  if (normalized.includes('1st') || normalized.includes('1')) return '1st';
+  if (normalized.includes('2nd') || normalized.includes('2')) return '2nd';
+  if (normalized.includes('summer')) return 'Summer';
+  
+  return '1st'; // default
+};
 
 // Helper function to generate consistent avatars for students
 const getStudentAvatar = (student) => {
@@ -62,6 +112,7 @@ const EditSection = () => {
   const [semester, setSemester] = useState("");
   const [adviser, setAdviser] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [originalStudents, setOriginalStudents] = useState([]); // Track original students
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [studentModal, setStudentModal] = useState(false);
@@ -73,7 +124,132 @@ const EditSection = () => {
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const adviserInputRef = useRef();
+
+  // Get section data from navigation state
+  const sectionData = location.state?.section;
+
+  // Debug: Log the received section data
+  useEffect(() => {
+    console.log('Section data received:', sectionData);
+    console.log('Location state:', location.state);
+  }, [sectionData, location.state]);
+
+  // Load enrolled students for the section
+  const loadEnrolledStudents = async (sectionId) => {
+    if (!sectionId) return;
+    
+    try {
+      console.log('Loading enrolled students for section:', sectionId);
+      const response = await ApiService.getSectionStudents(sectionId);
+      console.log('Students API response:', response);
+      
+      // Handle different response formats
+      let studentsData = [];
+      if (Array.isArray(response)) {
+        studentsData = response;
+      } else if (response && Array.isArray(response.data)) {
+        studentsData = response.data;
+      } else if (response && response.data && typeof response.data === 'object') {
+        // If response.data is an object, try to extract students from it
+        studentsData = response.data.students || response.data.enrolled_students || [];
+      } else {
+        console.log('No students data found in response');
+        return;
+      }
+      
+      // Extract student IDs from the response
+      const studentIds = studentsData.map(student => {
+        if (typeof student === 'object') {
+          return student.id || student.user_id || student.student_id || student.userId;
+        }
+        return student; // If it's already an ID
+      }).filter(id => id); // Remove any null/undefined values
+      
+      console.log('Enrolled students loaded:', studentIds);
+      setSelectedStudents(studentIds);
+      setOriginalStudents(studentIds); // Track original students for comparison
+    } catch (error) {
+      console.error('Error loading enrolled students:', error);
+      // If API fails, we'll use the students from section data
+      console.log('Falling back to section data students');
+    }
+  };
+
+  // Populate form with section data if available
+  useEffect(() => {
+    if (sectionData) {
+      console.log('Loading section data for editing:', sectionData);
+      
+      // Extract course from section name or use course field
+      const sectionCourse = normalizeCourse(sectionData.course || 
+        (sectionData.name && sectionData.name.toLowerCase().includes('bsit') ? 'bsit' :
+         sectionData.name && sectionData.name.toLowerCase().includes('bscs') ? 'bscs' :
+         sectionData.name && sectionData.name.toLowerCase().includes('bsis') ? 'bsis' :
+         sectionData.name && sectionData.name.toLowerCase().includes('act') ? 'act' : 'bsit'));
+      
+      // Extract year level - handle both formatted and original formats
+      const sectionYear = normalizeYearLevel(sectionData.year || sectionData.originalYear || sectionData.yearFormatted || '1st Year');
+      
+      // Extract section name (just the letter part) from the full name
+      let sectionLetter = '';
+      if (sectionData.name) {
+        console.log('Extracting section letter from name:', sectionData.name);
+        // Try to extract the letter from the end of the name (e.g., "BSIT 1A" -> "A")
+        const match = sectionData.name.match(/[A-Z]$/);
+        if (match) {
+          sectionLetter = match[0];
+          console.log('Found section letter at end:', sectionLetter);
+        } else {
+          // If no letter at end, try to extract from the original name
+          const originalMatch = sectionData.originalName?.match(/[A-Z]$/);
+          if (originalMatch) {
+            sectionLetter = originalMatch[0];
+            console.log('Found section letter from original name:', sectionLetter);
+          } else {
+            console.log('No section letter found in name or original name');
+          }
+        }
+      }
+      
+      // Extract academic year and semester
+      const sectionAY = sectionData.ay || sectionData.academic_year || '2024-2025';
+      const sectionSemester = normalizeSemester(sectionData.semester || '1st Semester');
+      
+      // Extract adviser
+      const sectionAdviser = sectionData.adviserId || sectionData.adviser_id || '';
+      
+      // Extract enrolled students from section data
+      const enrolledStudents = sectionData.enrolled_students || sectionData.students || [];
+      const studentIds = enrolledStudents.map(student => 
+        typeof student === 'object' ? student.id || student.user_id : student
+      );
+      
+      console.log('Setting form values:', {
+        course: sectionCourse,
+        yearLevel: sectionYear,
+        sectionName: sectionLetter,
+        academicYear: sectionAY,
+        semester: sectionSemester,
+        adviser: sectionAdviser,
+        enrolledStudents: studentIds
+      });
+      
+      setCourse(sectionCourse);
+      setYearLevel(sectionYear);
+      setSectionName(sectionLetter);
+      setAcademicYear(sectionAY);
+      setSemester(sectionSemester);
+      setAdviser(sectionAdviser);
+      setSelectedStudents(studentIds);
+      
+      // Load enrolled students from API if we have a section ID
+      if (sectionData.id) {
+        loadEnrolledStudents(sectionData.id);
+      }
+    }
+  }, [sectionData]);
 
   // Helper function to get ordinal suffix
   const getOrdinalSuffix = (num) => {
@@ -104,11 +280,11 @@ const EditSection = () => {
   // Auto-generate section name when course, year level, or section name changes
   useEffect(() => {
     if (course && yearLevel && sectionName) {
-      const courseLabel = courseOptions.find(opt => opt.value === course)?.label || course.toUpperCase();
-      const yearNum = yearLevel.replace(/[^0-9]/g, '');
+      const courseLabel = course.toUpperCase();
+      const yearNum = yearLevel; // Already a number
       const sectionLetter = sectionName.trim().toUpperCase();
       const generatedName = `${courseLabel} ${yearNum}${sectionLetter}`;
-      setSectionName(generatedName);
+      // Don't update sectionName here as it would create an infinite loop
     }
   }, [course, yearLevel]);
 
@@ -116,17 +292,8 @@ const EditSection = () => {
   const handleSectionNameChange = (e) => {
     const input = e.target.value;
     
-    // If user is typing and we have course and year level, generate full name
-    if (course && yearLevel && input.trim()) {
-      const courseLabel = courseOptions.find(opt => opt.value === course)?.label || course.toUpperCase();
-      const yearNum = yearLevel.replace(/[^0-9]/g, '');
-      const sectionLetter = input.trim().toUpperCase();
-      const generatedName = `${courseLabel} ${yearNum}${sectionLetter}`;
-      setSectionName(generatedName);
-    } else {
-      // If we don't have course or year level, just set the input as is
-      setSectionName(input);
-    }
+    // Just set the section letter (A, B, C, etc.)
+    setSectionName(input.trim().toUpperCase());
   };
 
   // Fetch teachers for advisers
@@ -207,11 +374,65 @@ const EditSection = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!sectionData?.id) {
+      setError('No section data found for editing. Please go back and try again.');
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       setError(null);
 
-      // For now, just show success message
+      // Generate the full section name
+      const courseLabel = course.toUpperCase();
+      const yearNum = yearLevel; // Already a number
+      const sectionLetter = sectionName.trim().toUpperCase();
+      const fullSectionName = `${courseLabel} ${yearNum}${sectionLetter}`;
+
+      // Prepare the updated section data in the format expected by the API
+      const updatedSectionData = {
+        section_name: fullSectionName,
+        program: courseOptions.find(opt => opt.value === course)?.label || course.toUpperCase(),
+        year_level: yearLevel, // Already a number (1, 2, 3, 4)
+        semester: formatSemesterForAPI(semester),
+        academic_year: academicYear,
+        adviser_id: adviser,
+        student_ids: selectedStudents
+      };
+
+      console.log('Updating section with data:', updatedSectionData);
+
+      // Call the API to update the section
+      await ApiService.updateSection(sectionData.id, updatedSectionData);
+
+      // Update user section_id for students that were added or removed
+      const addedStudents = selectedStudents.filter(id => !originalStudents.includes(id));
+      const removedStudents = originalStudents.filter(id => !selectedStudents.includes(id));
+
+      console.log('Students added:', addedStudents);
+      console.log('Students removed:', removedStudents);
+
+      // Update section_id for added students
+      for (const studentId of addedStudents) {
+        try {
+          await ApiService.updateUserSectionId(studentId, sectionData.id);
+          console.log(`Updated section_id for student ${studentId} to ${sectionData.id}`);
+        } catch (error) {
+          console.error(`Failed to update section_id for student ${studentId}:`, error);
+        }
+      }
+
+      // Remove section_id for removed students (set to null or 0)
+      for (const studentId of removedStudents) {
+        try {
+          await ApiService.updateUserSectionId(studentId, null);
+          console.log(`Removed section_id for student ${studentId}`);
+        } catch (error) {
+          console.error(`Failed to remove section_id for student ${studentId}:`, error);
+        }
+      }
+
+      // Show success message
       setShowSuccess(true);
       setTimeout(() => {
         navigate('/admin/section-management');
@@ -344,300 +565,314 @@ const EditSection = () => {
                 </Row>
               </CardHeader>
               <CardBody>
-                {error && (
-                  <Alert color="danger" className="mb-4">
-                    {error}
+                {!sectionData ? (
+                  <Alert color="warning" className="text-center">
+                    <h4>No Section Data Found</h4>
+                    <p>No section data was provided for editing. Please go back to the section management page and try again.</p>
+                    <Button color="primary" onClick={() => navigate('/admin/section-management')}>
+                      Back to Section Management
+                    </Button>
                   </Alert>
-                )}
-                
-                {showSuccess && (
-                  <Alert color="success" className="mb-4">
-                    Section updated successfully! Redirecting...
-                  </Alert>
-                )}
-
-                <Form onSubmit={handleSubmit}>
-                  <h6 className="heading-small text-muted mb-4">Section Information</h6>
-                  <div className="pl-lg-4">
-                    <Row>
-                      <Col lg="6">
-                        <FormGroup>
-                          <label className="form-control-label" htmlFor="course">Course</label>
-                          <Input
-                            type="select"
-                            className="form-control-alternative"
-                            id="course"
-                            value={course}
-                            onChange={e => setCourse(e.target.value)}
-                            required
-                          >
-                            <option value="">Select Course</option>
-                            {courseOptions.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </Input>
-                        </FormGroup>
-                      </Col>
-                      <Col lg="6">
-                        <FormGroup>
-                          <label className="form-control-label" htmlFor="yearLevel">Year Level</label>
-                          <Input
-                            type="select"
-                            className="form-control-alternative"
-                            id="yearLevel"
-                            value={yearLevel}
-                            onChange={e => setYearLevel(e.target.value)}
-                            required
-                          >
-                            <option value="">Select Year Level</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                          </Input>
-                        </FormGroup>
-                      </Col>
-                    </Row>
-                    <Row>
-                      <Col lg="6">
-                        <FormGroup>
-                          <label className="form-control-label" htmlFor="sectionName">Section Letter</label>
-                          <Input
-                            className="form-control-alternative"
-                            type="text"
-                            id="sectionName"
-                            value={sectionName}
-                            onChange={handleSectionNameChange}
-                            placeholder="e.g. A, B, C, G"
-                            maxLength="1"
-                            required
-                          />
-                          <small className="form-text text-muted">
-                            Just enter the section letter (A, B, C, G, etc.)
-                          </small>
-                        </FormGroup>
-                      </Col>
-                      <Col lg="6">
-                        <FormGroup>
-                          <label className="form-control-label" htmlFor="academicYear">Academic Year</label>
-                          <Input
-                            className="form-control-alternative"
-                            type="text"
-                            id="academicYear"
-                            value={academicYear}
-                            onChange={e => setAcademicYear(e.target.value)}
-                            placeholder="e.g. 2024-2025"
-                            required
-                          />
-                        </FormGroup>
-                      </Col>
-                    </Row>
-                    
-                    {/* Section Name Preview */}
-                    {sectionName && course && yearLevel && (
-                      <div className="section-preview">
-                        <h6>Generated Section Name:</h6>
-                        <div className="section-name">{sectionName}</div>
-                      </div>
+                ) : (
+                  <>
+                    {error && (
+                      <Alert color="danger" className="mb-4">
+                        {error}
+                      </Alert>
                     )}
                     
-                    <Row>
-                      <Col lg="6">
-                        <FormGroup>
-                          <label className="form-control-label" htmlFor="semester">Semester</label>
-                          <Input
-                            type="select"
-                            className="form-control-alternative"
-                            id="semester"
-                            value={semester}
-                            onChange={e => setSemester(e.target.value)}
-                            required
-                          >
-                            <option value="">Select Semester</option>
-                            <option value="1st Semester">1st Semester</option>
-                            <option value="2nd Semester">2nd Semester</option>
-                            <option value="Summer">Summer</option>
-                          </Input>
-                        </FormGroup>
-                      </Col>
-                      <Col lg="6">
-                        <FormGroup>
-                          <label className="form-control-label" htmlFor="adviser">Adviser</label>
-                          <Input
-                            type="select"
-                            className="form-control-alternative"
-                            id="adviser"
-                            value={adviser}
-                            onChange={e => setAdviser(e.target.value)}
-                            required
-                          >
-                            <option value="">Select Adviser...</option>
-                            {teachers.map(teacher => (
-                              <option key={teacher.id} value={teacher.id}>
-                                {teacher.full_name} - {teacher.email}
-                              </option>
-                            ))}
-                          </Input>
-                        </FormGroup>
-                      </Col>
-                    </Row>
-                  </div>
+                    {showSuccess && (
+                      <Alert color="success" className="mb-4">
+                        Section updated successfully! Redirecting...
+                      </Alert>
+                    )}
 
-                  <div className="pl-lg-4">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h6 className="heading-small text-muted mb-0">STUDENTS ({selectedStudents.length})</h6>
-                      <Button
-                        color="primary"
-                        type="button"
-                        onClick={() => setStudentModal(true)}
-                        size="sm"
-                      >
-                        Add Students
-                      </Button>
-                    </div>
-                    <div className="pl-lg-4">
-                      {/* Show selected students as pills */}
-                      <Row className="mb-3">
-                        <Col>
-                          <div style={{ minHeight: 70, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: selectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef' }}>
-                            {selectedStudents.length === 0 ? (
-                              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30 }}>
-                                <FaUser size={14} style={{ marginBottom: 2 }} />
-                                <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
-                              </div>
-                            ) : (
-                              selectedStudents.map(id => {
-                                const s = students.find(stu => stu.id === id);
-                                return s ? (
-                                  <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e0e3ea', borderRadius: 10, padding: '0 4px 0 1px', fontSize: 9, fontWeight: 500 }}>
-                                    <img src={getStudentAvatar(s)} alt={s.full_name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
-                                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
-                                      <span style={{ fontWeight: 700, fontSize: 9 }}>{s.full_name}</span>
-                                      <span style={{ color: '#888', fontWeight: 400, fontSize: 8 }}>{s.email}</span>
-                                    </span>
-                                    <FaTimes className="student-pill-x" style={{ marginLeft: 8, cursor: 'pointer', color: '#5e72e4', fontSize: 10 }} onClick={() => removeStudent(id)} />
-                                  </span>
-                                ) : null;
-                              })
-                            )}
+                    <Form onSubmit={handleSubmit}>
+                      <h6 className="heading-small text-muted mb-4">Section Information</h6>
+                      <div className="pl-lg-4">
+                        <Row>
+                          <Col lg="6">
+                            <FormGroup>
+                              <label className="form-control-label" htmlFor="course">Course</label>
+                              <Input
+                                type="select"
+                                className="form-control-alternative"
+                                id="course"
+                                value={course}
+                                onChange={e => setCourse(e.target.value)}
+                                required
+                              >
+                                <option value="">Select Course</option>
+                                {courseOptions.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </Input>
+                            </FormGroup>
+                          </Col>
+                          <Col lg="6">
+                            <FormGroup>
+                              <label className="form-control-label" htmlFor="yearLevel">Year Level</label>
+                              <Input
+                                type="select"
+                                className="form-control-alternative"
+                                id="yearLevel"
+                                value={yearLevel}
+                                onChange={e => setYearLevel(e.target.value)}
+                                required
+                              >
+                                <option value="">Select Year Level</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                              </Input>
+                            </FormGroup>
+                          </Col>
+                        </Row>
+                        <Row>
+                          <Col lg="6">
+                            <FormGroup>
+                              <label className="form-control-label" htmlFor="sectionName">Section Letter</label>
+                              <Input
+                                className="form-control-alternative"
+                                type="text"
+                                id="sectionName"
+                                value={sectionName}
+                                onChange={handleSectionNameChange}
+                                placeholder="e.g. A, B, C"
+                                maxLength="1"
+                                required
+                              />
+                              <small className="form-text text-muted">
+                                Just enter the section letter (A, B, C, etc.)
+                              </small>
+                            </FormGroup>
+                          </Col>
+                          <Col lg="6">
+                            <FormGroup>
+                              <label className="form-control-label" htmlFor="academicYear">Academic Year</label>
+                              <Input
+                                className="form-control-alternative"
+                                type="text"
+                                id="academicYear"
+                                value={academicYear}
+                                onChange={e => setAcademicYear(e.target.value)}
+                                placeholder="e.g. 2024-2025"
+                                required
+                              />
+                            </FormGroup>
+                          </Col>
+                        </Row>
+                        
+                        {/* Section Name Preview */}
+                        {sectionName && course && yearLevel && (
+                          <div className="section-preview mb-3">
+                            <h6 className="text-muted">Generated Section Name:</h6>
+                            <div className="section-name p-2 bg-light rounded">
+                              <strong>{course.toUpperCase()} {yearLevel}{sectionName}</strong>
+                            </div>
                           </div>
-                        </Col>
-                      </Row>
-                    </div>
-                  </div>
-
-                  {/* Student Selection Modal */}
-                  <Modal isOpen={studentModal} toggle={() => setStudentModal(!studentModal)} size="md">
-                    <ModalHeader toggle={() => setStudentModal(!studentModal)}>
-                      Add Students to Section
-                    </ModalHeader>
-                    <ModalBody>
-                      <div className="mb-3">
-                        <div className="input-group">
-                          <div className="input-group-prepend">
-                            <span className="input-group-text">
-                              <i className="ni ni-zoom-split-in" />
-                            </span>
-                          </div>
-                          <Input
-                            placeholder="Search students..."
-                            value={studentSearch}
-                            onChange={(e) => setStudentSearch(e.target.value)}
-                          />
-                        </div>
+                        )}
+                        
+                        <Row>
+                          <Col lg="6">
+                            <FormGroup>
+                              <label className="form-control-label" htmlFor="semester">Semester</label>
+                              <Input
+                                type="select"
+                                className="form-control-alternative"
+                                id="semester"
+                                value={semester}
+                                onChange={e => setSemester(e.target.value)}
+                                required
+                              >
+                                <option value="">Select Semester</option>
+                                <option value="1st Semester">1st Semester</option>
+                                <option value="2nd Semester">2nd Semester</option>
+                                <option value="Summer">Summer</option>
+                              </Input>
+                            </FormGroup>
+                          </Col>
+                          <Col lg="6">
+                            <FormGroup>
+                              <label className="form-control-label" htmlFor="adviser">Adviser</label>
+                              <Input
+                                type="select"
+                                className="form-control-alternative"
+                                id="adviser"
+                                value={adviser}
+                                onChange={e => setAdviser(e.target.value)}
+                                required
+                              >
+                                <option value="">Select Adviser...</option>
+                                {teachers.map(teacher => (
+                                  <option key={teacher.id} value={teacher.id}>
+                                    {teacher.full_name} - {teacher.email}
+                                  </option>
+                                ))}
+                              </Input>
+                            </FormGroup>
+                          </Col>
+                        </Row>
                       </div>
-                      
-                      <div className="mb-3">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <h6 className="mb-0">Students ({students.filter(student => 
-                            student.full_name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-                            student.email.toLowerCase().includes(studentSearch.toLowerCase())
-                          ).length})</h6>
+
+                      <div className="pl-lg-4">
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                          <h6 className="heading-small text-muted mb-0">STUDENTS ({selectedStudents.length})</h6>
                           <Button
-                            color="link"
+                            color="primary"
+                            type="button"
+                            onClick={() => setStudentModal(true)}
                             size="sm"
-                            onClick={() => setSelectedStudents([])}
                           >
-                            Unselect All
+                            {selectedStudents.length > 0 ? 'Manage Students' : 'Add Students'}
                           </Button>
                         </div>
-                      </div>
-
-                      <div className="student-list mb-4" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                        {students
-                          .filter(student => 
-                            student.full_name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-                            student.email.toLowerCase().includes(studentSearch.toLowerCase())
-                          )
-                          .map(student => (
-                            <div
-                              key={student.id}
-                              className="d-flex align-items-center p-2 border-bottom"
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleStudentCheck(student.id)}
-                            >
-                              <img
-                                src={getStudentAvatar(student)}
-                                alt="Profile"
-                                className="rounded-circle mr-3"
-                                style={{ width: '35px', height: '35px', objectFit: 'cover' }}
-                              />
-                              <div className="flex-grow-1">
-                                <div className="font-weight-bold">{student.full_name}</div>
-                                <small className="text-muted">{student.email}</small>
+                        <div className="pl-lg-4">
+                          {/* Show selected students as pills */}
+                          <Row className="mb-3">
+                            <Col>
+                              <div style={{ minHeight: 70, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: selectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef' }}>
+                                {selectedStudents.length === 0 ? (
+                                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30 }}>
+                                    <FaUser size={14} style={{ marginBottom: 2 }} />
+                                    <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
+                                  </div>
+                                ) : (
+                                  selectedStudents.map(id => {
+                                    const s = students.find(stu => stu.id === id);
+                                    return s ? (
+                                      <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e0e3ea', borderRadius: 10, padding: '0 4px 0 1px', fontSize: 9, fontWeight: 500 }}>
+                                        <img src={getStudentAvatar(s)} alt={s.full_name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
+                                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
+                                          <span style={{ fontWeight: 700, fontSize: 9 }}>{s.full_name}</span>
+                                          <span style={{ color: '#888', fontWeight: 400, fontSize: 8 }}>{s.email}</span>
+                                        </span>
+                                        <FaTimes className="student-pill-x" style={{ marginLeft: 8, cursor: 'pointer', color: '#5e72e4', fontSize: 10 }} onClick={() => removeStudent(id)} />
+                                      </span>
+                                    ) : null;
+                                  })
+                                )}
                               </div>
-                              {selectedStudents.includes(student.id) && (
-                                <i className="ni ni-check-bold text-primary" style={{ fontSize: '1.2rem' }} />
-                              )}
-                            </div>
-                          ))}
-                      </div>
-
-                      {/* Selected Students Display */}
-                      <div className="border-top pt-3">
-                        <h6 className="mb-3">Selected Students</h6>
-                        <div style={{ minHeight: 60, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: selectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef' }}>
-                          {selectedStudents.length === 0 ? (
-                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30 }}>
-                              <FaUser size={14} style={{ marginBottom: 2 }} />
-                              <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
-                            </div>
-                          ) : (
-                            selectedStudents.map(id => {
-                              const s = students.find(stu => stu.id === id);
-                              return s ? (
-                                <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e0e3ea', borderRadius: 10, padding: '0 4px 0 1px', fontSize: 9, fontWeight: 500 }}>
-                                  <img src={getStudentAvatar(s)} alt={s.full_name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
-                                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 9 }}>{s.full_name}</span>
-                                    <span style={{ color: '#888', fontWeight: 400, fontSize: 8 }}>{s.email}</span>
-                                  </span>
-                                  <FaTimes className="student-pill-x" style={{ marginLeft: 8, cursor: 'pointer', color: '#5e72e4', fontSize: 10 }} onClick={() => removeStudent(id)} />
-                                </span>
-                              ) : null;
-                            })
-                          )}
+                            </Col>
+                          </Row>
                         </div>
                       </div>
-                    </ModalBody>
-                    <ModalFooter>
-                      <Button color="secondary" onClick={() => setStudentModal(!studentModal)}>
-                        Done
-                      </Button>
-                    </ModalFooter>
-                  </Modal>
 
-                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
-                    <Button color="primary" type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? "Updating..." : "Update Section"}
-                    </Button>
-                  </div>
-                  {showSuccess && (
-                    <div className="alert alert-success mt-3 mb-0 text-center">
-                      Section updated successfully!
-                    </div>
-                  )}
-                </Form>
+                      {/* Student Selection Modal */}
+                      <Modal isOpen={studentModal} toggle={() => setStudentModal(!studentModal)} size="md">
+                        <ModalHeader toggle={() => setStudentModal(!studentModal)}>
+                          Add Students to Section
+                        </ModalHeader>
+                        <ModalBody>
+                          <div className="mb-3">
+                            <div className="input-group">
+                              <div className="input-group-prepend">
+                                <span className="input-group-text">
+                                  <i className="ni ni-zoom-split-in" />
+                                </span>
+                              </div>
+                              <Input
+                                placeholder="Search students..."
+                                value={studentSearch}
+                                onChange={(e) => setStudentSearch(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <h6 className="mb-0">Students ({students.filter(student => 
+                                student.full_name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                student.email.toLowerCase().includes(studentSearch.toLowerCase())
+                              ).length})</h6>
+                              <Button
+                                color="link"
+                                size="sm"
+                                onClick={() => setSelectedStudents([])}
+                              >
+                                Unselect All
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="student-list mb-4" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            {students
+                              .filter(student => 
+                                student.full_name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                student.email.toLowerCase().includes(studentSearch.toLowerCase())
+                              )
+                              .map(student => (
+                                <div
+                                  key={student.id}
+                                  className="d-flex align-items-center p-2 border-bottom"
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={() => handleStudentCheck(student.id)}
+                                >
+                                  <img
+                                    src={getStudentAvatar(student)}
+                                    alt="Profile"
+                                    className="rounded-circle mr-3"
+                                    style={{ width: '35px', height: '35px', objectFit: 'cover' }}
+                                  />
+                                  <div className="flex-grow-1">
+                                    <div className="font-weight-bold">{student.full_name}</div>
+                                    <small className="text-muted">{student.email}</small>
+                                  </div>
+                                  {selectedStudents.includes(student.id) && (
+                                    <i className="ni ni-check-bold text-primary" style={{ fontSize: '1.2rem' }} />
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+
+                          {/* Selected Students Display */}
+                          <div className="border-top pt-3">
+                            <h6 className="mb-3">Selected Students</h6>
+                            <div style={{ minHeight: 60, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: selectedStudents.length === 0 ? 'center' : 'flex-start', justifyContent: 'center', background: '#f7f8fa', borderRadius: 8, padding: 8, border: '1px solid #e9ecef' }}>
+                              {selectedStudents.length === 0 ? (
+                                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b0b7c3', fontSize: 11, minHeight: 30 }}>
+                                  <FaUser size={14} style={{ marginBottom: 2 }} />
+                                  <div style={{ fontSize: 11, fontWeight: 500 }}>No students selected</div>
+                                </div>
+                              ) : (
+                                selectedStudents.map(id => {
+                                  const s = students.find(stu => stu.id === id);
+                                  return s ? (
+                                    <span key={id} className="student-pill" style={{ display: 'flex', alignItems: 'center', background: '#e0e3ea', borderRadius: 10, padding: '0 4px 0 1px', fontSize: 9, fontWeight: 500 }}>
+                                      <img src={getStudentAvatar(s)} alt={s.full_name} style={{ width: 13, height: 13, borderRadius: '50%', marginRight: 3, objectFit: 'cover', border: '1px solid #fff' }} />
+                                      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
+                                        <span style={{ fontWeight: 700, fontSize: 9 }}>{s.full_name}</span>
+                                        <span style={{ color: '#888', fontWeight: 400, fontSize: 8 }}>{s.email}</span>
+                                      </span>
+                                      <FaTimes className="student-pill-x" style={{ marginLeft: 8, cursor: 'pointer', color: '#5e72e4', fontSize: 10 }} onClick={() => removeStudent(id)} />
+                                    </span>
+                                  ) : null;
+                                })
+                              )}
+                            </div>
+                          </div>
+                        </ModalBody>
+                        <ModalFooter>
+                          <Button color="secondary" onClick={() => setStudentModal(!studentModal)}>
+                            Done
+                          </Button>
+                        </ModalFooter>
+                      </Modal>
+
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+                        <Button color="primary" type="submit" disabled={isSubmitting}>
+                          {isSubmitting ? "Updating..." : "Update Section"}
+                        </Button>
+                      </div>
+                      {showSuccess && (
+                        <div className="alert alert-success mt-3 mb-0 text-center">
+                          Section updated successfully!
+                        </div>
+                      )}
+                    </Form>
+                  </>
+                )}
               </CardBody>
             </Card>
           </Col>

@@ -1,7 +1,7 @@
 {
-  "name": "argon-dashboard-react",
+  "name": "scms",
   "version": "1.2.4",
-  "description": "React version of Argon Dashboard by Creative Tim",
+  "description": "SCMS - Student Class Management System built with React",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -10,14 +10,15 @@
   "keywords": [
     "react",
     "reactjs",
-    "argon",
-    "argon-react",
-    "dashboard",
-    "dashboard-react",
-    "argon-dashboard",
-    "argon-dashboard-react"
+    "scms",
+    "student",
+    "class",
+    "management",
+    "system",
+    "education",
+    "dashboard"
   ],
-  "author": "Creative Tim",
+  "author": "SCMS Team",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/creativetimofficial/argon-dashboard-react/issues"

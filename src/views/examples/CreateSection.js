@@ -404,11 +404,34 @@ const CreateSection = () => {
     };
 
     try {
-      await ApiService.createSection(payload);
+      // Create the section
+      const response = await ApiService.createSection(payload);
+      console.log('Section created:', response);
+      
+      // Get the created section ID from the response
+      const createdSectionId = response.data?.id || response.id || response.section_id;
+      
+      if (createdSectionId && student_ids.length > 0) {
+        console.log(`Updating section_id for ${student_ids.length} students to ${createdSectionId}`);
+        
+        // Update section_id for all selected students
+        for (const studentId of student_ids) {
+          try {
+            await ApiService.updateUserSectionId(studentId, createdSectionId);
+            console.log(`Updated section_id for student ${studentId} to ${createdSectionId}`);
+          } catch (error) {
+            console.error(`Failed to update section_id for student ${studentId}:`, error);
+          }
+        }
+      }
+      
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-        navigate("/admin/section-management");
+        // Add a small delay to ensure backend has processed the student assignments
+        setTimeout(() => {
+          navigate("/admin/section-management");
+        }, 500);
       }, 2000);
     } catch (err) {
       alert("Failed to create section: " + (err.response?.data?.message || err.message));

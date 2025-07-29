@@ -137,61 +137,148 @@ class ApiService {
 
   // Section Management API endpoints - Individual methods for each program
   async getSectionsBSIT() {
-    return this.makeRequest('/admin/sections_by_program?program=BSIT', {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent('Bachelor of Science in Information Technology')}`, {
       method: 'GET',
       requireAuth: true,
     });
   }
 
   async getSectionsBSCS() {
-    return this.makeRequest('/admin/sections_by_program?program=BSCS', {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent('Bachelor of Science in Computer Science')}`, {
       method: 'GET',
       requireAuth: true,
     });
   }
 
   async getSectionsBSIS() {
-    return this.makeRequest('/admin/sections_by_program?program=BSIS', {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent('Bachelor of Science in Information Systems')}`, {
       method: 'GET',
       requireAuth: true,
     });
   }
 
   async getSectionsACT() {
-    return this.makeRequest('/admin/sections_by_program?program=ACT', {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent('Associate in Computer Technology')}`, {
       method: 'GET',
       requireAuth: true,
     });
   }
 
   async getSectionsByProgram(program) {
-    return this.makeRequest(`/admin/sections_by_program?program=${program}`, {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent(program)}`, {
       method: 'GET',
       requireAuth: true,
     });
   }
 
   async getSectionsByProgramAndYear(program, yearLevel) {
-    return this.makeRequest(`/admin/sections_by_program_year_specific?program=${program}&year_level=${yearLevel}`, {
+    return this.makeRequest(`/admin/sections_by_program_year_specific?program=${encodeURIComponent(program)}&year_level=${yearLevel}`, {
       method: 'GET',
       requireAuth: true,
     });
   }
 
   async getSectionsByCourse(course) {
-    // Map course IDs to program names
+    // Map course IDs to full program names to match database
     const programMap = {
-      'bsit': 'BSIT',
-      'bscs': 'BSCS', 
-      'bsis': 'BSIS',
-      'act': 'ACT'
+      'bsit': 'Bachelor of Science in Information Technology',
+      'bscs': 'Bachelor of Science in Computer Science', 
+      'bsis': 'Bachelor of Science in Information Systems',
+      'act': 'Associate in Computer Technology'
     };
-    const program = programMap[course] || 'BSIT';
+    const program = programMap[course] || 'Bachelor of Science in Information Technology';
     console.log(`Getting sections for course: ${course} -> program: ${program}`);
-    return this.makeRequest(`/admin/sections_by_program?program=${program}`, {
-      method: 'GET',
-      requireAuth: true,
-    });
+    
+    try {
+      // First try to get all sections and filter on frontend
+      const allSectionsResponse = await this.makeRequest(`/admin/sections`, {
+        method: 'GET',
+        requireAuth: true,
+      });
+      
+      console.log(`All sections response:`, allSectionsResponse);
+      
+      if (allSectionsResponse && allSectionsResponse.data) {
+        // Filter sections by program name (including partial matches)
+        const allSections = allSectionsResponse.data;
+        const filteredSections = allSections.filter(section => {
+          const sectionProgram = section.program || '';
+          const matches = sectionProgram.toLowerCase().includes(program.toLowerCase()) ||
+                         sectionProgram.toLowerCase().includes(course.toLowerCase()) ||
+                         (course === 'bsit' && (sectionProgram.toLowerCase().includes('information technology') || sectionProgram.toLowerCase().includes('bsit'))) ||
+                         (course === 'bscs' && (sectionProgram.toLowerCase().includes('computer science') || sectionProgram.toLowerCase().includes('bscs'))) ||
+                         (course === 'bsis' && (sectionProgram.toLowerCase().includes('information systems') || sectionProgram.toLowerCase().includes('bsis'))) ||
+                         (course === 'act' && (sectionProgram.toLowerCase().includes('computer technology') || sectionProgram.toLowerCase().includes('act')));
+          
+          console.log(`Section program: "${sectionProgram}", Course: "${course}", Matches: ${matches}`);
+          return matches;
+        });
+        
+        console.log(`Filtered ${filteredSections.length} sections for ${course}`);
+        
+        // Get enrollment count for each section by counting students with section_id
+        const sectionsWithEnrollment = await Promise.all(
+          filteredSections.map(async (section) => {
+            try {
+              console.log(`Getting enrollment count for section ${section.id} (${section.name || section.section_name})`);
+              
+              // Get all students and count those assigned to this section
+              const studentsResponse = await this.getUsersByRole('student');
+              
+              console.log(`Students response for section ${section.id}:`, studentsResponse);
+              
+              const allStudents = studentsResponse.data || studentsResponse || [];
+              console.log(`Total students found: ${allStudents.length}`);
+              
+              const studentsInSection = allStudents.filter(student => {
+                const studentSectionId = student.section_id || student.sectionId;
+                const sectionId = section.id;
+                const matches = studentSectionId === sectionId;
+                console.log(`Student ${student.id}: section_id=${studentSectionId}, section.id=${sectionId}, matches=${matches}`);
+                return matches;
+              });
+              
+              const enrollmentCount = studentsInSection.length;
+              
+              console.log(`Section ${section.id} (${section.name || section.section_name}): ${enrollmentCount} students enrolled`);
+              console.log(`Students in section:`, studentsInSection.map(s => ({ id: s.id, name: s.name, section_id: s.section_id || s.sectionId })));
+              
+              return {
+                ...section,
+                enrolled: enrollmentCount,
+                student_count: enrollmentCount
+              };
+            } catch (error) {
+              console.error(`Failed to get enrollment count for section ${section.id}:`, error);
+              return {
+                ...section,
+                enrolled: section.enrolled || 0,
+                student_count: section.student_count || 0
+              };
+            }
+          })
+        );
+        
+        console.log(`Final sections with enrollment for ${course}:`, sectionsWithEnrollment);
+        console.log(`Filtered ${sectionsWithEnrollment.length} sections for ${course} out of ${allSections.length} total sections`);
+        return { data: sectionsWithEnrollment };
+      }
+      
+      // Fallback to original method
+      const response = await this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent(program)}`, {
+        method: 'GET',
+        requireAuth: true,
+      });
+      
+      console.log(`API Response for ${course}:`, response);
+      console.log(`Raw sections data:`, response.data || response);
+      console.log(`Number of sections returned:`, (response.data || response || []).length);
+      
+      return response;
+    } catch (error) {
+      console.error(`Error fetching sections for ${course}:`, error);
+      throw error;
+    }
   }
   
 
@@ -204,7 +291,7 @@ class ApiService {
       '4th Year': '4th'
     };
     const yearLevel = yearMap[year] || '1st';
-    return this.makeRequest(`/admin/sections_by_program_year_specific?program=BSIT&year_level=${yearLevel}`, {
+    return this.makeRequest(`/admin/sections_by_program_year_specific?program=${encodeURIComponent('Bachelor of Science in Information Technology')}&year_level=${yearLevel}`, {
       method: 'GET',
       requireAuth: true,
     });
@@ -212,7 +299,7 @@ class ApiService {
 
   async getSectionsByAcademicYear(academicYear) {
     // For now, return all sections since the API doesn't support academic year filtering
-    return this.makeRequest('/admin/sections_by_program?program=BSIT', {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent('Bachelor of Science in Information Technology')}`, {
       method: 'GET',
       requireAuth: true,
     });
@@ -220,7 +307,7 @@ class ApiService {
 
   async getSectionsBySemester(semester) {
     // For now, return all sections since the API doesn't support semester filtering
-    return this.makeRequest('/admin/sections_by_program?program=BSIT', {
+    return this.makeRequest(`/admin/sections_by_program?program=${encodeURIComponent('Bachelor of Science in Information Technology')}`, {
       method: 'GET',
       requireAuth: true,
     });
@@ -283,6 +370,23 @@ class ApiService {
     // Note: This endpoint might not exist in your backend yet
     return this.makeRequest(`/admin/sections/${sectionId}/students/${studentId}`, {
       method: 'DELETE',
+      requireAuth: true,
+    });
+  }
+
+  // Update user's section_id
+  async updateUserSectionId(userId, sectionId) {
+    return this.makeRequest(`/admin/users/${userId}/section`, {
+      method: 'PUT',
+      body: JSON.stringify({ section_id: sectionId }),
+      requireAuth: true,
+    });
+  }
+
+  // Get section students with enrollment count
+  async getSectionStudentsWithCount(sectionId) {
+    return this.makeRequest(`/admin/sections/${sectionId}/students`, {
+      method: 'GET',
       requireAuth: true,
     });
   }
@@ -802,6 +906,37 @@ class ApiService {
       console.error('Student delete error:', message);
       throw new Error(message);
     }
+  }
+
+  // Subject Management Methods
+  async getSubjects() {
+    return this.makeRequest('/admin/subjects', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async createSubject(subjectData) {
+    return this.makeRequest('/admin/subjects', {
+      method: 'POST',
+      body: JSON.stringify(subjectData),
+      requireAuth: true,
+    });
+  }
+
+  async updateSubject(subjectId, subjectData) {
+    return this.makeRequest(`/admin/subjects/${subjectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(subjectData),
+      requireAuth: true,
+    });
+  }
+
+  async deleteSubject(subjectId) {
+    return this.makeRequest(`/admin/subjects/${subjectId}`, {
+      method: 'DELETE',
+      requireAuth: true,
+    });
   }
 }
 

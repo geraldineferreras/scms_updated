@@ -630,17 +630,6 @@ const UserManagement = () => {
                   </Badge>
                 </div>
               </div>
-              <div className="header-actions">
-                <Button
-                  color="primary"
-                  size="lg"
-                  onClick={() => navigate('/admin/create-user')}
-                  className="btn-icon"
-                >
-                  <i className="fas fa-plus" />
-                  <span className="ml-2">Add New User</span>
-                </Button>
-              </div>
             </div>
           </div>
 
@@ -685,6 +674,46 @@ const UserManagement = () => {
                     <option value="desc">Descending</option>
                     <option value="asc">Ascending</option>
                   </Input>
+                </Col>
+              </Row>
+
+              {/* Action Buttons */}
+              <Row className="mb-4">
+                <Col lg="12">
+                  <div className="d-flex justify-content-end">
+                    <Button
+                      color="light"
+                      size="sm"
+                      className="mr-3"
+                      style={{ 
+                        backgroundColor: 'white',
+                        border: '1px solid #5e72e4', 
+                        color: '#5e72e4',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        padding: '8px 16px'
+                      }}
+                    >
+                      <i className="fas fa-chart-bar mr-2" />
+                      Export
+                    </Button>
+                    <Button
+                      color="primary"
+                      size="sm"
+                      onClick={() => navigate('/admin/create-user')}
+                      style={{
+                        backgroundColor: '#5e72e4',
+                        border: '1px solid #5e72e4',
+                        color: 'white',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        padding: '8px 16px'
+                      }}
+                    >
+                      <i className="fas fa-plus mr-2" />
+                      Add New User
+                    </Button>
+                  </div>
                 </Col>
               </Row>
 

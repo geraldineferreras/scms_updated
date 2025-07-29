@@ -35,9 +35,20 @@ class ApiService {
         ...authHeaders,
       },
     };
+    
+    // Handle body data properly
     if (body) {
-      config.data = JSON.parse(body);
+      // Check if body is FormData
+      if (body instanceof FormData) {
+        config.data = body;
+        // Remove Content-Type header for FormData to let browser set it with boundary
+        delete config.headers['Content-Type'];
+      } else {
+        // Parse JSON string to object
+        config.data = JSON.parse(body);
+      }
     }
+    
     try {
       const response = await axios(config);
       return response.data;
@@ -158,57 +169,256 @@ class ApiService {
 
   // Update user
   async updateUser(userId, userData) {
-    return this.makeRequest(`/users/${userId}`, {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-      requireAuth: true,
-    });
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    try {
+      console.log('Updating user with data:', userData);
+      
+      const response = await axios.put(`${API_BASE}/auth/update_user`, userData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+      });
+      
+      console.log('Update response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Full update error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Update failed';
+      console.error('Update error:', message);
+      throw new Error(message);
+    }
   }
 
   async updateUserWithImages(userId, formData) {
-    
-    
     const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
     try {
-      const response = await axios.put(`${API_BASE}/users/${userId}`, formData, {
+      // Get the role from the FormData to determine the correct endpoint
+      const role = formData.get('role');
+      console.log('Updating user with role:', role);
+      
+      console.log('Using endpoint:', `${API_BASE}/auth/update_user`);
+      
+      // Log FormData contents for debugging
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value instanceof File ? `File: ${value.name}` : value);
+      }
+      
+      const response = await axios.put(`${API_BASE}/auth/update_user`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 30000, // 30 second timeout
       });
+      
+      console.log('Update response:', response.data);
       return response.data;
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Update failed';
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error request:', error.request);
+      
+      let message = 'Update failed';
+      if (error.response) {
+        // Server responded with error status
+        message = error.response.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request was made but no response received
+        message = 'Network error - no response from server';
+      } else {
+        // Something else happened
+        message = error.message || 'Unknown error occurred';
+      }
+      
       console.error('Update user with images error:', message);
       throw new Error(message);
     }
   }
 
   // Role-specific update methods
-  async updateUserByRole(role, formData) {
+  async updateAdminUser(formData) {
     const token = localStorage.getItem('token');
     if (!token) {
       throw new Error('Authentication token not found. Please log in again.');
     }
     
-    let endpoint = '';
-    
-    if (role === 'admin') endpoint = '/admin/update';
-    else if (role === 'teacher') endpoint = '/teacher/update';
-    else if (role === 'student') endpoint = '/student/update';
-    else throw new Error('Invalid role for update');
-    
     try {
-      const response = await axios.post(`${API_BASE}${endpoint}`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Check if there are files in the FormData
+      let hasFiles = false;
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          hasFiles = true;
+          break;
+        }
+      }
+      
+      console.log('Updating admin user - has files:', hasFiles);
+      
+      let response;
+      if (hasFiles) {
+        // Send as multipart/form-data using POST
+        console.log('Sending FormData with files to admin update');
+        response = await axios.post(`${API_BASE}/admin/update`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 30000,
+        });
+      } else {
+        // Convert FormData to JSON and send using PUT
+        const jsonData = {};
+        for (let [key, value] of formData.entries()) {
+          jsonData[key] = value;
+        }
+        
+        console.log('Sending JSON data to admin update:', jsonData);
+        response = await axios.put(`${API_BASE}/admin/update`, jsonData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        });
+      }
+      
+      console.log('Admin update response:', response.data);
       return response.data;
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Update failed';
-      console.error(`Update ${role} error:`, message);
+      console.error('Full admin update error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Admin update failed';
+      console.error('Admin update error:', message);
+      throw new Error(message);
+    }
+  }
+
+  async updateTeacherUser(formData) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    try {
+      // Check if there are files in the FormData
+      let hasFiles = false;
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          hasFiles = true;
+          break;
+        }
+      }
+      
+      console.log('Updating teacher user - has files:', hasFiles);
+      
+      let response;
+      if (hasFiles) {
+        // Send as multipart/form-data using POST
+        console.log('Sending FormData with files to teacher update');
+        response = await axios.post(`${API_BASE}/teacher/update`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 30000,
+        });
+      } else {
+        // Convert FormData to JSON and send using PUT
+        const jsonData = {};
+        for (let [key, value] of formData.entries()) {
+          jsonData[key] = value;
+        }
+        
+        console.log('Sending JSON data to teacher update:', jsonData);
+        response = await axios.put(`${API_BASE}/teacher/update`, jsonData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        });
+      }
+      
+      console.log('Teacher update response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Full teacher update error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Teacher update failed';
+      console.error('Teacher update error:', message);
+      throw new Error(message);
+    }
+  }
+
+  async updateStudentUser(formData) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    try {
+      // Check if there are files in the FormData
+      let hasFiles = false;
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          hasFiles = true;
+          break;
+        }
+      }
+      
+      console.log('Updating student user - has files:', hasFiles);
+      
+      let response;
+      if (hasFiles) {
+        // Send as multipart/form-data using POST
+        console.log('Sending FormData with files to student update');
+        response = await axios.post(`${API_BASE}/student/update`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 30000,
+        });
+      } else {
+        // Convert FormData to JSON and send using PUT
+        const jsonData = {};
+        for (let [key, value] of formData.entries()) {
+          jsonData[key] = value;
+        }
+        
+        console.log('Sending JSON data to student update:', jsonData);
+        response = await axios.put(`${API_BASE}/student/update`, jsonData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        });
+      }
+      
+      console.log('Student update response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Full student update error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      const message = error.response?.data?.message || error.message || 'Student update failed';
+      console.error('Student update error:', message);
       throw new Error(message);
     }
   }
@@ -249,151 +459,6 @@ class ApiService {
         console.error("Direct axios call failed:", axiosError);
         throw axiosError;
       }
-    }
-  }
-
-  // Role-specific update methods
-  async updateAdminUser(formData) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('Authentication token not found. Please log in again.');
-    }
-    
-    try {
-      // Check if there are any files in the FormData
-      let hasFiles = false;
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          hasFiles = true;
-          break;
-        }
-      }
-      
-      let response;
-      if (hasFiles) {
-        // Send as multipart/form-data if there are files
-        response = await axios.put(`${API_BASE}/admin/update`, formData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      } else {
-        // Convert FormData to JSON if no files
-        const jsonData = {};
-        for (let [key, value] of formData.entries()) {
-          jsonData[key] = value;
-        }
-        
-        response = await axios.put(`${API_BASE}/admin/update`, jsonData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-      
-      return response.data;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Admin update failed';
-      console.error('Admin update error:', message);
-      throw new Error(message);
-    }
-  }
-
-  async updateTeacherUser(formData) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('Authentication token not found. Please log in again.');
-    }
-    
-    try {
-      // Check if there are any files in the FormData
-      let hasFiles = false;
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          hasFiles = true;
-          break;
-        }
-      }
-      
-      let response;
-      if (hasFiles) {
-        // Send as multipart/form-data if there are files
-        response = await axios.put(`${API_BASE}/teacher/update`, formData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      } else {
-        // Convert FormData to JSON if no files
-        const jsonData = {};
-        for (let [key, value] of formData.entries()) {
-          jsonData[key] = value;
-        }
-        
-        response = await axios.put(`${API_BASE}/teacher/update`, jsonData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-      
-      return response.data;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Teacher update failed';
-      console.error('Teacher update error:', message);
-      throw new Error(message);
-    }
-  }
-
-  async updateStudentUser(formData) {
-    const token = localStorage.getItem('token');
-    try {
-      // Check if there are any files in the FormData
-      let hasFiles = false;
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          hasFiles = true;
-          break;
-        }
-      }
-      
-      let response;
-      if (hasFiles) {
-        // Send as multipart/form-data if there are files
-
-        
-        response = await axios.put(`${API_BASE}/student/update`, formData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      } else {
-        // Convert FormData to JSON if no files
-        const jsonData = {};
-        for (let [key, value] of formData.entries()) {
-          jsonData[key] = value;
-        }
-        
-
-        
-        response = await axios.put(`${API_BASE}/student/update`, jsonData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-      
-      return response.data;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Student update failed';
-      console.error('Student update error:', message);
-      throw new Error(message);
     }
   }
 

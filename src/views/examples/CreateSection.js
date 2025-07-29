@@ -344,7 +344,7 @@ const CreateSection = () => {
       program: courseMap[course] || course,
       year_level: yearLevel.replace(/[^0-9]/g, '') || yearLevel, // e.g. "1st"
       adviser_id,
-      semester,
+      semester: semester.replace(' Semester', ''), // Convert "1st Semester" to "1st"
       academic_year: academicYear,
       student_ids,
     };

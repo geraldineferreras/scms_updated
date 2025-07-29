@@ -42,11 +42,14 @@ import {
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
+  Alert,
+  Spinner,
 } from "reactstrap";
 import classnames from "classnames";
 import Header from "components/Headers/Header.js";
 import { useNavigate } from "react-router-dom";
 import userDefault from "../../assets/img/theme/user-default.svg";
+import apiService from "../../services/api.js";
 
 // Floating effect for content over header
 const sectionManagementStyles = `
@@ -62,45 +65,7 @@ const sectionManagementStyles = `
 `;
 
 // Mock Data - Replace with your actual data fetching logic
-const getMockData = () => ({
-  teachers: [
-    { id: 101, name: "Mr. Cruz", email: "cruz@dhvsu.edu.ph", avatar: require("../../assets/img/theme/team-1-800x800.jpg") },
-    { id: 102, name: "Ms. Reyes", email: "reyes@dhvsu.edu.ph", avatar: require("../../assets/img/theme/team-2-800x800.jpg") },
-    { id: 103, name: "Mr. Garcia", email: "garcia@dhvsu.edu.ph", avatar: require("../../assets/img/theme/team-3-800x800.jpg") },
-    { id: 104, name: "Mrs. David", email: "david@dhvsu.edu.ph", avatar: require("../../assets/img/theme/team-4-800x800.jpg") },
-  ],
-  sections: [
-    { id: 1, course: "bsit", year: "3rd Year", name: "BSIT 3A", adviserId: 101, enrolled: 9, ay: '2024-2025', semester: '1st Semester' },
-    { id: 2, course: "bsit", year: "3rd Year", name: "BSIT 3B", adviserId: 102, enrolled: 5, ay: '2024-2025', semester: '1st Semester' },
-    { id: 3, course: "bsit", year: "4th Year", name: "BSIT 4A", adviserId: 103, enrolled: 3, ay: '2024-2025', semester: '2nd Semester' },
-    { id: 4, course: "bscs", year: "1st Year", name: "BSCS 1A", adviserId: 104, enrolled: 12, ay: '2024-2025', semester: '1st Semester' },
-    { id: 5, course: "bsis", year: "2nd Year", name: "BSIS 2A", adviserId: 101, enrolled: 25, ay: '2024-2025', semester: '1st Semester' },
-    { id: 6, course: "act", year: "1st Year", name: "ACT 1A", adviserId: 102, enrolled: 30, ay: '2024-2025', semester: '1st Semester' },
-  ],
-  courses: [
-    { id: "bsit", abbr: "BSIT", name: "Info Tech" },
-    { id: "bscs", abbr: "BSCS", name: "Computer Science" },
-    { id: "bsis", abbr: "BSIS", name: "Info Systems" },
-    { id: "act", abbr: "ACT", name: "Computer Technology" },
-  ],
-  students: [
-    { id: 1, sectionId: 1, name: "John Doe", email: "2021305901@dhvsu.edu.ph", status: "active" },
-    { id: 2, sectionId: 1, name: "Jane Smith", email: "2021305902@dhvsu.edu.ph", status: "active" },
-    { id: 3, sectionId: 1, name: "Mike Johnson", email: "2021305903@dhvsu.edu.ph", status: "active" },
-    { id: 4, sectionId: 2, name: "Sarah Wilson", email: "2021305904@dhvsu.edu.ph", status: "active" },
-    { id: 5, sectionId: 2, name: "David Brown", email: "2021305905@dhvsu.edu.ph", status: "active" },
-    { id: 6, sectionId: 3, name: "Emily Davis", email: "2021305906@dhvsu.edu.ph", status: "active" },
-    { id: 7, sectionId: 4, name: "Robert Miller", email: "2021305907@dhvsu.edu.ph", status: "active" },
-    { id: 8, sectionId: 4, name: "Lisa Garcia", email: "2021305908@dhvsu.edu.ph", status: "active" },
-    { id: 9, sectionId: 4, name: "Chris Lee", email: "2021305909@dhvsu.edu.ph", status: "active" },
-    { id: 10, sectionId: 5, name: "Karen White", email: "2021305910@dhvsu.edu.ph", status: "active" },
-    { id: 11, sectionId: 5, name: "Alex Thompson", email: "2021305911@dhvsu.edu.ph", status: "active" },
-    { id: 12, sectionId: 5, name: "Emma Davis", email: "2021305912@dhvsu.edu.ph", status: "active" },
-    { id: 13, sectionId: 6, name: "James Wilson", email: "2021305913@dhvsu.edu.ph", status: "active" },
-    { id: 14, sectionId: 6, name: "Sophia Turner", email: "2021305914@dhvsu.edu.ph", status: "active" },
-    { id: 15, sectionId: 6, name: "Daniel Kim", email: "2021305915@dhvsu.edu.ph", status: "active" },
-  ]
-});
+
 
 // Helper function to generate consistent avatars for students
 const getAvatarForStudent = (student) => {
@@ -118,8 +83,44 @@ const getAvatarForStudent = (student) => {
   return userDefault;
 };
 
+// Helper function to format section name with program and year
+const formatSectionName = (sectionName, program, yearLevel) => {
+  // Extract just the year number (1, 2, 3, 4) from year level
+  const yearNumber = yearLevel.replace(/[^0-9]/g, '');
+  // Extract just the section letter/name
+  const sectionLetter = sectionName.trim();
+  
+  // Format: "BSIT 4A" or "BSCS 2B" etc. (uppercase program)
+  return `${program.toUpperCase()} ${yearNumber}${sectionLetter}`;
+};
+
+// Helper function to format year level with ordinal suffix (without "Year")
+const formatYearLevel = (yearLevel) => {
+  if (!yearLevel) return '';
+  
+  // If it's already formatted (e.g., "1st Year"), extract just the ordinal part
+  if (yearLevel.includes('st') || yearLevel.includes('nd') || yearLevel.includes('rd') || yearLevel.includes('th')) {
+    // Remove "Year" if present
+    return yearLevel.replace(' Year', '');
+  }
+  
+  // If it's just a number, add ordinal suffix
+  const yearNumber = yearLevel.replace(/[^0-9]/g, '');
+  if (yearNumber) {
+    const suffix = yearNumber === '1' ? 'st' : yearNumber === '2' ? 'nd' : yearNumber === '3' ? 'rd' : 'th';
+    return `${yearNumber}${suffix}`;
+  }
+  
+  return yearLevel;
+};
+
 const SectionManagement = () => {
   const [sections, setSections] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCourseTab, setActiveCourseTab] = useState("bsit");
   const [viewMode, setViewMode] = useState("table");
@@ -130,8 +131,6 @@ const SectionManagement = () => {
   const [isMobile, setIsMobile] = useState(false);
   
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
-  
-  const { sections: mockSections, teachers, courses, students } = useMemo(() => getMockData(), []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -139,6 +138,11 @@ const SectionManagement = () => {
   // Student modal state
   const [showStudentsModal, setShowStudentsModal] = useState(false);
   const [studentsModalSection, setStudentsModalSection] = useState(null);
+  const [sectionStudents, setSectionStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+
+  // Add state to track original sections for each course
+  const [originalSections, setOriginalSections] = useState({});
 
   const navigate = useNavigate();
 
@@ -154,57 +158,275 @@ const SectionManagement = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Initialize sections with mock data
+  // Load initial data
   useEffect(() => {
-    setSections(mockSections);
-  }, [mockSections]);
+    loadInitialData();
+  }, []);
 
-  // On mount, check localStorage for a new section and add it if present
-  useEffect(() => {
-    const stored = localStorage.getItem('newSection');
-    if (stored) {
-      const newSection = JSON.parse(stored);
-      // Generate a new id
-      const newSectionId = Math.max(0, ...mockSections.map(s => s.id)) + 1;
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
       
-      // Create the section with all the details
-      const sectionToAdd = {
-        id: newSectionId,
-        name: newSection.name,
-        course: newSection.course,
-        year: newSection.year,
-        adviserId: newSection.adviser,
-        adviserDetails: newSection.adviserDetails, // Save adviser details
-        enrolled: newSection.enrolled || newSection.students?.length || 0,
-        ay: newSection.academicYear || '2024-2025',
-        semester: newSection.semester || '1st Semester',
-        studentIds: newSection.students || [], // Save student IDs
-        studentDetails: newSection.studentDetails || [], // Save full student details
-      };
+      // Load sections for the active course tab
+      const sectionsData = await apiService.getSectionsByCourse(activeCourseTab);
       
-      // Add the new section to the sections array
-      const updatedSections = [...mockSections, sectionToAdd];
-      setSections(updatedSections);
-      
-      // Also add the students to the students array if they don't exist
-      if (newSection.studentDetails && newSection.studentDetails.length > 0) {
-        const newStudents = newSection.studentDetails.map((student, index) => ({
-          ...student,
-          sectionId: newSectionId,
-          status: "active"
-        }));
-        // Note: In a real app, you'd update the students state here
-        // For now, we'll use the studentDetails stored in the section
-      }
-      
-      // Clear localStorage
-      localStorage.removeItem('newSection');
-      // Switch to the correct tab and reset filters
-      setActiveCourseTab(newSection.course);
-      setActiveYear(0);
-      setSearchTerm("");
+      // Load supporting data (courses, teachers, students)
+      const [coursesData, teachersData, studentsData] = await Promise.all([
+        apiService.getCourses(),
+        apiService.getAvailableTeachers(),
+        apiService.getAvailableStudents()
+      ]);
+
+      // Validate and clean sections data
+      const cleanSections = (sectionsData.data || sectionsData || []).map(section => ({
+        id: section.id || Math.random(),
+        name: section.name || section.section_name || 'Unnamed Section',
+        course: section.course || activeCourseTab,
+        year: section.year || section.year_level || '1st Year',
+        adviserId: section.adviserId || section.adviser_id || null,
+        adviserDetails: section.adviserDetails || section.adviser_details || null,
+        enrolled: section.enrolled || section.student_count || 0,
+        ay: section.ay || section.academic_year || '2024-2025',
+        semester: section.semester || '1st Semester',
+        ...section // Keep any other properties
+      }));
+
+      setSections(cleanSections);
+      setTeachers(teachersData.data || teachersData || []);
+      setCourses(coursesData.data || coursesData || []);
+      setStudents(studentsData.data || studentsData || []);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      setError(error.message || 'Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [mockSections]);
+  };
+
+  // Load sections when course tab changes
+  useEffect(() => {
+    if (!loading) {
+      loadSectionsForCourse(activeCourseTab);
+    }
+  }, [activeCourseTab]);
+
+  // Load sections for a specific course
+  const loadSectionsForCourse = async (course) => {
+    try {
+      setLoading(true);
+      setError(null); // Clear any previous errors
+      const sectionsData = await apiService.getSectionsByCourse(course);
+      
+      // Validate and clean sections data
+      const cleanSections = (sectionsData.data || sectionsData || []).map(section => {
+        const rawName = section.name || section.section_name || 'Unnamed Section';
+        const rawYear = section.year || section.year_level || '1st Year';
+        const program = section.course || course;
+        
+        return {
+          id: section.id || Math.random(),
+          name: formatSectionName(rawName, program, rawYear), // Format: "BSIT 4A"
+          originalName: rawName, // Keep original for editing
+          course: program,
+          year: formatYearLevel(rawYear), // Format: "4th Year"
+          originalYear: rawYear, // Keep original for editing
+          adviserId: section.adviserId || section.adviser_id || null,
+          adviserDetails: section.adviserDetails || section.adviser_details || null,
+          enrolled: section.enrolled || section.student_count || 0,
+          ay: section.ay || section.academic_year || '2024-2025',
+          semester: section.semester || '1st Semester',
+          ...section // Keep any other properties
+        };
+      });
+      
+      console.log(`Setting ${cleanSections.length} sections for course ${course}`);
+      setSections(cleanSections);
+      
+      // Store original sections for this course
+      setOriginalSections(prev => ({
+        ...prev,
+        [course]: cleanSections
+      }));
+    } catch (error) {
+      console.error('Error loading sections for course:', error);
+      setError(error.message || 'Failed to load sections. Please try again.');
+      setSections([]);
+      // Also store empty array to prevent future API calls
+      setOriginalSections(prev => ({
+        ...prev,
+        [course]: []
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load sections when year filter changes
+  useEffect(() => {
+    if (!loading) {
+      loadSectionsForYear(activeCourseTab, activeYear);
+    }
+  }, [activeYear, activeCourseTab]); // Removed originalSections from dependencies
+
+  // Load sections for a specific year
+  const loadSectionsForYear = async (course, yearIndex) => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log(`Loading sections for course: ${course}, yearIndex: ${yearIndex}`);
+      
+      const yearLevels = ['1st', '2nd', '3rd', '4th'];
+      const yearLevel = yearLevels[yearIndex - 1]; // activeYear 0 is "All Years"
+      
+      if (yearLevel) {
+        // Load specific year sections - use the same approach as "All Years" for ALL programs
+        console.log(`Loading specific year: ${yearLevel} for program: ${course}`);
+        
+        // Use stored original sections if available, otherwise load from API
+        let allSections = [];
+        if (originalSections[course] && originalSections[course].length > 0) {
+          console.log(`Using cached sections for ${course}`);
+          allSections = originalSections[course];
+        } else {
+          console.log(`Loading all sections for ${course} to filter by year`);
+          const sectionsData = await apiService.getSectionsByCourse(course);
+          allSections = (sectionsData.data || sectionsData || []).map(section => {
+            const rawName = section.name || section.section_name || 'Unnamed Section';
+            const rawYear = section.year || section.year_level || '1st Year';
+            const program = section.course || course;
+            
+            return {
+              id: section.id || Math.random(),
+              name: formatSectionName(rawName, program, rawYear), // Format: "BSIT 4A"
+              originalName: rawName, // Keep original for editing
+              course: program,
+              year: formatYearLevel(rawYear), // Format: "4th Year"
+              originalYear: rawYear, // Keep original for editing
+              adviserId: section.adviserId || section.adviser_id || null,
+              adviserDetails: section.adviserDetails || section.adviser_details || null,
+              enrolled: section.enrolled || section.student_count || 0,
+              ay: section.ay || section.academic_year || '2024-2025',
+              semester: section.semester || '1st Semester',
+              ...section // Keep any other properties
+            };
+          });
+          
+          // Store the sections for future use
+          setOriginalSections(prev => ({
+            ...prev,
+            [course]: allSections
+          }));
+        }
+        
+        // Filter sections by year for ALL programs
+        const yearFilter = yearLevel + ' Year';
+        const filteredSections = allSections.filter(section => 
+          section.year === yearFilter || 
+          section.year === yearLevel ||
+          section.year_level === yearLevel ||
+          section.year_level === yearLevel + ' Year'
+        );
+        
+        console.log(`Filtered ${filteredSections.length} sections for year ${yearLevel} in ${course}`);
+        setSections(filteredSections);
+      } else {
+        // Load all sections for the course (when "All Years" is selected)
+        console.log('Loading all sections for course');
+        
+        // Use stored original sections if available, otherwise load from API
+        if (originalSections[course] && originalSections[course].length > 0) {
+          console.log(`Restoring ${originalSections[course].length} original sections for ${course}`);
+          setSections(originalSections[course]);
+        } else {
+          await loadSectionsForCourse(course);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading sections for year:', error);
+      setError(error.message || 'Failed to load sections. Please try again.');
+      setSections([]);
+      // Store empty array to prevent future API calls for this course
+      setOriginalSections(prev => ({
+        ...prev,
+        [course]: []
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset year filter when course changes
+  useEffect(() => {
+    setActiveYear(0); // Reset to "All Years" when course changes
+  }, [activeCourseTab]);
+
+  // Load section students when modal opens
+  const loadSectionStudents = async (sectionId) => {
+    try {
+      setLoadingStudents(true);
+      // For now, return empty array since the endpoint might not exist
+      setSectionStudents([]);
+    } catch (error) {
+      console.error('Error loading section students:', error);
+      setSectionStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  // Handle section operations
+  const handleEditSection = async (section) => {
+    try {
+      // For now, show an alert since the edit endpoint might not exist
+      alert('Edit functionality will be implemented when the backend endpoint is available.');
+      // navigate('/admin/edit-section', { state: { section } });
+    } catch (error) {
+      console.error('Error editing section:', error);
+      setError('Failed to edit section. Please try again.');
+    }
+  };
+
+  const handleDeleteSection = async (section) => {
+    if (window.confirm(`Are you sure you want to delete section "${section.name}"? This action cannot be undone.`)) {
+      try {
+        // For now, show an alert since the delete endpoint might not exist
+        alert('Delete functionality will be implemented when the backend endpoint is available.');
+        // await apiService.deleteSection(section.id);
+        // setSections(prevSections => prevSections.filter(s => s.id !== section.id));
+        // alert('Section deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting section:', error);
+        setError('Failed to delete section. Please try again.');
+      }
+    }
+  };
+
+  const handleExportSections = async () => {
+    try {
+      // For now, show an alert since the export endpoint might not exist
+      alert('Export functionality will be implemented when the backend endpoint is available.');
+      // const exportData = await apiService.exportSections('csv');
+      // const blob = new Blob([exportData], { type: 'text/csv' });
+      // const url = window.URL.createObjectURL(blob);
+      // const a = document.createElement('a');
+      // a.href = url;
+      // a.download = `sections_export_${new Date().toISOString().split('T')[0]}.csv`;
+      // document.body.appendChild(a);
+      // a.click();
+      // window.URL.revokeObjectURL(url);
+      // document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting sections:', error);
+      setError('Failed to export sections. Please try again.');
+    }
+  };
+
+  const handleShowStudents = async (section) => {
+    setStudentsModalSection(section);
+    setShowStudentsModal(true);
+    await loadSectionStudents(section.id);
+  };
 
   const handleSort = (key) => {
     let direction = 'ascending';
@@ -222,17 +444,32 @@ const SectionManagement = () => {
   };
 
   const filteredAndSortedSections = useMemo(() => {
-    let filtered = sections
-      .filter(section => section.course === activeCourseTab)
-      .filter(section => activeYear === 0 || section.year === ["All Years", "1st Year", "2nd Year", "3rd Year", "4th Year"][activeYear])
-      .filter(section => section.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    // Since we're now using server-side filtering, we only need to apply search and sorting
+    let filtered = sections.filter(section => {
+      // Add null checks to prevent errors
+      if (!section || !section.name) return false;
+      return section.name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        // Handle nested objects (like adviserDetails)
+        if (sortConfig.key === 'adviserId' && a.adviserDetails) {
+          aValue = a.adviserDetails.name || '';
+          bValue = b.adviserDetails?.name || '';
+        }
+        
+        // Ensure values are strings for comparison
+        aValue = String(aValue || '');
+        bValue = String(bValue || '');
+        
+        if (aValue < bValue) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
@@ -240,14 +477,14 @@ const SectionManagement = () => {
     }
 
     return filtered;
-  }, [sections, activeCourseTab, activeYear, searchTerm, sortConfig]);
+  }, [sections, searchTerm, sortConfig]);
 
   // Calculate pagination info
-  const totalItems = filteredAndSortedSections.length;
+  const totalItems = (filteredAndSortedSections || []).length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedSections = filteredAndSortedSections.slice(startIndex, endIndex);
+  const paginatedSections = (filteredAndSortedSections || []).slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -259,17 +496,11 @@ const SectionManagement = () => {
 
   // Helper function to get students in a section
   const getStudentsForSection = (sectionId) => {
-    const section = sections.find(s => s.id === sectionId);
-    if (section && section.studentDetails) {
-      // Return the actual selected students from the section
-      return section.studentDetails.map((student, index) => ({
-        ...student,
-        id: student.id || index + 1,
-        sectionId: sectionId,
-        status: "active"
-      }));
+    // Use the sectionStudents state for the modal
+    if (showStudentsModal && studentsModalSection && studentsModalSection.id === sectionId) {
+      return sectionStudents;
     }
-    // Fallback to the original method for existing sections
+    // Fallback to filtering students by sectionId
     return students.filter(student => student.sectionId === sectionId);
   };
 
@@ -311,7 +542,29 @@ const SectionManagement = () => {
                 <div className="d-flex align-items-center mb-2">
                   <i className="ni ni-single-02 mr-2" style={{ color: '#4066b5', fontSize: '1.2rem' }} />
                   <span className="font-weight-bold" style={{ color: '#425466' }}>Adviser:</span>
-                  <span className="ml-2" style={{ color: '#425466' }}>{adviser?.name || 'N/A'}</span>
+                  <div className="d-flex align-items-center ml-2">
+                    {adviser?.profile_picture ? (
+                      <img 
+                        src={`http://localhost/scms_new/${adviser.profile_picture}`}
+                        alt={adviser?.name || 'No Adviser'} 
+                        className="rounded-circle mr-2"
+                        style={{ width: '24px', height: '24px', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    {!adviser?.profile_picture && (
+                      <div 
+                        className="rounded-circle mr-2 bg-secondary d-flex align-items-center justify-content-center"
+                        style={{ width: '24px', height: '24px', fontSize: '10px', color: 'white' }}
+                      >
+                        {adviser?.name ? adviser.name.charAt(0).toUpperCase() : '?'}
+                      </div>
+                    )}
+                    <span style={{ color: '#425466' }}>{adviser?.name || 'N/A'}</span>
+                  </div>
                 </div>
                 <div className="d-flex align-items-center">
                   <i className="ni ni-email-83 mr-2" style={{ color: '#4a6fa5', fontSize: '1.2rem' }} />
@@ -338,7 +591,12 @@ const SectionManagement = () => {
               Student List ({studentsInSection.length})
             </h6>
             
-            {studentsInSection.length === 0 ? (
+            {loadingStudents ? (
+              <div className="text-center py-4">
+                <Spinner color="primary" size="sm" className="mr-2" />
+                <span className="text-muted">Loading students...</span>
+              </div>
+            ) : studentsInSection.length === 0 ? (
               <div className="text-center py-4">
                 <div className="mb-2">
                   <i className="ni ni-single-02" style={{ fontSize: '2rem', color: '#dee2e6' }} />
@@ -445,18 +703,15 @@ const SectionManagement = () => {
                 e.currentTarget.style.boxShadow = '0 2px 12px 0 rgba(64,102,181,0.06)';
                 e.currentTarget.style.borderColor = '#e3eaf3';
               }}
-              onClick={() => {
-                setStudentsModalSection(section);
-                setShowStudentsModal(true);
-              }}
+              onClick={() => handleShowStudents(section)}
             >
               {/* Block Header */}
               <div style={{ background: '#eaf4fb', borderRadius: '12px 12px 0 0', padding: '12px 18px 8px 18px', minHeight: 54, display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
                   <i className="ni ni-bullet-list-67" style={{ color: '#22336b', fontSize: '1.05rem', marginTop: 2, marginRight: 10, minWidth: 18, textAlign: 'center' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <span className="font-weight-bold" style={{ color: '#22336b', fontSize: '0.81rem', lineHeight: 1.1 }}>{section.name}</span>
-                    <span className="text-muted" style={{ color: '#22336b', fontSize: '0.69rem', marginTop: 2 }}>{section.year} • {section.ay} • {section.semester}</span>
+                    <span className="font-weight-bold" style={{ color: '#22336b', fontSize: '0.81rem', lineHeight: 1.1 }}>{section.name || 'Unnamed Section'}</span>
+                    <span className="text-muted" style={{ color: '#22336b', fontSize: '0.69rem', marginTop: 2 }}>{section.year || 'N/A'} • {section.ay || 'N/A'} • {section.semester || 'N/A'}</span>
                   </div>
                 </div>
                 {/* Three-dot menu */}
@@ -493,7 +748,26 @@ const SectionManagement = () => {
               {/* Card Body */}
               <CardBody className="p-3" style={{ background: '#fff', borderRadius: '0 0 12px 12px' }}>
                 <div className="mb-2 d-flex align-items-center" style={{gap: 10, marginLeft: 6, marginTop: 15}}>
-                  <img src={adviser?.avatar} alt={adviser?.name} className="avatar avatar-sm rounded-circle" style={{width: 32, height: 32, objectFit: 'cover'}} />
+                  {adviser?.profile_picture ? (
+                    <img 
+                      src={`http://localhost/scms_new/${adviser.profile_picture}`}
+                      alt={adviser?.name || 'No Adviser'} 
+                      className="avatar avatar-sm rounded-circle" 
+                      style={{width: 32, height: 32, objectFit: 'cover'}} 
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  {!adviser?.profile_picture && (
+                    <div 
+                      className="avatar avatar-sm rounded-circle mr-2 bg-secondary d-flex align-items-center justify-content-center"
+                      style={{ width: '32px', height: '32px', fontSize: '12px', color: 'white' }}
+                    >
+                      {adviser?.name ? adviser.name.charAt(0).toUpperCase() : '?'}
+                    </div>
+                  )}
                   <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
                     <span className="font-weight-bold" style={{ color: '#425466', fontSize: '0.89rem', lineHeight: 1.1 }}>{adviser?.name || 'No Adviser'}</span>
                     <span className="text-muted" style={{ color: '#8b98a9', fontSize: '0.77rem', marginTop: 2 }}>{adviser?.email || 'No Email'}</span>
@@ -503,7 +777,7 @@ const SectionManagement = () => {
                   <span className="d-block" style={{ color: '#425466', fontSize: '0.93rem' }}>
                     <i className="ni ni-badge mr-1" style={{ color: '#4066B5' }}></i>
                     <span className="font-weight-bold">Students:</span>
-                    <span className="font-weight-bold ml-1">{section.enrolled}</span>
+                    <span className="font-weight-bold ml-1">{section.enrolled || 0}</span>
                   </span>
                 </div>
                 {/* Three-dot menu with hover effect */}
@@ -526,17 +800,6 @@ const SectionManagement = () => {
     </Row>
   );
 
-  // Add these handlers to fix ESLint errors
-  function handleEditSection(section) {
-    // TODO: Implement edit logic
-    console.log('Edit section:', section);
-  }
-
-  function handleDeleteSection(section) {
-    // TODO: Implement delete logic
-    console.log('Delete section:', section);
-  }
-
   return (
     <>
       <style>{sectionManagementStyles}</style>
@@ -547,6 +810,23 @@ const SectionManagement = () => {
         <Row>
           <div className="col">
             <Card className="shadow section-content-card">
+              {/* CORS Warning Banner */}
+              {error && error.includes('Backend connection failed') && (
+                <Alert color="warning" className="mb-3">
+                  <div className="d-flex align-items-center">
+                    <i className="ni ni-bell-55 mr-2" style={{ fontSize: '1.2rem' }} />
+                    <div>
+                      <strong>Demo Mode:</strong> Backend connection failed. Using demo data. 
+                      Please fix CORS headers on your backend to connect to real data.
+                      <br />
+                      <small className="text-muted">
+                        See <code>BACKEND_CORS_FIX.md</code> for detailed instructions.
+                      </small>
+                    </div>
+                  </div>
+                </Alert>
+              )}
+              
               {/* Tabs and View Mode Row */}
               <Row className="mb-4 align-items-center">
                 <Col xs="12">
@@ -648,7 +928,7 @@ const SectionManagement = () => {
                       {currentCourseName} ({filteredAndSortedSections.length})
                     </div>
                     <div>
-                      <Button color="info" outline className="mr-2" size="sm" style={{ padding: '3px 10px', fontSize: '0.75rem' }}>
+                      <Button color="info" outline className="mr-2" size="sm" style={{ padding: '3px 10px', fontSize: '0.75rem' }} onClick={handleExportSections}>
                         <i className="ni ni-archive-2 mr-2" /> Export
                       </Button>
                       <Button color="primary" size="sm" style={{ padding: '3px 6px', fontSize: '0.75rem' }} onClick={() => navigate('/admin/create-section')}>
@@ -660,7 +940,16 @@ const SectionManagement = () => {
               </Row>
               {/* Table View */}
               <div style={{ marginTop: '0' }}>
-                {viewMode === 'table' && (
+                {loading ? (
+                  <div className="text-center py-5">
+                    <Spinner color="primary" size="lg" className="mr-2" />
+                    <span className="text-muted">Loading sections...</span>
+                  </div>
+                ) : error ? (
+                  <Alert color="danger" className="text-center">
+                    {error}
+                  </Alert>
+                ) : viewMode === 'table' ? (
                   <>
                     <Table className="align-items-center table-flush" responsive>
                       <thead className="thead-light">
@@ -694,39 +983,54 @@ const SectionManagement = () => {
                             <tr 
                               key={section.id}
                               style={{ cursor: 'pointer' }}
-                              onClick={() => {
-                                console.log('Row clicked', section);
-                                setStudentsModalSection(section);
-                                setShowStudentsModal(true);
-                              }}
+                              onClick={() => handleShowStudents(section)}
                             >
-                              <td>{section.name}</td>
-                              <td>{section.year}</td>
+                              <td>{section.name || 'Unnamed Section'}</td>
+                              <td>{section.year || 'N/A'}</td>
                               <td>
                                 <div className="d-flex align-items-center">
-                                  <img src={adviser?.avatar} alt={adviser?.name} className="avatar avatar-sm rounded-circle mr-2" />
+                                  {adviser?.profile_picture ? (
+                                    <img 
+                                      src={`http://localhost/scms_new/${adviser.profile_picture}`}
+                                      alt={adviser?.name || 'No Adviser'} 
+                                      className="avatar avatar-sm rounded-circle mr-2"
+                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
+                                  {!adviser?.profile_picture && (
+                                    <div 
+                                      className="avatar avatar-sm rounded-circle mr-2 bg-secondary d-flex align-items-center justify-content-center"
+                                      style={{ width: '32px', height: '32px', fontSize: '12px', color: 'white' }}
+                                    >
+                                      {adviser?.name ? adviser.name.charAt(0).toUpperCase() : '?'}
+                                    </div>
+                                  )}
                                   <div>
-                                    <div className="font-weight-bold">{adviser?.name}</div>
-                                    <div className="text-muted small">{adviser?.email}</div>
+                                    <div className="font-weight-bold">{adviser?.name || 'No Adviser'}</div>
+                                    <div className="text-muted small">{adviser?.email || 'No Email'}</div>
                                   </div>
                                 </div>
                               </td>
-                              <td>{section.enrolled}</td>
-                              <td>{section.ay}</td>
-                              <td>{section.semester}</td>
+                              <td>{section.enrolled || 0}</td>
+                              <td>{section.ay || 'N/A'}</td>
+                              <td>{section.semester || 'N/A'}</td>
                               <td onClick={e => e.stopPropagation()}>
                                 <Button
                                   color="primary"
                                   size="sm"
                                   className="mr-2"
-                                  // onClick={() => handleEditSection(section.id)}
+                                  onClick={() => handleEditSection(section)}
                                 >
                                   Edit
                                 </Button>
                                 <Button
                                   color="danger"
                                   size="sm"
-                                  // onClick={() => handleDeleteSection(section.id)}
+                                  onClick={() => handleDeleteSection(section)}
                                 >
                                   Delete
                                 </Button>
@@ -829,8 +1133,9 @@ const SectionManagement = () => {
                       </Pagination>
                     </div>
                   </>
+                ) : (
+                  renderBlockView()
                 )}
-                {viewMode === 'block' && renderBlockView()}
               </div>
             </Card>
           </div>

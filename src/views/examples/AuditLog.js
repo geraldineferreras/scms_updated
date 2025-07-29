@@ -235,19 +235,19 @@ const AuditLog = () => {
   };
 
   const getModuleBadge = (module) => {
-    switch (module) {
-      case "User Management":
-        return <Badge color="primary" outline>{module}</Badge>;
-      case "Section Management":
-        return <Badge color="success" outline>{module}</Badge>;
-      case "Grades Management":
-        return <Badge color="warning" outline>{module}</Badge>;
-      case "Reports & Logs":
-        return <Badge color="info" outline>{module}</Badge>;
-      case "Authentication":
-        return <Badge color="secondary" outline>{module}</Badge>;
+    switch (module.toLowerCase()) {
+      case 'user management':
+        return <Badge color="primary" outline="true">{module}</Badge>;
+      case 'section management':
+        return <Badge color="success" outline="true">{module}</Badge>;
+      case 'attendance':
+        return <Badge color="warning" outline="true">{module}</Badge>;
+      case 'grades':
+        return <Badge color="info" outline="true">{module}</Badge>;
+      case 'announcements':
+        return <Badge color="secondary" outline="true">{module}</Badge>;
       default:
-        return <Badge color="light" outline>{module}</Badge>;
+        return <Badge color="light" outline="true">{module}</Badge>;
     }
   };
 
@@ -533,7 +533,7 @@ const AuditLog = () => {
                       </div>
                       <div className="d-flex align-items-center" style={{ gap: 12 }}>
                         <UncontrolledDropdown className="d-inline-block mr-2">
-                          <DropdownToggle color="info" outline size="sm" style={{ padding: '3px 10px', fontSize: '0.75rem' }}>
+                          <DropdownToggle color="info" outline="true" size="sm" style={{ padding: '3px 10px', fontSize: '0.75rem' }}>
                             <i className="ni ni-archive-2 mr-2" /> Export
                           </DropdownToggle>
                           <DropdownMenu>

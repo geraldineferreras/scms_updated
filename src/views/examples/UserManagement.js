@@ -124,7 +124,7 @@ const userManagementStyles = `
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("admin");
+   const [activeTab, setActiveTab] = useState("admin");
   const [entriesToShow, setEntriesToShow] = useState(10);
   const [sortBy, setSortBy] = useState("created_at"); // Default to 'Recently Added'
   const [sortOrder, setSortOrder] = useState("desc"); // Default to most recent first

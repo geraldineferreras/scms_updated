@@ -135,20 +135,213 @@ class ApiService {
     });
   }
 
-  // Admin methods
-  async getSections() {
-    return this.makeRequest('/admin/sections', {
+  // Section Management API endpoints - Individual methods for each program
+  async getSectionsBSIT() {
+    return this.makeRequest('/admin/sections_by_program?program=BSIT', {
       method: 'GET',
       requireAuth: true,
     });
   }
 
+  async getSectionsBSCS() {
+    return this.makeRequest('/admin/sections_by_program?program=BSCS', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsBSIS() {
+    return this.makeRequest('/admin/sections_by_program?program=BSIS', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsACT() {
+    return this.makeRequest('/admin/sections_by_program?program=ACT', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsByProgram(program) {
+    return this.makeRequest(`/admin/sections_by_program?program=${program}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsByProgramAndYear(program, yearLevel) {
+    return this.makeRequest(`/admin/sections_by_program_year_specific?program=${program}&year_level=${yearLevel}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsByCourse(course) {
+    // Map course IDs to program names
+    const programMap = {
+      'bsit': 'BSIT',
+      'bscs': 'BSCS', 
+      'bsis': 'BSIS',
+      'act': 'ACT'
+    };
+    const program = programMap[course] || 'BSIT';
+    console.log(`Getting sections for course: ${course} -> program: ${program}`);
+    return this.makeRequest(`/admin/sections_by_program?program=${program}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+  
+
+  async getSectionsByYear(year) {
+    // Map year names to year levels
+    const yearMap = {
+      '1st Year': '1st',
+      '2nd Year': '2nd', 
+      '3rd Year': '3rd',
+      '4th Year': '4th'
+    };
+    const yearLevel = yearMap[year] || '1st';
+    return this.makeRequest(`/admin/sections_by_program_year_specific?program=BSIT&year_level=${yearLevel}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsByAcademicYear(academicYear) {
+    // For now, return all sections since the API doesn't support academic year filtering
+    return this.makeRequest('/admin/sections_by_program?program=BSIT', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionsBySemester(semester) {
+    // For now, return all sections since the API doesn't support semester filtering
+    return this.makeRequest('/admin/sections_by_program?program=BSIT', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionById(sectionId) {
+    // Since there's no specific endpoint for single section, we'll get all and filter
+    const allSections = await this.getSections();
+    const section = allSections.data?.find(s => s.id === sectionId);
+    if (!section) {
+      throw new Error('Section not found');
+    }
+    return { success: true, data: section };
+  }
+
   async createSection(sectionData) {
+    // Note: This endpoint might not exist in your backend yet
     return this.makeRequest('/admin/sections', {
       method: 'POST',
       body: JSON.stringify(sectionData),
       requireAuth: true,
     });
+  }
+
+  async updateSection(sectionId, sectionData) {
+    // Note: This endpoint might not exist in your backend yet
+    return this.makeRequest(`/admin/sections/${sectionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(sectionData),
+      requireAuth: true,
+    });
+  }
+
+  async deleteSection(sectionId) {
+    // Note: This endpoint might not exist in your backend yet
+    return this.makeRequest(`/admin/sections/${sectionId}`, {
+      method: 'DELETE',
+      requireAuth: true,
+    });
+  }
+
+  async getSectionStudents(sectionId) {
+    // Note: This endpoint might not exist in your backend yet
+    return this.makeRequest(`/admin/sections/${sectionId}/students`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async addStudentToSection(sectionId, studentData) {
+    // Note: This endpoint might not exist in your backend yet
+    return this.makeRequest(`/admin/sections/${sectionId}/students`, {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+      requireAuth: true,
+    });
+  }
+
+  async removeStudentFromSection(sectionId, studentId) {
+    // Note: This endpoint might not exist in your backend yet
+    return this.makeRequest(`/admin/sections/${sectionId}/students/${studentId}`, {
+      method: 'DELETE',
+      requireAuth: true,
+    });
+  }
+
+  async getAvailableTeachers() {
+    // Note: This endpoint might not exist in your backend yet
+    // For now, return empty array to avoid CORS errors
+    return { success: true, data: [] };
+  }
+
+  async getAvailableStudents() {
+    // Note: This endpoint might not exist in your backend yet
+    // For now, return empty array to avoid CORS errors
+    return { success: true, data: [] };
+  }
+
+  async exportSections(format = 'csv') {
+    // Note: This endpoint might not exist in your backend yet
+    return this.makeRequest(`/admin/sections/export?format=${format}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async getCourses() {
+    // Return static course data since there's no API endpoint
+    return {
+      success: true,
+      data: [
+        { id: "bsit", abbr: "BSIT", name: "Info Tech" },
+        { id: "bscs", abbr: "BSCS", name: "Computer Science" },
+        { id: "bsis", abbr: "BSIS", name: "Info Systems" },
+        { id: "act", abbr: "ACT", name: "Computer Technology" },
+      ]
+    };
+  }
+
+  async getAcademicYears() {
+    // Return static academic years since there's no API endpoint
+    return {
+      success: true,
+      data: [
+        "2023-2024",
+        "2024-2025",
+        "2025-2026"
+      ]
+    };
+  }
+
+  async getSemesters() {
+    // Return static semesters since there's no API endpoint
+    return {
+      success: true,
+      data: [
+        "1st Semester",
+        "2nd Semester",
+        "Summer"
+      ]
+    };
   }
 
   // Fetch users by role

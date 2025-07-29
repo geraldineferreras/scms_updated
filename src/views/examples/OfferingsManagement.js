@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Card, CardBody, CardHeader, Table, Input, Row, Col, Button, Badge, Modal, ModalHeader, ModalBody, ModalFooter, FormGroup, Label, InputGroup, InputGroupAddon, InputGroupText, Alert, Pagination, PaginationItem, PaginationLink
+  Card, CardBody, CardHeader, Table, Input, Row, Col, Button, Badge, Modal, ModalHeader, ModalBody, ModalFooter, FormGroup, Label, InputGroup, InputGroupAddon, InputGroupText, Alert, Pagination, PaginationItem, PaginationLink, Spinner
 } from "reactstrap";
 import { FaEdit, FaTrash, FaSearch } from "react-icons/fa";
 import Header from "components/Headers/Header.js";
+import apiService from "../../services/api.js";
 
 // Floating effect for content over header
 const offeringsManagementStyles = `
@@ -26,35 +27,28 @@ const offeringsManagementStyles = `
   }
 `;
 
-// Mock data
-const mockSubjects = [
-  { id: 1, code: "CS101", name: "Object-Oriented Programming" },
-  { id: 2, code: "DBMS201", name: "Database Management Systems" },
-  { id: 3, code: "MATH301", name: "Discrete Mathematics" },
-];
-const mockTeachers = [
-  { id: 1, name: "Juan Dela Cruz" },
-  { id: 2, name: "Maria Santos" },
-  { id: 3, name: "Emily Johnson" },
-];
-const mockSections = [
-  { id: 1, name: "BSIT 3A" },
-  { id: 2, name: "BSCS 2B" },
-  { id: 3, name: "BSIT 1C" },
-];
 const getToday = () => new Date().toISOString().slice(0, 10);
-const initialOfferings = [
-  { id: 1, subjectId: 1, teacherId: 1, sectionId: 1, semester: "1st", schoolYear: "2024-2025", date: getToday() },
-  { id: 2, subjectId: 2, teacherId: 2, sectionId: 2, semester: "2nd", schoolYear: "2024-2025", date: getToday() },
-];
 
 export default function OfferingsManagement() {
-  const [offerings, setOfferings] = useState(initialOfferings);
+  const [offerings, setOfferings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Dropdown data states
+  const [subjects, setSubjects] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState({
+    subjects: false,
+    teachers: false,
+    sections: false
+  });
+  
   const [subject, setSubject] = useState("");
   const [teacher, setTeacher] = useState("");
   const [section, setSection] = useState("");
   const [semester, setSemester] = useState("");
-  const [schoolYear, setSchoolYear] = useState("");
+  const [schoolYear, setSchoolYear] = useState("2024-2025");
   const [formError, setFormError] = useState("");
   const [showToast, setShowToast] = useState("");
   const [search, setSearch] = useState("");
@@ -65,85 +59,198 @@ export default function OfferingsManagement() {
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteOffering, setDeleteOffering] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [addingOffering, setAddingOffering] = useState(false);
+  const [updatingOffering, setUpdatingOffering] = useState(false);
+  const [deletingOffering, setDeletingOffering] = useState(false);
   const itemsPerPage = 10;
+
+  // Load classes and dropdown data on component mount
+  useEffect(() => {
+    loadClasses();
+    loadDropdownData();
+  }, []);
+
+  const loadClasses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiService.getClasses();
+      console.log('Classes response:', response);
+      
+      // Handle different response formats
+      const classesData = response.data || response || [];
+      setOfferings(classesData);
+    } catch (error) {
+      console.error('Error loading classes:', error);
+      setError('Failed to load classes. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDropdownData = async () => {
+    // Load subjects
+    try {
+      setLoadingDropdowns(prev => ({ ...prev, subjects: true }));
+      const subjectsResponse = await apiService.getSubjects();
+      console.log('Subjects response:', subjectsResponse);
+      const subjectsData = subjectsResponse.data || subjectsResponse || [];
+      setSubjects(subjectsData);
+    } catch (error) {
+      console.error('Error loading subjects:', error);
+    } finally {
+      setLoadingDropdowns(prev => ({ ...prev, subjects: false }));
+    }
+
+    // Load teachers
+    try {
+      setLoadingDropdowns(prev => ({ ...prev, teachers: true }));
+      const teachersResponse = await apiService.getUsersByRole('teacher');
+      console.log('Teachers response:', teachersResponse);
+      const teachersData = teachersResponse.data || teachersResponse || [];
+      setTeachers(teachersData);
+    } catch (error) {
+      console.error('Error loading teachers:', error);
+    } finally {
+      setLoadingDropdowns(prev => ({ ...prev, teachers: false }));
+    }
+
+    // Load sections
+    try {
+      setLoadingDropdowns(prev => ({ ...prev, sections: true }));
+      const sectionsResponse = await apiService.makeRequest('/admin/sections', {
+        method: 'GET',
+        requireAuth: true,
+      });
+      console.log('Sections response:', sectionsResponse);
+      const sectionsData = sectionsResponse.data || sectionsResponse || [];
+      setSections(sectionsData);
+    } catch (error) {
+      console.error('Error loading sections:', error);
+    } finally {
+      setLoadingDropdowns(prev => ({ ...prev, sections: false }));
+    }
+  };
 
   // Filtered and paginated offerings
   const filteredOfferings = offerings.filter(o => {
-    const subj = mockSubjects.find(s => s.id === o.subjectId)?.name || "";
-    const teach = mockTeachers.find(t => t.id === o.teacherId)?.name || "";
-    const sect = mockSections.find(s => s.id === o.sectionId)?.name || "";
-    return (
-      subj.toLowerCase().includes(search.toLowerCase()) ||
-      teach.toLowerCase().includes(search.toLowerCase()) ||
-      sect.toLowerCase().includes(search.toLowerCase())
-    );
+    const subjectName = o.subject_name || '';
+    const teacherName = o.teacher_name || '';
+    const sectionName = o.section_name || '';
+    const searchTerm = search.toLowerCase();
+    
+    return subjectName.toLowerCase().includes(searchTerm) ||
+           teacherName.toLowerCase().includes(searchTerm) ||
+           sectionName.toLowerCase().includes(searchTerm);
   });
   const totalPages = Math.ceil(filteredOfferings.length / itemsPerPage);
   const paginatedOfferings = filteredOfferings.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
 
   // Add offering
-  const handleAdd = () => {
+  const handleAdd = async () => {
     setFormError("");
     if (!subject || !teacher || !section || !semester || !schoolYear) {
       setFormError("All fields are required.");
       return;
     }
+    
     // Prevent duplicate assignment
-    if (offerings.some(o => o.subjectId === Number(subject) && o.sectionId === Number(section) && o.semester === semester && o.schoolYear === schoolYear)) {
+    if (offerings.some(o => o.subject_id === Number(subject) && o.section_id === Number(section) && o.semester === semester && o.school_year === schoolYear)) {
       setFormError("This subject is already assigned to this section for the selected term.");
       return;
     }
-    setOfferings([
-      ...offerings,
-      {
-        id: offerings.length ? Math.max(...offerings.map(o => o.id)) + 1 : 1,
-        subjectId: Number(subject),
-        teacherId: Number(teacher),
-        sectionId: Number(section),
-        semester,
-        schoolYear,
-        date: getToday()
-      }
-    ]);
-    setSubject(""); setTeacher(""); setSection(""); setSemester(""); setSchoolYear("");
-    setShowToast("Subject offering successfully created.");
-    setTimeout(() => setShowToast(""), 2000);
+
+    try {
+      setAddingOffering(true);
+      setFormError("");
+
+      const classData = {
+        subject_id: Number(subject),
+        teacher_id: teacher,
+        section_id: Number(section),
+        semester: semester.toUpperCase(),
+        school_year: schoolYear
+      };
+
+      console.log('Creating class with data:', classData);
+      
+      const response = await apiService.createClass(classData);
+      console.log('Create class response:', response);
+
+      // Reload the classes to get the updated list
+      await loadClasses();
+
+      // Reset form
+      setSubject(""); 
+      setTeacher(""); 
+      setSection(""); 
+      setSemester(""); 
+      setSchoolYear("2024-2025");
+      
+      setShowToast("Subject offering successfully created.");
+      setTimeout(() => setShowToast(""), 2000);
+    } catch (error) {
+      console.error('Error creating class:', error);
+      setFormError(error.message || "Failed to create offering. Please try again.");
+    } finally {
+      setAddingOffering(false);
+    }
   };
 
   // Edit offering
   const openEdit = (offering) => {
     setEditOffering(offering);
     setEditFields({
-      subject: offering.subjectId.toString(),
-      teacher: offering.teacherId.toString(),
-      section: offering.sectionId.toString(),
-      semester: offering.semester,
-      schoolYear: offering.schoolYear
+      subject: offering.subject_id?.toString() || "",
+      teacher: offering.teacher_id || "",
+      section: offering.section_id?.toString() || "",
+      semester: offering.semester || "",
+      schoolYear: offering.school_year || ""
     });
     setEditError("");
     setEditModal(true);
   };
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     if (!editFields.subject || !editFields.teacher || !editFields.section || !editFields.semester || !editFields.schoolYear) {
       setEditError("All fields are required.");
       return;
     }
+    
     // Prevent duplicate assignment (except for the current one)
-    if (offerings.some(o => o.id !== editOffering.id && o.subjectId === Number(editFields.subject) && o.sectionId === Number(editFields.section) && o.semester === editFields.semester && o.schoolYear === editFields.schoolYear)) {
+    if (offerings.some(o => o.class_id !== editOffering.class_id && o.subject_id === Number(editFields.subject) && o.section_id === Number(editFields.section) && o.semester === editFields.semester && o.school_year === editFields.schoolYear)) {
       setEditError("This subject is already assigned to this section for the selected term.");
       return;
     }
-    setOfferings(offerings.map(o => o.id === editOffering.id ? {
-      ...o,
-      subjectId: Number(editFields.subject),
-      teacherId: Number(editFields.teacher),
-      sectionId: Number(editFields.section),
-      semester: editFields.semester,
-      schoolYear: editFields.schoolYear
-    } : o));
-    setEditModal(false);
-    setShowToast("Offering updated successfully.");
-    setTimeout(() => setShowToast(""), 2000);
+
+    try {
+      setUpdatingOffering(true);
+      setEditError("");
+
+      const classData = {
+        subject_id: Number(editFields.subject),
+        teacher_id: editFields.teacher,
+        section_id: Number(editFields.section),
+        semester: editFields.semester.toUpperCase(),
+        school_year: editFields.schoolYear
+      };
+
+      console.log('Updating class with data:', classData);
+      
+      const response = await apiService.updateClass(editOffering.class_id, classData);
+      console.log('Update class response:', response);
+
+      // Reload the classes to get the updated list
+      await loadClasses();
+
+      setEditModal(false);
+      setShowToast("Offering updated successfully.");
+      setTimeout(() => setShowToast(""), 2000);
+    } catch (error) {
+      console.error('Error updating class:', error);
+      setEditError(error.message || "Failed to update offering. Please try again.");
+    } finally {
+      setUpdatingOffering(false);
+    }
   };
 
   // Delete offering
@@ -151,11 +258,28 @@ export default function OfferingsManagement() {
     setDeleteOffering(offering);
     setDeleteModal(true);
   };
-  const handleDelete = () => {
-    setOfferings(offerings.filter(o => o.id !== deleteOffering.id));
-    setDeleteModal(false);
-    setShowToast("Offering deleted.");
-    setTimeout(() => setShowToast(""), 2000);
+  const handleDelete = async () => {
+    try {
+      setDeletingOffering(true);
+      
+      console.log('Deleting class:', deleteOffering.class_id);
+      
+      const response = await apiService.deleteClass(deleteOffering.class_id);
+      console.log('Delete class response:', response);
+
+      // Reload the classes to get the updated list
+      await loadClasses();
+
+      setDeleteModal(false);
+      setShowToast("Offering deleted successfully.");
+      setTimeout(() => setShowToast(""), 2000);
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      setShowToast("Failed to delete offering. Please try again.");
+      setTimeout(() => setShowToast(""), 2000);
+    } finally {
+      setDeletingOffering(false);
+    }
   };
 
   // Pagination
@@ -174,27 +298,27 @@ export default function OfferingsManagement() {
             <Row className="align-items-end mb-4">
               <Col md={3} xs={12} className="mb-2 mb-md-0">
                 <Label>Subject</Label>
-                <Input type="select" value={subject} onChange={e => setSubject(e.target.value)}>
-                  <option value="">Select Subject</option>
-                  {mockSubjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.code} – {s.name}</option>
+                <Input type="select" value={subject} onChange={e => setSubject(e.target.value)} disabled={loadingDropdowns.subjects}>
+                  <option value="">{loadingDropdowns.subjects ? "Loading..." : "Select Subject"}</option>
+                  {subjects.map(s => (
+                    <option key={s.id} value={s.id}>{s.subject_code || s.code} – {s.subject_name || s.name}</option>
                   ))}
                 </Input>
               </Col>
               <Col md={3} xs={12} className="mb-2 mb-md-0">
                 <Label>Teacher</Label>
-                <Input type="select" value={teacher} onChange={e => setTeacher(e.target.value)}>
-                  <option value="">Select Teacher</option>
-                  {mockTeachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                <Input type="select" value={teacher} onChange={e => setTeacher(e.target.value)} disabled={loadingDropdowns.teachers}>
+                  <option value="">{loadingDropdowns.teachers ? "Loading..." : "Select Teacher"}</option>
+                  {teachers.map(t => (
+                    <option key={t.user_id} value={t.user_id}>{t.full_name}</option>
                   ))}
                 </Input>
               </Col>
               <Col md={2} xs={12} className="mb-2 mb-md-0">
                 <Label>Section</Label>
-                <Input type="select" value={section} onChange={e => setSection(e.target.value)}>
-                  <option value="">Select Section</option>
-                  {mockSections.map(s => (
+                <Input type="select" value={section} onChange={e => setSection(e.target.value)} disabled={loadingDropdowns.sections}>
+                  <option value="">{loadingDropdowns.sections ? "Loading..." : "Select Section"}</option>
+                  {sections.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </Input>
@@ -217,13 +341,14 @@ export default function OfferingsManagement() {
                 />
               </Col>
               <Col md={12} className="text-md-right mt-3 mt-md-0">
-                <Button color="primary" onClick={handleAdd} style={{ borderRadius: 8, fontWeight: 600, minWidth: 180 }}>
-                  Assign Offering
+                <Button color="primary" onClick={handleAdd} style={{ borderRadius: 8, fontWeight: 600, minWidth: 180 }} disabled={addingOffering}>
+                  {addingOffering ? <Spinner size="sm" /> : "Assign Offering"}
                 </Button>
               </Col>
             </Row>
             {formError && <Alert color="danger" className="py-2 mb-3">{formError}</Alert>}
             {showToast && <Alert color="success" className="py-2 mb-3">{showToast}</Alert>}
+            {error && <Alert color="danger" className="py-2 mb-3">{error}</Alert>}
             {/* Search Bar */}
             <Row className="mb-3 align-items-center">
               <Col md={6} xs={12} className="mb-2 mb-md-0">
@@ -246,39 +371,63 @@ export default function OfferingsManagement() {
             </Row>
             {/* Offerings Table */}
             <div className="table-responsive">
-              <Table className="align-items-center table-striped table-hover" bordered>
-                <thead className="thead-light">
-                  <tr>
-                    <th>#</th>
-                    <th>Subject</th>
-                    <th>Teacher</th>
-                    <th>Section</th>
-                    <th>Semester</th>
-                    <th>School Year</th>
-                    <th>Date Created</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedOfferings.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center text-muted">No offerings yet.</td></tr>
-                  ) : paginatedOfferings.map((o, idx) => (
-                    <tr key={o.id}>
-                      <td>{(currentPage-1)*itemsPerPage + idx + 1}</td>
-                      <td>{mockSubjects.find(s => s.id === o.subjectId)?.name || ""}</td>
-                      <td>{mockTeachers.find(t => t.id === o.teacherId)?.name || ""}</td>
-                      <td>{mockSections.find(s => s.id === o.sectionId)?.name || ""}</td>
-                      <td><Badge color="primary" pill>{o.semester}</Badge></td>
-                      <td><Badge color="info" pill>{o.schoolYear}</Badge></td>
-                      <td>{o.date}</td>
-                      <td>
-                        <Button size="sm" color="outline-primary" className="mr-2" onClick={() => openEdit(o)}><FaEdit /></Button>
-                        <Button size="sm" color="outline-danger" onClick={() => openDelete(o)}><FaTrash /></Button>
-                      </td>
+              {loading ? (
+                <div className="text-center py-5">
+                  <Spinner color="primary" />
+                  <p className="mt-3 text-muted">Loading offerings...</p>
+                </div>
+              ) : (
+                <Table className="align-items-center table-striped table-hover" bordered>
+                  <thead className="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Subject</th>
+                      <th>Teacher</th>
+                      <th>Section</th>
+                      <th>Semester</th>
+                      <th>School Year</th>
+                      <th>Date Created</th>
+                      <th>Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {paginatedOfferings.length === 0 ? (
+                      <tr><td colSpan={8} className="text-center text-muted">
+                        {search ? 'No offerings found matching your search.' : 'No offerings added yet.'}
+                      </td></tr>
+                    ) : paginatedOfferings.map((o, idx) => (
+                      <tr key={o.class_id}>
+                        <td>{(currentPage-1)*itemsPerPage + idx + 1}</td>
+                        <td>{o.subject_name || ""}</td>
+                        <td>{o.teacher_name || ""}</td>
+                        <td>{o.section_name || ""}</td>
+                        <td><Badge color="primary" pill>{o.semester || ""}</Badge></td>
+                        <td><Badge color="info" pill>{o.school_year || ""}</Badge></td>
+                        <td>{o.date_created ? new Date(o.date_created).toLocaleDateString() : 'N/A'}</td>
+                        <td>
+                          <Button 
+                            size="sm" 
+                            color="outline-primary" 
+                            className="mr-2" 
+                            onClick={() => openEdit(o)}
+                            disabled={updatingOffering}
+                          >
+                            <FaEdit />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            color="outline-danger" 
+                            onClick={() => openDelete(o)}
+                            disabled={deletingOffering}
+                          >
+                            <FaTrash />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
             </div>
             {/* Pagination */}
             {totalPages > 1 && (
@@ -298,27 +447,27 @@ export default function OfferingsManagement() {
           <ModalBody>
             <FormGroup>
               <Label>Subject</Label>
-              <Input type="select" value={editFields.subject} onChange={e => setEditFields(f => ({ ...f, subject: e.target.value }))}>
-                <option value="">Select Subject</option>
-                {mockSubjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.code} – {s.name}</option>
+              <Input type="select" value={editFields.subject} onChange={e => setEditFields(f => ({ ...f, subject: e.target.value }))} disabled={loadingDropdowns.subjects}>
+                <option value="">{loadingDropdowns.subjects ? "Loading..." : "Select Subject"}</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.subject_code || s.code} – {s.subject_name || s.name}</option>
                 ))}
               </Input>
             </FormGroup>
             <FormGroup>
               <Label>Teacher</Label>
-              <Input type="select" value={editFields.teacher} onChange={e => setEditFields(f => ({ ...f, teacher: e.target.value }))}>
-                <option value="">Select Teacher</option>
-                {mockTeachers.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+              <Input type="select" value={editFields.teacher} onChange={e => setEditFields(f => ({ ...f, teacher: e.target.value }))} disabled={loadingDropdowns.teachers}>
+                <option value="">{loadingDropdowns.teachers ? "Loading..." : "Select Teacher"}</option>
+                {teachers.map(t => (
+                  <option key={t.user_id} value={t.user_id}>{t.full_name}</option>
                 ))}
               </Input>
             </FormGroup>
             <FormGroup>
               <Label>Section</Label>
-              <Input type="select" value={editFields.section} onChange={e => setEditFields(f => ({ ...f, section: e.target.value }))}>
-                <option value="">Select Section</option>
-                {mockSections.map(s => (
+              <Input type="select" value={editFields.section} onChange={e => setEditFields(f => ({ ...f, section: e.target.value }))} disabled={loadingDropdowns.sections}>
+                <option value="">{loadingDropdowns.sections ? "Loading..." : "Select Section"}</option>
+                {sections.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </Input>
@@ -338,8 +487,10 @@ export default function OfferingsManagement() {
             {editError && <Alert color="danger" className="py-2">{editError}</Alert>}
           </ModalBody>
           <ModalFooter>
-            <Button color="primary" onClick={handleEditSave}>Save Changes</Button>
-            <Button color="secondary" onClick={() => setEditModal(false)}>Cancel</Button>
+            <Button color="primary" onClick={handleEditSave} disabled={updatingOffering}>
+              {updatingOffering ? <Spinner size="sm" /> : "Save Changes"}
+            </Button>
+            <Button color="secondary" onClick={() => setEditModal(false)} disabled={updatingOffering}>Cancel</Button>
           </ModalFooter>
         </Modal>
         {/* Delete Modal */}
@@ -349,8 +500,10 @@ export default function OfferingsManagement() {
             Are you sure you want to delete this subject offering?
           </ModalBody>
           <ModalFooter>
-            <Button color="danger" onClick={handleDelete}>Delete</Button>
-            <Button color="secondary" onClick={() => setDeleteModal(false)}>Cancel</Button>
+            <Button color="danger" onClick={handleDelete} disabled={deletingOffering}>
+              {deletingOffering ? <Spinner size="sm" /> : "Delete"}
+            </Button>
+            <Button color="secondary" onClick={() => setDeleteModal(false)} disabled={deletingOffering}>Cancel</Button>
           </ModalFooter>
         </Modal>
       </div>

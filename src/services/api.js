@@ -938,6 +938,37 @@ class ApiService {
       requireAuth: true,
     });
   }
+
+  // Classes/Offerings Management Methods
+  async getClasses() {
+    return this.makeRequest('/admin/classes', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async createClass(classData) {
+    return this.makeRequest('/admin/classes', {
+      method: 'POST',
+      body: JSON.stringify(classData),
+      requireAuth: true,
+    });
+  }
+
+  async updateClass(classId, classData) {
+    return this.makeRequest(`/admin/classes/${classId}`, {
+      method: 'PUT',
+      body: JSON.stringify(classData),
+      requireAuth: true,
+    });
+  }
+
+  async deleteClass(classId) {
+    return this.makeRequest(`/admin/classes/${classId}`, {
+      method: 'DELETE',
+      requireAuth: true,
+    });
+  }
 }
 
 export default new ApiService(); 

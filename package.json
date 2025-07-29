@@ -32,7 +32,7 @@
     "compile:scss": "sass src/assets/scss/argon-dashboard-react.scss src/assets/css/argon-dashboard-react.css",
     "minify:scss": "sass src/assets/scss/argon-dashboard-react.scss src/assets/css/argon-dashboard-react.min.css --style compressed",
     "build:scss": "npm run compile:scss && npm run minify:scss && npm run map:scss",
-    "postinstall": "cp ./node_modules/pdfjs-dist/build/pdf.worker.min.js ./public/pdf.worker.js"
+    "postinstall": "node -e \"require('fs').copyFileSync('./node_modules/pdfjs-dist/build/pdf.worker.min.mjs', './public/pdf.worker.js')\""
   },
   "eslintConfig": {
     "extends": "react-app"

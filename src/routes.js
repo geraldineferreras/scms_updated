@@ -53,6 +53,7 @@ import AccessControl from "views/examples/AccessControl.js";
 import SubjectManagement from "views/examples/SubjectManagement.js";
 import OfferingsManagement from "views/examples/OfferingsManagement.js";
 import CreateSection from "views/examples/CreateSection.js";
+import EditSection from "views/examples/EditSection.js";
 import AttendanceLog from "views/examples/AttendanceLog.js";
 import GradesLog from "views/examples/GradesLog.js";
 import AuditLog from "views/examples/AuditLog.js";
@@ -380,6 +381,13 @@ var routes = [
     name: "Create Section",
     icon: "ni ni-fat-add text-primary",
     component: <CreateSection />,
+    layout: "/admin",
+  },
+  {
+    path: "/edit-section",
+    name: "Edit Section",
+    icon: "ni ni-settings-gear-65 text-blue",
+    component: <EditSection />,
     layout: "/admin",
   },
   {

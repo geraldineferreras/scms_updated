@@ -107,7 +107,13 @@ const formatYearLevel = (yearLevel) => {
   // If it's just a number, add ordinal suffix
   const yearNumber = yearLevel.replace(/[^0-9]/g, '');
   if (yearNumber) {
-    const suffix = yearNumber === '1' ? 'st' : yearNumber === '2' ? 'nd' : yearNumber === '3' ? 'rd' : 'th';
+    const j = parseInt(yearNumber) % 10;
+    const k = parseInt(yearNumber) % 100;
+    let suffix;
+    if (j === 1 && k !== 11) suffix = 'st';
+    else if (j === 2 && k !== 12) suffix = 'nd';
+    else if (j === 3 && k !== 13) suffix = 'rd';
+    else suffix = 'th';
     return `${yearNumber}${suffix}`;
   }
   
@@ -378,9 +384,7 @@ const SectionManagement = () => {
   // Handle section operations
   const handleEditSection = async (section) => {
     try {
-      // For now, show an alert since the edit endpoint might not exist
-      alert('Edit functionality will be implemented when the backend endpoint is available.');
-      // navigate('/admin/edit-section', { state: { section } });
+      navigate('/admin/edit-section', { state: { section } });
     } catch (error) {
       console.error('Error editing section:', error);
       setError('Failed to edit section. Please try again.');
@@ -390,11 +394,9 @@ const SectionManagement = () => {
   const handleDeleteSection = async (section) => {
     if (window.confirm(`Are you sure you want to delete section "${section.name}"? This action cannot be undone.`)) {
       try {
-        // For now, show an alert since the delete endpoint might not exist
-        alert('Delete functionality will be implemented when the backend endpoint is available.');
-        // await apiService.deleteSection(section.id);
-        // setSections(prevSections => prevSections.filter(s => s.id !== section.id));
-        // alert('Section deleted successfully!');
+        await apiService.deleteSection(section.id);
+        setSections(prevSections => prevSections.filter(s => s.id !== section.id));
+        alert('Section deleted successfully!');
       } catch (error) {
         console.error('Error deleting section:', error);
         setError('Failed to delete section. Please try again.');

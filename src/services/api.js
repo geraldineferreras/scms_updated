@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost/scms_new/index.php/api';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost/scms_new/index.php/api';
 
 class ApiService {
   // Helper method to validate token presence

@@ -188,6 +188,60 @@ const CreateSection = () => {
   const navigate = useNavigate();
   const adviserInputRef = useRef();
 
+  // Helper function to get ordinal suffix
+  const getOrdinalSuffix = (num) => {
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) {
+      return num + "st";
+    }
+    if (j === 2 && k !== 12) {
+      return num + "nd";
+    }
+    if (j === 3 && k !== 13) {
+      return num + "rd";
+    }
+    return num + "th";
+  };
+
+  // Helper function to format year level with ordinal suffix
+  const formatYearLevel = (year) => {
+    if (!year) return "";
+    const yearNum = year.replace(/[^0-9]/g, '');
+    if (yearNum) {
+      return getOrdinalSuffix(parseInt(yearNum));
+    }
+    return year;
+  };
+
+  // Auto-generate section name when course, year level, or section name changes
+  useEffect(() => {
+    if (course && yearLevel && sectionName) {
+      const courseLabel = courseOptions.find(opt => opt.value === course)?.label || course.toUpperCase();
+      const yearNum = yearLevel.replace(/[^0-9]/g, '');
+      const sectionLetter = sectionName.trim().toUpperCase();
+      const generatedName = `${courseLabel} ${yearNum}${sectionLetter}`;
+      setSectionName(generatedName);
+    }
+  }, [course, yearLevel]);
+
+  // Handle section name input - extract just the letter and regenerate full name
+  const handleSectionNameChange = (e) => {
+    const input = e.target.value;
+    
+    // If user is typing and we have course and year level, generate full name
+    if (course && yearLevel && input.trim()) {
+      const courseLabel = courseOptions.find(opt => opt.value === course)?.label || course.toUpperCase();
+      const yearNum = yearLevel.replace(/[^0-9]/g, '');
+      const sectionLetter = input.trim().toUpperCase();
+      const generatedName = `${courseLabel} ${yearNum}${sectionLetter}`;
+      setSectionName(generatedName);
+    } else {
+      // If we don't have course or year level, just set the input as is
+      setSectionName(input);
+    }
+  };
+
   // Fetch teachers for advisers
   useEffect(() => {
     const fetchTeachers = async () => {
@@ -496,6 +550,23 @@ const CreateSection = () => {
           color: #6c757d;
           margin-bottom: 0;
         }
+        .section-preview {
+          background: #f8f9fa;
+          border: 1px solid #e3eaf3;
+          border-radius: 8px;
+          padding: 1rem;
+          margin-top: 1rem;
+          text-align: center;
+        }
+        .section-preview h6 {
+          color: #525f7f;
+          margin-bottom: 0.5rem;
+        }
+        .section-preview .section-name {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #5e72e4;
+        }
         @media (max-width: 768px) {
           .transparent-header-section {
             padding: 1.25rem 1rem 1rem 1rem;
@@ -568,15 +639,20 @@ const CreateSection = () => {
                     <Row>
                       <Col lg="6">
                         <FormGroup>
-                          <label className="form-control-label" htmlFor="sectionName">Section Name</label>
+                          <label className="form-control-label" htmlFor="sectionName">Section Letter</label>
                           <Input
                             className="form-control-alternative"
                             type="text"
                             id="sectionName"
                             value={sectionName}
-                            onChange={e => setSectionName(e.target.value)}
+                            onChange={handleSectionNameChange}
+                            placeholder="e.g. A, B, C, G"
+                            maxLength="1"
                             required
                           />
+                          <small className="form-text text-muted">
+                            Just enter the section letter (A, B, C, G, etc.)
+                          </small>
                         </FormGroup>
                       </Col>
                       <Col lg="6">
@@ -594,6 +670,14 @@ const CreateSection = () => {
                         </FormGroup>
                       </Col>
                     </Row>
+                    
+                    {/* Section Name Preview */}
+                    {sectionName && course && yearLevel && (
+                      <div className="section-preview">
+                        <h6>Generated Section Name:</h6>
+                        <div className="section-name">{sectionName}</div>
+                      </div>
+                    )}
                     <Row>
                       <Col lg="6">
                         <FormGroup>

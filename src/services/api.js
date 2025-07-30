@@ -969,6 +969,55 @@ class ApiService {
       requireAuth: true,
     });
   }
+
+  // Teacher Classrooms API
+  async getTeacherClassrooms() {
+    return this.makeRequest('/teacher/classrooms', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  // Teacher Assigned Subjects API
+  async getTeacherAssignedSubjects() {
+    return this.makeRequest('/teacher/assigned-subjects', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  // Teacher Available Subjects API
+  async getTeacherAvailableSubjects() {
+    return this.makeRequest('/teacher/available-subjects', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  // Teacher Available Sections for Subject API
+  async getTeacherAvailableSections(subjectId) {
+    return this.makeRequest(`/teacher/available-sections/${subjectId}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  // Teacher Create Classroom API
+  async createClassroom(classroomData) {
+    return this.makeRequest('/teacher/classrooms', {
+      method: 'POST',
+      body: JSON.stringify(classroomData),
+      requireAuth: true,
+    });
+  }
+
+  // Teacher Get Classroom by Code API
+  async getClassroomByCode(classCode) {
+    return this.makeRequest(`/teacher/classrooms/${classCode}`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
 }
 
 export default new ApiService(); 

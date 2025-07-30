@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react"; // Force rebuild
 import Select, { components } from 'react-select';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Card,
   CardBody,
@@ -35,11 +36,15 @@ import {
   InputGroup,
   InputGroupText,
   ButtonGroup,
-  Collapse
+  Collapse,
+  Toast,
+  ToastHeader,
+  ToastBody
 } from "reactstrap";
 import classnames from "classnames";
 import Header from "../../components/Headers/Header";
 import "./Classroom.css";
+import apiService from "../../services/api";
 import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolder, FaPlus, FaPaperclip, FaSmile, FaRegThumbsUp, FaThumbsUp, FaUserPlus, FaRegFileAlt, FaCheck, FaTimes, FaSearch, FaRegCalendarAlt, FaTrash, FaCamera } from 'react-icons/fa';
 import userDefault from '../../assets/img/theme/user-default.svg';
 import Cropper from 'react-easy-crop';
@@ -425,6 +430,8 @@ const ClassroomDetail = () => {
   const [copied, setCopied] = useState(false);
   const [tooltipHover, setTooltipHover] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [showCopyToast, setShowCopyToast] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(() => {
     const key = `classroom_theme_${code}`;
     return localStorage.getItem(key) || themes[0].value;
@@ -1346,7 +1353,39 @@ useEffect(() => {
   useEffect(() => {
     const classes = JSON.parse(localStorage.getItem("teacherClasses")) || [];
     const foundClass = classes.find(cls => cls.code === code);
-    setClassInfo(foundClass);
+    
+    if (foundClass) {
+      setClassInfo(foundClass);
+    } else {
+      // If not found in localStorage, try to fetch from API
+      const fetchClassroomFromAPI = async () => {
+        try {
+          const response = await apiService.getClassroomByCode(code);
+          if (response.status && response.data) {
+            const classroomData = {
+              id: 1,
+              name: response.data.subject_name,
+              section: response.data.section_name,
+              subject: response.data.subject_name,
+              code: response.data.class_code,
+              semester: response.data.semester,
+              schoolYear: response.data.school_year,
+              studentCount: response.data.student_count || 0,
+              theme: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            };
+            setClassInfo(classroomData);
+          } else {
+            // If API also fails, show error
+            setClassInfo(null);
+          }
+        } catch (error) {
+          console.error('Error fetching classroom from API:', error);
+          setClassInfo(null);
+        }
+      };
+      
+      fetchClassroomFromAPI();
+    }
   }, [code]);
 
   // Ensure all announcements have reactions property
@@ -3011,17 +3050,31 @@ useEffect(() => {
             <div style={{ fontSize: 20, opacity: 0.95, fontWeight: 500 }}>{classInfo.subject}</div>
             <div className="mt-3 d-flex align-items-center flex-wrap">
               <span style={{ fontWeight: 600, fontSize: 18 }}>Class Code:</span>
-              <span style={{ 
-                background: '#fff', 
-                color: '#007bff', 
-                borderRadius: 10, 
-                padding: '4px 16px', 
-                fontWeight: 800, 
-                fontSize: 20, 
-                marginLeft: 14, 
-                letterSpacing: 2, 
-                boxShadow: '0 2px 8px rgba(44,62,80,0.10)' 
-              }}>
+              <span 
+                style={{ 
+                  background: '#fff', 
+                  color: '#007bff', 
+                  borderRadius: 10, 
+                  padding: '4px 16px', 
+                  fontWeight: 800, 
+                  fontSize: 20, 
+                  marginLeft: 14, 
+                  letterSpacing: 2, 
+                  boxShadow: '0 2px 8px rgba(44,62,80,0.10)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() => setShowQRCodeModal(true)}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'scale(1.05)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(44,62,80,0.20)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'scale(1)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(44,62,80,0.10)';
+                }}
+                title="Click to view QR code and copy class code"
+              >
                 {classInfo.code}
               </span>
               <Button 
@@ -3086,6 +3139,94 @@ useEffect(() => {
             <div style={{ fontSize: 64, fontWeight: 800, color: '#1976d2', letterSpacing: 2, marginBottom: 16 }}>{classInfo.code}</div>
             <div style={{ fontSize: 20, color: '#222', fontWeight: 600 }}>{classInfo.name}</div>
           </ModalBody>
+        </Modal>
+
+        {/* QR Code Modal */}
+        <Modal isOpen={showQRCodeModal} toggle={() => setShowQRCodeModal(false)} size="md" centered>
+          <ModalHeader toggle={() => setShowQRCodeModal(false)} style={{ border: "none", paddingBottom: "0" }}>
+            <h4 className="mb-0 text-primary">
+              <i className="ni ni-bell-55 mr-2"></i>
+              Class Join Information
+            </h4>
+          </ModalHeader>
+          <ModalBody className="text-center">
+            {classInfo && (
+              <>
+                <div className="mb-4">
+                  <h5 className="text-dark mb-2">{classInfo.name}</h5>
+                  <p className="text-muted mb-3">{classInfo.section}</p>
+                  
+                  {/* QR Code */}
+                  <div className="mb-4 p-3 bg-light rounded" style={{ display: 'inline-block' }}>
+                    <div className="qr-code-container">
+                      {/* Generate QR code for the class code */}
+                      <div 
+                        className="qr-code"
+                        style={{
+                          width: '200px',
+                          height: '200px',
+                          background: '#fff',
+                          border: '2px solid #e9ecef',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto',
+                          padding: '10px'
+                        }}
+                      >
+                        <QRCodeSVG 
+                          value={`${window.location.origin}/student/join/${classInfo.code}`}
+                          size={180}
+                          level="M"
+                          includeMargin={true}
+                        />
+                      </div>
+                      <div className="text-center mt-2">
+                        <small className="text-muted">Scan to join class</small>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Class Code Display */}
+                  <div className="mb-3">
+                    <h6 className="text-dark mb-2">Class Code:</h6>
+                    <div className="d-flex align-items-center justify-content-center">
+                      <div className="p-3 bg-primary text-white rounded font-weight-bold mr-2" style={{ fontSize: '1.5rem', letterSpacing: '2px' }}>
+                        {classInfo.code}
+                      </div>
+                      <Button 
+                        color="outline-primary" 
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(classInfo.code);
+                          setShowCopyToast(true);
+                          setTimeout(() => setShowCopyToast(false), 3000); // Hide toast after 3 seconds
+                        }}
+                        title="Copy class code"
+                      >
+                        <i className="ni ni-single-copy-04"></i>
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="alert alert-info">
+                    <i className="ni ni-bell-55 mr-2"></i>
+                    Share this QR code or class code with your students so they can join the class.
+                  </div>
+                </div>
+              </>
+            )}
+          </ModalBody>
+          <ModalFooter style={{ border: "none", paddingTop: "0" }}>
+            <Button 
+              color="primary" 
+              onClick={() => setShowQRCodeModal(false)}
+              style={{ borderRadius: "8px" }}
+            >
+              Got it!
+            </Button>
+          </ModalFooter>
         </Modal>
 
         {/* Theme Selection Modal */}
@@ -6071,6 +6212,22 @@ useEffect(() => {
             </div>
           </ModalBody>
       </Modal>
+
+      {/* Copy Toast */}
+      <div style={{ position: "fixed", top: "20px", right: "20px", zIndex: 9999 }}>
+        <Toast isOpen={showCopyToast} style={{ borderRadius: "12px" }}>
+          <ToastHeader 
+            icon="success" 
+            toggle={() => setShowCopyToast(false)}
+            style={{ border: "none", background: "#d4edda", color: "#155724" }}
+          >
+            Copied!
+          </ToastHeader>
+          <ToastBody style={{ background: "#d4edda", color: "#155724" }}>
+            Class code copied to clipboard!
+          </ToastBody>
+        </Toast>
+      </div>
     </div>
   );
 };

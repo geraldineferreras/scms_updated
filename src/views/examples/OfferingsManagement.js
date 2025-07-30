@@ -143,8 +143,41 @@ export default function OfferingsManagement() {
            teacherName.toLowerCase().includes(searchTerm) ||
            sectionName.toLowerCase().includes(searchTerm);
   });
-  const totalPages = Math.ceil(filteredOfferings.length / itemsPerPage);
-  const paginatedOfferings = filteredOfferings.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
+
+  // Group offerings by subject, teacher, semester, and school year
+  const groupedOfferings = filteredOfferings.reduce((groups, offering) => {
+    const key = `${offering.subject_id}_${offering.teacher_id}_${offering.semester}_${offering.school_year}`;
+    
+    if (!groups[key]) {
+      groups[key] = {
+        subject_id: offering.subject_id,
+        subject_name: offering.subject_name,
+        teacher_id: offering.teacher_id,
+        teacher_name: offering.teacher_name,
+        semester: offering.semester,
+        school_year: offering.school_year,
+        date_created: offering.date_created,
+        sections: []
+      };
+    }
+    
+    // Add section to the group
+    groups[key].sections.push({
+      section_id: offering.section_id,
+      section_name: offering.section_name,
+      class_id: offering.class_id
+    });
+    
+    return groups;
+  }, {});
+
+  // Convert grouped offerings back to array and sort by date created
+  const groupedOfferingsArray = Object.values(groupedOfferings).sort((a, b) => {
+    return new Date(b.date_created) - new Date(a.date_created);
+  });
+
+  const totalPages = Math.ceil(groupedOfferingsArray.length / itemsPerPage);
+  const paginatedOfferings = groupedOfferingsArray.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
 
   // Add offering
   const handleAdd = async () => {
@@ -198,24 +231,32 @@ export default function OfferingsManagement() {
   };
 
   // Edit offering
-  const openEdit = (offering) => {
-    setEditOffering(offering);
+  const openEdit = (group) => {
+    setEditOffering(group);
     setEditFields({
-      subject: offering.subject_id?.toString() || "",
-      teacher: offering.teacher_id || "",
-      section: offering.section_id?.toString() || "",
-      semester: offering.semester || "",
-      schoolYear: offering.school_year || ""
+      subject: group.subject_id?.toString() || "",
+      teacher: group.teacher_id || "",
+      section: "", // We'll handle sections differently for grouped data
+      semester: group.semester || "",
+      schoolYear: group.school_year || ""
     });
     setEditError("");
     setEditModal(true);
   };
+
   const handleEditSave = async () => {
-    if (!editFields.subject || !editFields.teacher || !editFields.section || !editFields.semester || !editFields.schoolYear) {
+    if (!editFields.subject || !editFields.teacher || !editFields.semester || !editFields.schoolYear) {
       setEditError("All fields are required.");
       return;
     }
     
+    // For grouped data, we need to handle multiple sections
+    // This is a simplified approach - in a real implementation, you might want to edit individual sections
+    setEditError("Editing grouped offerings is not supported yet. Please delete and recreate individual offerings.");
+    return;
+
+    // Original edit logic commented out for grouped data
+    /*
     // Prevent duplicate assignment (except for the current one)
     if (offerings.some(o => o.class_id !== editOffering.class_id && o.subject_id === Number(editFields.subject) && o.section_id === Number(editFields.section) && o.semester === editFields.semester && o.school_year === editFields.schoolYear)) {
       setEditError("This subject is already assigned to this section for the selected term.");
@@ -243,7 +284,7 @@ export default function OfferingsManagement() {
       await loadClasses();
 
       setEditModal(false);
-      setShowToast("Offering updated successfully.");
+      setShowToast("Subject offering successfully updated.");
       setTimeout(() => setShowToast(""), 2000);
     } catch (error) {
       console.error('Error updating class:', error);
@@ -251,27 +292,31 @@ export default function OfferingsManagement() {
     } finally {
       setUpdatingOffering(false);
     }
+    */
   };
 
   // Delete offering
-  const openDelete = (offering) => {
-    setDeleteOffering(offering);
+  const openDelete = (group) => {
+    setDeleteOffering(group);
     setDeleteModal(true);
   };
+
   const handleDelete = async () => {
+    if (!deleteOffering) return;
+
     try {
       setDeletingOffering(true);
-      
-      console.log('Deleting class:', deleteOffering.class_id);
-      
-      const response = await apiService.deleteClass(deleteOffering.class_id);
-      console.log('Delete class response:', response);
+
+      // Delete all sections in the group
+      for (const section of deleteOffering.sections) {
+        await apiService.deleteClass(section.class_id);
+      }
 
       // Reload the classes to get the updated list
       await loadClasses();
 
       setDeleteModal(false);
-      setShowToast("Offering deleted successfully.");
+      setShowToast("Subject offering successfully deleted.");
       setTimeout(() => setShowToast(""), 2000);
     } catch (error) {
       console.error('Error deleting class:', error);
@@ -365,7 +410,7 @@ export default function OfferingsManagement() {
               </Col>
               <Col md={6} xs={12} className="text-md-right mt-2 mt-md-0">
                 <span className="text-muted" style={{ fontSize: 15 }}>
-                  Total Offerings: <b>{filteredOfferings.length}</b>
+                  Total Offerings: <b>{groupedOfferingsArray.length}</b>
                 </span>
               </Col>
             </Row>
@@ -377,17 +422,17 @@ export default function OfferingsManagement() {
                   <p className="mt-3 text-muted">Loading offerings...</p>
                 </div>
               ) : (
-                <Table className="align-items-center table-striped table-hover" bordered>
+                <Table className="align-items-center table-striped table-hover" bordered style={{ color: '#525F7F' }}>
                   <thead className="thead-light">
                     <tr>
-                      <th>#</th>
-                      <th>Subject</th>
-                      <th>Teacher</th>
-                      <th>Section</th>
-                      <th>Semester</th>
-                      <th>School Year</th>
-                      <th>Date Created</th>
-                      <th>Action</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>#</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>Subject</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>Teacher</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>Semester</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>School Year</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>Sections</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>Date Created</th>
+                      <th style={{ color: '#525F7F', fontWeight: '600' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -395,21 +440,25 @@ export default function OfferingsManagement() {
                       <tr><td colSpan={8} className="text-center text-muted">
                         {search ? 'No offerings found matching your search.' : 'No offerings added yet.'}
                       </td></tr>
-                    ) : paginatedOfferings.map((o, idx) => (
-                      <tr key={o.class_id}>
-                        <td>{(currentPage-1)*itemsPerPage + idx + 1}</td>
-                        <td>{o.subject_name || ""}</td>
-                        <td>{o.teacher_name || ""}</td>
-                        <td>{o.section_name || ""}</td>
-                        <td><Badge color="primary" pill>{o.semester || ""}</Badge></td>
-                        <td><Badge color="info" pill>{o.school_year || ""}</Badge></td>
-                        <td>{o.date_created ? new Date(o.date_created).toLocaleDateString() : 'N/A'}</td>
+                    ) : paginatedOfferings.map((group, idx) => (
+                      <tr key={group.subject_id + group.teacher_id + group.semester + group.school_year}>
+                        <td style={{ color: '#525F7F', fontWeight: '500' }}>{(currentPage-1)*itemsPerPage + idx + 1}</td>
+                        <td style={{ color: '#525F7F', fontWeight: '500' }}>{group.subject_name || ""}</td>
+                        <td style={{ color: '#525F7F', fontWeight: '500' }}>{group.teacher_name || ""}</td>
+                        <td><Badge color="primary" pill>{group.semester || ""}</Badge></td>
+                        <td><Badge color="info" pill>{group.school_year || ""}</Badge></td>
+                        <td>
+                          {group.sections.map(s => (
+                            <Badge key={s.section_id} color="secondary" className="mr-1" style={{ color: '#000000', fontWeight: '500' }}>{s.section_name}</Badge>
+                          ))}
+                        </td>
+                        <td style={{ color: '#525F7F', fontWeight: '500' }}>{group.date_created ? new Date(group.date_created).toLocaleDateString() : 'N/A'}</td>
                         <td>
                           <Button 
                             size="sm" 
                             color="outline-primary" 
                             className="mr-2" 
-                            onClick={() => openEdit(o)}
+                            onClick={() => openEdit(group)}
                             disabled={updatingOffering}
                           >
                             <FaEdit />
@@ -417,7 +466,7 @@ export default function OfferingsManagement() {
                           <Button 
                             size="sm" 
                             color="outline-danger" 
-                            onClick={() => openDelete(o)}
+                            onClick={() => openDelete(group)}
                             disabled={deletingOffering}
                           >
                             <FaTrash />
@@ -464,13 +513,13 @@ export default function OfferingsManagement() {
               </Input>
             </FormGroup>
             <FormGroup>
-              <Label>Section</Label>
-              <Input type="select" value={editFields.section} onChange={e => setEditFields(f => ({ ...f, section: e.target.value }))} disabled={loadingDropdowns.sections}>
-                <option value="">{loadingDropdowns.sections ? "Loading..." : "Select Section"}</option>
-                {sections.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+              <Label>Sections</Label>
+              <div className="p-2 border rounded bg-light">
+                {editOffering?.sections?.map(section => (
+                  <Badge key={section.section_id} color="secondary" className="mr-1 mb-1">{section.section_name}</Badge>
                 ))}
-              </Input>
+              </div>
+              <small className="text-muted">Editing grouped offerings is not supported yet. Please delete and recreate individual offerings.</small>
             </FormGroup>
             <FormGroup>
               <Label>Semester</Label>
@@ -497,7 +546,16 @@ export default function OfferingsManagement() {
         <Modal isOpen={deleteModal} toggle={() => setDeleteModal(false)} centered>
           <ModalHeader toggle={() => setDeleteModal(false)} style={{ fontWeight: 700, fontSize: 20 }}>Delete Offering</ModalHeader>
           <ModalBody>
-            Are you sure you want to delete this subject offering?
+            <p>Are you sure you want to delete this subject offering?</p>
+            <p><strong>Subject:</strong> {deleteOffering?.subject_name}</p>
+            <p><strong>Teacher:</strong> {deleteOffering?.teacher_name}</p>
+            <p><strong>Sections:</strong></p>
+            <div className="mb-2">
+              {deleteOffering?.sections?.map(section => (
+                <Badge key={section.section_id} color="secondary" className="mr-1">{section.section_name}</Badge>
+              ))}
+            </div>
+            <p className="text-danger"><small>This will delete ALL sections for this subject offering.</small></p>
           </ModalBody>
           <ModalFooter>
             <Button color="danger" onClick={handleDelete} disabled={deletingOffering}>

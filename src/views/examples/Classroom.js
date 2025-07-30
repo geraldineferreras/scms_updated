@@ -16,10 +16,14 @@ import {
   Badge,
   Toast,
   ToastHeader,
-  ToastBody
+  ToastBody,
+  Spinner,
+  Alert
 } from "reactstrap";
 import "./Classroom.css";
 import { useNavigate } from "react-router-dom";
+import apiService from "../../services/api";
+import { QRCodeSVG } from "qrcode.react";
 
 function generateCode() {
   // Generate a more readable 6-character code
@@ -69,11 +73,9 @@ const initialClasses = [
 ];
 
 const Classroom = () => {
-  const [classes, setClasses] = useState(() => {
-    // Load from localStorage or use initial data
-    const saved = localStorage.getItem("teacherClasses");
-    return saved ? JSON.parse(saved) : initialClasses;
-  });
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ 
     name: "", 
@@ -87,10 +89,104 @@ const Classroom = () => {
   const navigate = useNavigate();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Save classes to localStorage whenever they change
+  // New state for assigned subjects and available sections
+  const [assignedSubjects, setAssignedSubjects] = useState([]);
+  const [availableSections, setAvailableSections] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [loadingSections, setLoadingSections] = useState(false);
+  const [submittingForm, setSubmittingForm] = useState(false);
+  const [successModal, setSuccessModal] = useState(false);
+  const [createdClassData, setCreatedClassData] = useState(null);
+  const [showCopyToast, setShowCopyToast] = useState(false);
+
+  // Fetch classrooms from API
   useEffect(() => {
-    localStorage.setItem("teacherClasses", JSON.stringify(classes));
-  }, [classes]);
+    const fetchClassrooms = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await apiService.getTeacherClassrooms();
+        
+        console.log('Teacher classrooms API response:', response);
+        
+        if (response.status && response.data) {
+          // Transform API data to match component structure
+          const transformedClasses = response.data.map((classroom, index) => ({
+            id: index + 1,
+            name: classroom.subject_name,
+            section: classroom.section_name,
+            subject: classroom.subject_name,
+            code: classroom.class_code,
+            semester: classroom.semester,
+            schoolYear: classroom.school_year,
+            studentCount: classroom.student_count || 0,
+            theme: getRandomTheme()
+          }));
+          
+          setClasses(transformedClasses);
+          // Save to localStorage for ClassroomDetail.js to access
+          localStorage.setItem("teacherClasses", JSON.stringify(transformedClasses));
+        } else if (response.status && (!response.data || response.data.length === 0)) {
+          // No classrooms found - this is not an error
+          setClasses([]);
+          localStorage.setItem("teacherClasses", JSON.stringify([]));
+        } else {
+          setError('Failed to load classrooms');
+        }
+      } catch (err) {
+        console.error('Error fetching classrooms:', err);
+        setError(err.message || 'Failed to load classrooms');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClassrooms();
+  }, []);
+
+  // Function to refresh classrooms data
+  const refreshClassrooms = () => {
+    const fetchClassrooms = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await apiService.getTeacherClassrooms();
+        
+        console.log('Teacher classrooms API response:', response);
+        
+        if (response.status && response.data) {
+          // Transform API data to match component structure
+          const transformedClasses = response.data.map((classroom, index) => ({
+            id: index + 1,
+            name: classroom.subject_name,
+            section: classroom.section_name,
+            subject: classroom.subject_name,
+            code: classroom.class_code,
+            semester: classroom.semester,
+            schoolYear: classroom.school_year,
+            studentCount: classroom.student_count || 0,
+            theme: getRandomTheme()
+          }));
+          
+          setClasses(transformedClasses);
+          // Save to localStorage for ClassroomDetail.js to access
+          localStorage.setItem("teacherClasses", JSON.stringify(transformedClasses));
+        } else if (response.status && (!response.data || response.data.length === 0)) {
+          // No classrooms found - this is not an error
+          setClasses([]);
+        } else {
+          setError('Failed to load classrooms');
+        }
+      } catch (err) {
+        console.error('Error fetching classrooms:', err);
+        setError(err.message || 'Failed to load classrooms');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClassrooms();
+  };
 
   // Force re-render on window focus to update themes
   useEffect(() => {
@@ -103,35 +199,171 @@ const Classroom = () => {
 
   const toggleModal = () => setModal(!modal);
 
+  // Fetch assigned subjects when modal opens
+  const handleModalOpen = async () => {
+    setModal(true);
+    setForm({ name: "", section: "", subject: "", semester: "", schoolYear: "" });
+    setAvailableSections([]);
+    await fetchAssignedSubjects();
+  };
+
+  // Fetch assigned subjects
+  const fetchAssignedSubjects = async () => {
+    try {
+      setLoadingSubjects(true);
+      console.log('Fetching assigned subjects...');
+      
+      const response = await apiService.getTeacherAssignedSubjects();
+      
+      console.log('Assigned subjects API response:', response);
+      console.log('Response status:', response?.status);
+      console.log('Response data:', response?.data);
+      console.log('Response data.subjects:', response?.data?.subjects);
+      
+      if (response.status && response.data && response.data.subjects) {
+        console.log('Setting assigned subjects:', response.data.subjects);
+        setAssignedSubjects(response.data.subjects);
+      } else {
+        console.log('No subjects found or invalid response structure');
+        console.log('Response structure:', {
+          status: response?.status,
+          hasData: !!response?.data,
+          hasSubjects: !!response?.data?.subjects,
+          subjectsLength: response?.data?.subjects?.length
+        });
+        setAssignedSubjects([]);
+      }
+    } catch (err) {
+      console.error('Error fetching assigned subjects:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      setAssignedSubjects([]);
+    } finally {
+      setLoadingSubjects(false);
+    }
+  };
+
+  // Fetch available sections for selected subject
+  const fetchAvailableSections = async (subjectId) => {
+    if (!subjectId) {
+      setAvailableSections([]);
+      return;
+    }
+
+    try {
+      setLoadingSections(true);
+      console.log('Fetching sections for subject ID:', subjectId);
+      
+      const response = await apiService.getTeacherAvailableSections(subjectId);
+      
+      console.log('Available sections API response:', response);
+      console.log('Response status:', response?.status);
+      console.log('Response data:', response?.data);
+      
+      if (response.status && response.data) {
+        console.log('Setting available sections:', response.data);
+        setAvailableSections(response.data);
+      } else {
+        console.log('No sections found or invalid response structure');
+        console.log('Response structure:', {
+          status: response?.status,
+          hasData: !!response?.data,
+          dataType: typeof response?.data,
+          dataLength: Array.isArray(response?.data) ? response?.data.length : 'not array'
+        });
+        setAvailableSections([]);
+      }
+    } catch (err) {
+      console.error('Error fetching available sections:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      setAvailableSections([]);
+    } finally {
+      setLoadingSections(false);
+    }
+  };
+
+  // Handle subject change
+  const handleSubjectChange = (e) => {
+    const subjectId = e.target.value;
+    setForm({ ...form, subject: subjectId, section: "" });
+    setAvailableSections([]);
+    
+    if (subjectId) {
+      // First try to get sections from the assigned subjects data
+      const selectedSubject = assignedSubjects.find(subject => subject.id === subjectId);
+      if (selectedSubject && selectedSubject.sections) {
+        console.log('Using sections from assigned subjects data:', selectedSubject.sections);
+        setAvailableSections(selectedSubject.sections);
+      } else {
+        // Fallback to API call
+        console.log('No sections in assigned subjects, fetching from API...');
+        fetchAvailableSections(subjectId);
+      }
+    }
+  };
+
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleAddClass = e => {
+  const handleAddClass = async e => {
     e.preventDefault();
     if (form.subject && form.section && form.semester && form.schoolYear) {
-      const newClass = {
-        id: Date.now(),
-        name: form.name || form.subject, // Use custom name if provided, otherwise use subject
-        section: form.section,
-        subject: form.subject,
-        semester: form.semester,
-        schoolYear: form.schoolYear,
-        code: generateCode(),
-        studentCount: 0,
-        theme: getRandomTheme()
-      };
-      
-      setClasses([...classes, newClass]);
-      setNewlyCreatedClass(newClass);
-      setForm({ name: "", section: "", subject: "", semester: "", schoolYear: "" });
-      setModal(false);
-      setShowToast(true);
-      
-      // Hide highlight after 3 seconds
-      setTimeout(() => {
-        setNewlyCreatedClass(null);
-      }, 3000);
+      setSubmittingForm(true);
+      try {
+        const response = await apiService.createClassroom({
+          subject_id: parseInt(form.subject),
+          section_id: parseInt(form.section),
+          semester: form.semester,
+          school_year: form.schoolYear,
+          custom_title: form.name || undefined // Send as custom_title if provided
+        });
+
+        if (response.status && response.data) {
+          const newClass = {
+            id: classes.length + 1, // Simple ID generation
+            name: form.name || assignedSubjects.find(s => s.id === form.subject)?.name,
+            section: availableSections.find(s => s.id === form.section)?.name,
+            subject: assignedSubjects.find(s => s.id === form.subject)?.name,
+            code: response.data.class_code,
+            semester: form.semester,
+            schoolYear: form.schoolYear,
+            studentCount: 0, // Will be updated by API
+            theme: getRandomTheme()
+          };
+          setClasses(prev => {
+            const updatedClasses = [...prev, newClass];
+            // Save to localStorage for ClassroomDetail.js to access
+            localStorage.setItem("teacherClasses", JSON.stringify(updatedClasses));
+            return updatedClasses;
+          });
+          setNewlyCreatedClass(newClass);
+          setCreatedClassData({
+            classCode: response.data.class_code,
+            className: form.name || assignedSubjects.find(s => s.id === form.subject)?.name,
+            section: availableSections.find(s => s.id === form.section)?.name
+          });
+          setSuccessModal(true);
+          setModal(false);
+          setForm({ name: "", section: "", subject: "", semester: "", schoolYear: "" });
+          setAvailableSections([]);
+          await refreshClassrooms(); // Refresh to update student count
+        } else {
+          throw new Error('Failed to create classroom');
+        }
+      } catch (err) {
+        console.error('Error creating classroom:', err);
+        setError(err.message || 'Failed to create classroom');
+      } finally {
+        setSubmittingForm(false);
+      }
     }
   };
 
@@ -188,28 +420,72 @@ const Classroom = () => {
                   Manage your classes, materials, students, and activities in one place.
                 </p>
               </div>
-              <Button 
-                color="primary" 
-                size="lg" 
-                onClick={toggleModal}
-                style={{ 
-                  borderRadius: "12px", 
-                  fontWeight: 600, 
-                  fontSize: "1rem",
-                  padding: "12px 24px",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
-                }}
-              >
-                <i className="ni ni-fat-add mr-2"></i>
-                Create Class
-              </Button>
+              <div className="d-flex gap-2">
+                <Button 
+                  color="secondary" 
+                  size="lg" 
+                  onClick={refreshClassrooms}
+                  disabled={loading}
+                  style={{ 
+                    borderRadius: "12px", 
+                    fontWeight: 600, 
+                    fontSize: "1rem",
+                    padding: "12px 16px",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
+                  }}
+                >
+                  <i className="ni ni-refresh mr-2"></i>
+                  Refresh
+                </Button>
+                <Button 
+                  color="primary" 
+                  size="lg" 
+                  onClick={handleModalOpen}
+                  disabled={loading}
+                  style={{ 
+                    borderRadius: "12px", 
+                    fontWeight: 600, 
+                    fontSize: "1rem",
+                    padding: "12px 24px",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
+                  }}
+                >
+                  <i className="ni ni-fat-add mr-2"></i>
+                  Create Class
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-5">
+            <Spinner color="primary" size="lg" />
+            <p className="mt-3 text-muted">Loading your classrooms...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <Alert color="danger" className="mb-4">
+            <h5 className="alert-heading">Error Loading Classrooms</h5>
+            <p className="mb-0">{error}</p>
+            <Button 
+              color="primary" 
+              size="sm" 
+              className="mt-2"
+              onClick={refreshClassrooms}
+            >
+              Try Again
+            </Button>
+          </Alert>
+        )}
+
         {/* Class Cards Grid */}
-        <Row className="g-4" key={refreshKey}>
-          {classes.map((cls, idx) => {
+        {!loading && !error && (
+          <Row className="g-4" key={refreshKey}>
+            {classes.map((cls, idx) => {
             // Get theme from localStorage if available
             let themeKey = `classroom_theme_${cls.code}`;
             let theme = localStorage.getItem(themeKey) || cls.theme;
@@ -301,14 +577,15 @@ const Classroom = () => {
           );
         })}
         </Row>
+        )}
 
         {/* Empty State */}
-        {classes.length === 0 && (
+        {!loading && !error && classes.length === 0 && (
           <div className="text-center py-5">
             <i className="ni ni-books text-muted" style={{ fontSize: "4rem" }}></i>
             <h4 className="mt-3 text-muted">No classes yet</h4>
             <p className="text-muted">Create your first class to get started</p>
-            <Button color="primary" size="lg" onClick={toggleModal}>
+            <Button color="primary" size="lg" onClick={handleModalOpen}>
               <i className="ni ni-fat-add mr-2"></i>
               Create Your First Class
             </Button>
@@ -317,7 +594,7 @@ const Classroom = () => {
       </div>
 
       {/* Create Class Modal */}
-      <Modal isOpen={modal} toggle={toggleModal} size="lg" style={{ marginLeft: 'auto', marginRight: 180, marginTop: 80, alignItems: 'flex-start' }}>
+      <Modal isOpen={modal} toggle={toggleModal} size="lg" centered>
         <ModalHeader toggle={toggleModal} style={{ border: "none", paddingBottom: "0" }}>
           <h4 className="mb-0">Create New Class</h4>
         </ModalHeader>
@@ -332,16 +609,15 @@ const Classroom = () => {
                     name="subject"
                     id="subject"
                     value={form.subject}
-                    onChange={handleChange}
+                    onChange={handleSubjectChange}
                     required
+                    disabled={loadingSubjects}
                     style={{ borderRadius: "8px" }}
                   >
-                    <option value="">Select subject</option>
-                    <option>Object Oriented Programming</option>
-                    <option>Data Structures and Algorithms</option>
-                    <option>Database Management Systems</option>
-                    <option>Web Development</option>
-                    <option>Software Engineering</option>
+                    <option value="">{loadingSubjects ? "Loading subjects..." : "Select subject"}</option>
+                    {assignedSubjects.map(subject => (
+                      <option key={subject.id} value={subject.id}>{subject.name}</option>
+                    ))}
                   </Input>
                   <small className="text-muted">
                     Select the subject for this class
@@ -358,14 +634,13 @@ const Classroom = () => {
                     value={form.section}
                     onChange={handleChange}
                     required
+                    disabled={loadingSections || !form.subject}
                     style={{ borderRadius: "8px" }}
                   >
-                    <option value="">Select section</option>
-                    <option>BSIT 3A</option>
-                    <option>BSIT 2B</option>
-                    <option>BSIT 3C</option>
-                    <option>BSCS 2B</option>
-                    <option>BSCS 1A</option>
+                    <option value="">{loadingSections ? "Loading sections..." : !form.subject ? "Select a subject first" : "Select section"}</option>
+                    {availableSections.map(section => (
+                      <option key={section.id} value={section.id}>{section.name}</option>
+                    ))}
                   </Input>
                   <small className="text-muted">
                     Select the section (e.g., BSIT 3A, BSCS 2B)
@@ -442,12 +717,100 @@ const Classroom = () => {
               color="primary" 
               type="submit" 
               style={{ borderRadius: "8px" }}
-              disabled={!form.subject || !form.section || !form.semester || !form.schoolYear}
+              disabled={!form.subject || !form.section || !form.semester || !form.schoolYear || submittingForm}
             >
-              Create Class
+              {submittingForm ? <Spinner size="sm" /> : "Create Class"}
             </Button>
           </ModalFooter>
         </Form>
+      </Modal>
+
+      {/* Success Modal with QR Code */}
+      <Modal isOpen={successModal} toggle={() => setSuccessModal(false)} size="md" centered>
+        <ModalHeader toggle={() => setSuccessModal(false)} style={{ border: "none", paddingBottom: "0" }}>
+          <h4 className="mb-0 text-success">
+            <i className="ni ni-check-bold mr-2"></i>
+            Class Created Successfully!
+          </h4>
+        </ModalHeader>
+        <ModalBody className="text-center">
+          {createdClassData && (
+            <>
+              <div className="mb-4">
+                <h5 className="text-dark mb-2">{createdClassData.className}</h5>
+                <p className="text-muted mb-3">{createdClassData.section}</p>
+                
+                {/* QR Code */}
+                <div className="mb-4 p-3 bg-light rounded" style={{ display: 'inline-block' }}>
+                  <div className="qr-code-container">
+                    {/* Generate QR code for the class code */}
+                    <div 
+                      className="qr-code"
+                      style={{
+                        width: '200px',
+                        height: '200px',
+                        background: '#fff',
+                        border: '2px solid #e9ecef',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto',
+                        padding: '10px'
+                      }}
+                    >
+                      <QRCodeSVG 
+                        value={`${window.location.origin}/student/join/${createdClassData.classCode}`}
+                        size={180}
+                        level="M"
+                        includeMargin={true}
+                      />
+                    </div>
+                    <div className="text-center mt-2">
+                      <small className="text-muted">Scan to join class</small>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Class Code Display */}
+                <div className="mb-3">
+                  <h6 className="text-dark mb-2">Class Code:</h6>
+                  <div className="d-flex align-items-center justify-content-center">
+                    <div className="p-3 bg-primary text-white rounded font-weight-bold mr-2" style={{ fontSize: '1.5rem', letterSpacing: '2px' }}>
+                      {createdClassData.classCode}
+                    </div>
+                    <Button 
+                      color="outline-primary" 
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdClassData.classCode);
+                        setShowCopyToast(true);
+                        setTimeout(() => setShowCopyToast(false), 3000); // Hide toast after 3 seconds
+                      }}
+                      title="Copy class code"
+                    >
+                      <i className="ni ni-single-copy-04"></i>
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="alert alert-info">
+                  <i className="ni ni-bell-55 mr-2"></i>
+                  Share this QR code or class code with your students so they can join the class.
+                </div>
+              </div>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter style={{ border: "none", paddingTop: "0" }}>
+          <Button 
+            color="primary" 
+            onClick={() => setSuccessModal(false)}
+            style={{ borderRadius: "8px" }}
+          >
+            Got it!
+          </Button>
+        </ModalFooter>
       </Modal>
 
       {/* Success Toast */}
@@ -462,6 +825,22 @@ const Classroom = () => {
           </ToastHeader>
           <ToastBody style={{ background: "#d4edda", color: "#155724" }}>
             Classroom created successfully!
+          </ToastBody>
+        </Toast>
+      </div>
+
+      {/* Copy Toast */}
+      <div style={{ position: "fixed", top: "20px", right: "20px", zIndex: 9999 }}>
+        <Toast isOpen={showCopyToast} style={{ borderRadius: "12px" }}>
+          <ToastHeader 
+            icon="success" 
+            toggle={() => setShowCopyToast(false)}
+            style={{ border: "none", background: "#d4edda", color: "#155724" }}
+          >
+            Copied!
+          </ToastHeader>
+          <ToastBody style={{ background: "#d4edda", color: "#155724" }}>
+            Class code copied to clipboard!
           </ToastBody>
         </Toast>
       </div>

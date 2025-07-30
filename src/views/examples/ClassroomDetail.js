@@ -49,6 +49,7 @@ import { FaEllipsisV, FaClipboardList, FaQuestionCircle, FaBook, FaRedo, FaFolde
 import userDefault from '../../assets/img/theme/user-default.svg';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage'; // We'll add this helper next
+import axios from 'axios';
 
 //stream new
 
@@ -400,8 +401,6 @@ const fileToBase64 = (file) => {
     reader.onerror = error => reject(error);
   });
 };
-
-
 // Add this function for truncating text
 const truncate = (str, n) => (str && str.length > n ? str.substr(0, n - 1) + '...' : str);
 
@@ -437,7 +436,9 @@ const ClassroomDetail = () => {
     return localStorage.getItem(key) || themes[0].value;
   });
   const [newAnnouncement, setNewAnnouncement] = useState("");
-  const [announcements, setAnnouncements] = useState(sampleAnnouncements);
+  const [announcements, setAnnouncements] = useState([]);
+  const [streamLoading, setStreamLoading] = useState(true);
+  const [streamError, setStreamError] = useState(null);
   const fileInputRef = useRef();
   const [customTheme, setCustomTheme] = useState(() => {
     const key = `classroom_custom_theme_${code}`;
@@ -1012,7 +1013,6 @@ const handleManualAttachmentType = (type) => {
   }
   setManualAttachmentDropdownOpen(false);
 };
-
 const startQrScanner = async () => {
   try {
     setQrScanError(null);
@@ -1299,29 +1299,45 @@ useEffect(() => {
   const [editSelectedStudents, setEditSelectedStudents] = useState([]);
 
   // 3. In handlePostAnnouncement, save both title and content
-  const handlePostAnnouncement = (e) => {
+  const handlePostAnnouncement = async (e) => {
     e.preventDefault();
-    if ((newAnnouncement && newAnnouncement.trim().length > 0) || attachments.length > 0) {
-      const announcement = {
-        id: Date.now(),
-        title: newAnnouncementTitle,
-        content: newAnnouncement,
-        author: "Prof. Smith",
-        date: new Date().toISOString(),
-        isPinned: false,
-        attachments,
-        year: selectedYear,
-        audience: selectedAudience,
-        originalIndex: announcements.length,
-        comments: [],
-        allowComments,
-        reactions: { like: 0, likedBy: [] },
-        visibleTo: selectedAnnouncementStudents,
-      };
-      setAnnouncements([announcement, ...announcements]);
+
+    // Build the JSON data (do NOT include attachment_url)
+    const postData = {
+      title: newAnnouncementTitle,
+      content: newAnnouncement,
+      is_draft: 0,
+      is_scheduled: 0,
+      scheduled_at: '',
+      allow_comments: allowComments ? 1 : 0,
+      student_ids: selectedAnnouncementStudents,
+    };
+
+    // Prepare FormData
+    const formData = new FormData();
+    if (attachments.length > 0 && attachments[0].file) {
+      formData.append('attachment', attachments[0].file); // attachments[0].file should be a File object
+    }
+    formData.append('data', JSON.stringify(postData));
+
+    try {
+      await axios.post(
+        `http://localhost/scms_new/index.php/api/teacher/classroom/${code}/stream`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       setNewAnnouncement("");
       setNewAnnouncementTitle("");
       setAttachments([]);
+      setSelectedAnnouncementStudents([]);
+      fetchStreamPosts();
+    } catch (err) {
+      alert('Failed to post announcement: ' + (err.message || err));
     }
   };
 
@@ -1349,6 +1365,48 @@ useEffect(() => {
       setPreviewText(text);
     }
   };
+
+  // Fetch stream posts from API
+  const fetchStreamPosts = async () => {
+    if (!code) return;
+    setStreamLoading(true);
+    setStreamError(null);
+    try {
+      const response = await apiService.getClassroomStream(code);
+      if (response.status && response.data) {
+        // Transform API data to match the expected format
+        const transformedPosts = response.data.map(post => ({
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          author: post.user_name,
+          date: post.created_at,
+          isPinned: post.is_pinned === "1",
+          reactions: { 
+            like: post.like_count || 0, 
+            likedBy: [] 
+          },
+          comments: [],
+          user_avatar: post.user_avatar
+        }));
+        setAnnouncements(transformedPosts);
+      } else {
+        setStreamError('No data received from server');
+      }
+    } catch (error) {
+      console.error('Error fetching stream posts:', error);
+      setStreamError(error.message || 'Failed to fetch stream posts');
+      // Fallback to sample data if API fails
+      setAnnouncements(sampleAnnouncements);
+    } finally {
+      setStreamLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStreamPosts();
+    // eslint-disable-next-line
+  }, [code]);
 
   useEffect(() => {
     const classes = JSON.parse(localStorage.getItem("teacherClasses")) || [];
@@ -1606,11 +1664,9 @@ useEffect(() => {
       setShowYouTubeModal(false);
     }
   };
-
   const handleRemoveAttachment = (idx) => {
     setAttachments(attachments.filter((_, i) => i !== idx));
   };
-
   const handleSchedule = (e) => {
     e.preventDefault();
     if (newAnnouncement.trim() && scheduleDate && scheduleTime) {
@@ -2258,7 +2314,6 @@ useEffect(() => {
   const handleDeleteClasswork = (id) => {
     setAssignments(prev => prev.filter(a => a.id !== id));
   };
-
   // Classwork creation attachment handlers
   const handleCreateFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -2905,7 +2960,6 @@ useEffect(() => {
   const handleRemoveTaskAttachment = (idx) => {
     setTaskAttachments(prev => prev.filter((_, i) => i !== idx));
   };
-
   const handleLikeTask = (taskId) => {
     setTasks(prev => prev.map(task => 
       task.id === taskId 
@@ -3402,7 +3456,6 @@ useEffect(() => {
             </NavLink>
           </NavItem>
         </Nav>
-
         {/* Tab Content */}
         <TabContent activeTab={activeTab}>
 
@@ -3884,7 +3937,38 @@ useEffect(() => {
                   )}
                   {/* Main Announcements List */}
                   <div style={{ marginTop: 32 }}>
-                    {announcements.map((announcement) => (
+                    {/* Loading State */}
+                    {streamLoading && (
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        padding: '40px 20px',
+                        color: '#666',
+                        fontSize: '14px'
+                      }}>
+                        <i className="fa fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                        Loading stream posts...
+                      </div>
+                    )}
+                    
+                    {/* Error State */}
+                    {streamError && !streamLoading && (
+                      <div style={{ 
+                        background: '#fff3cd', 
+                        border: '1px solid #ffeaa7', 
+                        borderRadius: '8px', 
+                        padding: '16px', 
+                        marginBottom: '20px',
+                        color: '#856404'
+                      }}>
+                        <i className="fa fa-exclamation-triangle" style={{ marginRight: '8px' }}></i>
+                        {streamError}
+                      </div>
+                    )}
+                    
+                    {/* Announcements List */}
+                    {!streamLoading && announcements.map((announcement) => (
                       <div
                         key={announcement.id}
                         style={{
@@ -3986,7 +4070,14 @@ useEffect(() => {
                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
-                                <img src={'https://randomuser.me/api/portraits/men/32.jpg'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                                <img 
+                                  src={announcement.user_avatar ? `http://localhost/scms_new/${announcement.user_avatar}` : userDefault} 
+                                  alt="avatar" 
+                                  style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} 
+                                  onError={(e) => {
+                                    e.target.src = userDefault;
+                                  }}
+                                />
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -4778,10 +4869,6 @@ useEffect(() => {
                     <Collapse isOpen={taskFormExpanded}>
                       <Form onSubmit={handlePostTask}>
                       <div className="d-flex flex-wrap" style={{ gap: 16, marginBottom: 16, width: '100%' }}>
-
-                  
-
-
 <div style={{ flex: 1, minWidth: 200 }}>
   <label style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>Post to Classrooms</label>
   <Select
@@ -5652,7 +5739,6 @@ useEffect(() => {
           </TabPane>
         </TabContent>
       </div>
-
       {/* Attachment Preview Modal */}
       <Modal isOpen={previewModalOpen} toggle={() => setPreviewModalOpen(false)} centered size="lg">
         <ModalHeader toggle={() => setPreviewModalOpen(false)}>

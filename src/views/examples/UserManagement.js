@@ -143,6 +143,8 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  // Add state for sections
+  const [sections, setSections] = useState({});
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -156,8 +158,11 @@ const UserManagement = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    ApiService.getUsersByRole(activeTab)
-      .then((data) => {
+    
+    const fetchUsersAndSections = async () => {
+      try {
+        const data = await ApiService.getUsersByRole(activeTab);
+        
         let usersArr = [];
         if (Array.isArray(data)) {
           usersArr = data;
@@ -166,6 +171,7 @@ const UserManagement = () => {
         } else if (Array.isArray(data.data)) {
           usersArr = data.data;
         }
+        
         // Normalize user fields for consistent frontend usage
         usersArr = usersArr.map(user => {
           return {
@@ -180,14 +186,37 @@ const UserManagement = () => {
             student_num: user.student_num || user.studentNumber || '',
           };
         });
+        
+        // If we're fetching students, also fetch section information
+        if (activeTab === 'student') {
+          const sectionIds = [...new Set(usersArr.map(user => user.section_id).filter(Boolean))];
+          const sectionsData = {};
+          
+          for (const sectionId of sectionIds) {
+            try {
+              const sectionData = await ApiService.getSectionById(sectionId);
+              if (sectionData && sectionData.data) {
+                sectionsData[sectionId] = sectionData.data;
+              }
+            } catch (error) {
+              console.error(`Failed to fetch section ${sectionId}:`, error);
+              sectionsData[sectionId] = { name: `Section ${sectionId}`, id: sectionId };
+            }
+          }
+          
+          setSections(sectionsData);
+        }
+        
         setUsers(usersArr);
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         setUsers([]); // fallback to empty array on error
         setError(err.message);
         setLoading(false);
-      });
+      }
+    };
+    
+    fetchUsersAndSections();
   }, [activeTab]);
 
   // Filter users based on search term
@@ -407,6 +436,75 @@ const UserManagement = () => {
     return abbreviations[course] || course;
   };
 
+  // Add helper function to get section name
+  const getSectionName = (user) => {
+    if (!user) return 'N/A';
+    // Use section_name from the API response if available
+    if (user.section_name) {
+      return user.section_name;
+    }
+    // Fallback to section_id if section_name is not available
+    if (user.section_id) {
+      return `Section ${user.section_id}`;
+    }
+    return 'N/A';
+  };
+
+  // Add helper function to format course and section display
+  const getCourseAndSectionDisplay = (user) => {
+    if (activeTab !== 'student') {
+      return user.program || 'N/A';
+    }
+    
+    // For students, use the section_name directly from the API response
+    if (user.section_name) {
+      return user.section_name;
+    }
+    
+    // Fallback: Get course abbreviation and try to construct section info
+    const courseAbbr = getCourseAbbreviation(user.program);
+    const sectionName = getSectionName(user);
+    
+    // Extract year level and section letter from section name
+    let yearLevel = '';
+    let sectionLetter = '';
+    
+    if (sectionName) {
+      // Look for patterns like "1st Year A", "2nd Year B", etc.
+      const yearMatch = sectionName.match(/(\d+)(?:st|nd|rd|th)\s+Year/);
+      if (yearMatch) {
+        yearLevel = yearMatch[1];
+      }
+      
+      // Look for section letter at the end
+      const letterMatch = sectionName.match(/([A-Z])$/);
+      if (letterMatch) {
+        sectionLetter = letterMatch[1];
+      }
+    }
+    
+    // If we couldn't extract from section name, try to get from section_id
+    if (!yearLevel && !sectionLetter && user.section_id) {
+      // For section_id like "15", assume it's year 1, section 5
+      const sectionId = user.section_id;
+      if (sectionId.length >= 2) {
+        yearLevel = sectionId[0];
+        sectionLetter = String.fromCharCode(64 + parseInt(sectionId.slice(1))); // Convert number to letter (1=A, 2=B, etc.)
+      }
+    }
+    
+    // Format: "BSIT 1Z"
+    if (courseAbbr && yearLevel && sectionLetter) {
+      return `${courseAbbr} ${yearLevel}${sectionLetter}`;
+    } else if (courseAbbr && yearLevel) {
+      return `${courseAbbr} ${yearLevel}`;
+    } else if (courseAbbr) {
+      return courseAbbr;
+    }
+    
+    return 'N/A';
+  };
+
   const getColumnHeader = () => {
     return activeTab === "student" ? "Course/Year/Section" : "Program";
   };
@@ -464,10 +562,7 @@ const UserManagement = () => {
                     <td>
                       <div className="d-flex align-items-center">
                         <span className="mr-2">
-                          {activeTab === "student" 
-                            ? `${getCourseAbbreviation(user.program)} - ${user.course_year_section || 'N/A'}`
-                            : user.program || 'N/A'
-                          }
+                          {getCourseAndSectionDisplay(user)}
                         </span>
                       </div>
                     </td>
@@ -551,7 +646,7 @@ const UserManagement = () => {
                 </div>
                 <p className="text-muted small mb-3">
                   {activeTab === "student" 
-                    ? `${getCourseAbbreviation(user.program)} - ${user.course_year_section || 'N/A'}`
+                    ? `${getCourseAndSectionDisplay(user)}`
                     : user.program || 'N/A'
                   }
                 </p>
@@ -955,7 +1050,7 @@ const UserManagement = () => {
               {selectedUser.role === 'student' && (
                 <div className="mt-3">
                   <p><strong>Student Number:</strong> {selectedUser.student_num || 'N/A'}</p>
-                  <p><strong>Section:</strong> {selectedUser.course_year_section || 'N/A'}</p>
+                  <p><strong>Section:</strong> {getSectionName(selectedUser)}</p>
                 </div>
               )}
             </div>

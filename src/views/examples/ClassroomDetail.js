@@ -453,20 +453,137 @@ const ClassroomDetail = () => {
   // Get class info from localStorage (set by Classroom.js)
   const [classInfo, setClassInfo] = useState(null);
 
+  // Add state to track if user is a student
+  const [isStudent, setIsStudent] = useState(false);
+
   // Add new state for modals and forms
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showAddGradeModal, setShowAddGradeModal] = useState(false);
   const [assignments, setAssignments] = useState(sampleAssignments);
-  const [students, setStudents] = useState(sampleStudents);
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
   const [grades, setGrades] = useState(sampleGrades);
 
   // Save students to localStorage whenever they change
   useEffect(() => {
+    console.log('Students state changed:', students);
     if (code && students && students.length > 0) {
       localStorage.setItem(`classroom_students_${code}`, JSON.stringify(students));
     }
   }, [students, code]);
+
+  // Function to fetch enrolled students from API
+  const fetchEnrolledStudents = async () => {
+    if (!code) {
+      console.log('No code available, skipping fetch');
+      return;
+    }
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    console.log('Authentication check - Token exists:', !!token);
+    console.log('Authentication check - User exists:', !!user);
+    console.log('User data:', user ? JSON.parse(user) : 'No user data');
+    
+    if (!token) {
+      console.error('No authentication token found. User needs to login.');
+      setStudents([]);
+      setLoadingStudents(false);
+      return;
+    }
+    
+    console.log('Starting fetchEnrolledStudents for code:', code);
+    setLoadingStudents(true);
+    try {
+      console.log('Making API call using apiService');
+      
+      // First, let's test if the getClassroomByCode endpoint works
+      console.log('Testing getClassroomByCode endpoint...');
+      try {
+        const classroomResponse = await apiService.getClassroomByCode(code);
+        console.log('Classroom response:', classroomResponse);
+      } catch (classroomError) {
+        console.log('Classroom endpoint error:', classroomError.message);
+      }
+      
+      // Now try the students endpoint with different possible paths
+      console.log('Testing students endpoint...');
+      
+      let response;
+      try {
+        // Try the original path
+        response = await apiService.makeRequest(`/teacher/classroom/${code}/students`, {
+          method: 'GET',
+          requireAuth: true
+        });
+        console.log('API Response received:', response);
+      } catch (error1) {
+        console.log('First path failed, trying alternative...');
+        try {
+          // Try alternative path
+          response = await apiService.makeRequest(`/teacher/classrooms/${code}/students`, {
+            method: 'GET',
+            requireAuth: true
+          });
+          console.log('Alternative path API Response received:', response);
+        } catch (error2) {
+          console.log('Alternative path also failed, trying section students...');
+          try {
+            // Try getting all students and filtering
+            const allStudentsResponse = await apiService.getStudents();
+            console.log('All students response:', allStudentsResponse);
+            // For now, let's use sample data until we figure out the correct endpoint
+            response = { status: true, data: { students: [] } };
+          } catch (error3) {
+            console.log('All approaches failed, using empty response');
+            response = { status: true, data: { students: [] } };
+          }
+        }
+      }
+      
+      if (response && response.status && response.data && response.data.students) {
+        console.log('Response has valid structure, processing students...');
+        // Transform the API data to match our expected format
+        const enrolledStudents = response.data.students.map(student => ({
+          id: student.user_id,
+          name: student.full_name,
+          email: student.email,
+          student_num: student.student_num,
+          contact_num: student.contact_num,
+          program: student.program,
+          section_name: student.section_name,
+          joinedDate: student.enrolled_at,
+          enrollment_status: student.enrollment_status,
+          role: "Student"
+        }));
+        
+        console.log('Transformed students:', enrolledStudents);
+        console.log('Setting students state with', enrolledStudents.length, 'students');
+        setStudents(enrolledStudents);
+      } else {
+        console.error('Invalid response format from API. Response structure:', {
+          hasData: !!response,
+          hasStatus: !!(response && response.status),
+          hasDataField: !!(response && response.data),
+          hasStudents: !!(response && response.data && response.data.students)
+        });
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching enrolled students:', error);
+      console.error('Error details:', error.message);
+      console.error('Full error object:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response headers:', error.response?.headers);
+      setStudents([]);
+    } finally {
+      console.log('Setting loadingStudents to false');
+      setLoadingStudents(false);
+    }
+  };
 
   const [createForm, setCreateForm] = useState({
     type: '',
@@ -598,6 +715,11 @@ const ClassroomDetail = () => {
   
   // Current user - in a real app, this would come from user context
   const currentUser = "Prof. Smith";
+
+  // Add state for student classes
+  const [studentClasses, setStudentClasses] = useState([]);
+  const [loadingStudentClasses, setLoadingStudentClasses] = useState(false);
+  const [studentClassesError, setStudentClassesError] = useState(null);
 
   // Add at the top of ClassroomDetail component:
   const [commentDropdownOpen, setCommentDropdownOpen] = useState(null);
@@ -1355,14 +1477,52 @@ useEffect(() => {
 
   // 2. Add a function to handle preview open
   const handlePreviewAttachment = async (att) => {
+    console.log('handlePreviewAttachment called with:', att);
     setPreviewAttachment(att);
     setPreviewText("");
     setPreviewModalOpen(true);
-    // If TXT or CSV, read as text
+    
+    // Get file extension
     const ext = att.name ? att.name.split('.').pop().toLowerCase() : '';
-    if ((ext === 'txt' || ext === 'csv') && att.file) {
-      const text = await att.file.text();
-      setPreviewText(text);
+    const fileName = att.name || '';
+    console.log('File extension:', ext, 'File name:', fileName);
+    
+    // Handle different file types
+    if (ext === 'txt' || ext === 'csv' || ext === 'md') {
+      // Text files - read as text
+      if (att.file) {
+        try {
+          const text = await att.file.text();
+          setPreviewText(text);
+        } catch (error) {
+          console.error('Error reading text file from file object:', error);
+          setPreviewText('Error reading file content');
+        }
+      } else if (att.url) {
+        try {
+          const response = await fetch(att.url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const text = await response.text();
+          setPreviewText(text);
+        } catch (error) {
+          console.error('Error reading text file from URL:', error);
+          setPreviewText('Error reading file content');
+        }
+      }
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+      // Image files - can be previewed directly
+      setPreviewText(null);
+    } else if (ext === 'pdf') {
+      // PDF files - can be embedded in iframe
+      setPreviewText(null);
+    } else if (['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(ext)) {
+      // Audio files - handled by the audio player
+      setPreviewText(null);
+    } else {
+      // Other file types - no preview available
+      setPreviewText(null);
     }
   };
 
@@ -1387,7 +1547,14 @@ useEffect(() => {
             likedBy: [] 
           },
           comments: [],
-          user_avatar: post.user_avatar
+          user_avatar: post.user_avatar,
+          attachments: post.attachment_url
+            ? [{
+                name: post.attachment_url.split('/').pop(),
+                url: post.attachment_url.startsWith('http') ? post.attachment_url : `http://localhost/scms_new/${post.attachment_url}`,
+                type: post.attachment_type || ''
+              }]
+            : []
         }));
         setAnnouncements(transformedPosts);
       } else {
@@ -1409,42 +1576,156 @@ useEffect(() => {
   }, [code]);
 
   useEffect(() => {
-    const classes = JSON.parse(localStorage.getItem("teacherClasses")) || [];
-    const foundClass = classes.find(cls => cls.code === code);
-    
-    if (foundClass) {
-      setClassInfo(foundClass);
-    } else {
-      // If not found in localStorage, try to fetch from API
-      const fetchClassroomFromAPI = async () => {
-        try {
-          const response = await apiService.getClassroomByCode(code);
-          if (response.status && response.data) {
-            const classroomData = {
-              id: 1,
-              name: response.data.subject_name,
-              section: response.data.section_name,
-              subject: response.data.subject_name,
-              code: response.data.class_code,
-              semester: response.data.semester,
-              schoolYear: response.data.school_year,
-              studentCount: response.data.student_count || 0,
-              theme: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-            };
-            setClassInfo(classroomData);
-          } else {
-            // If API also fails, show error
+    // Check if user is a student
+    const user = localStorage.getItem('user');
+    let userRole = 'teacher';
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        userRole = userData.role || 'teacher';
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+
+    if (userRole === 'student') {
+      // For students, try to find the class in their enrolled classes
+      const foundClass = studentClasses.find(cls => cls.code === code);
+      if (foundClass) {
+        const classroomData = {
+          id: foundClass.id,
+          name: foundClass.name,
+          section: foundClass.section,
+          subject: foundClass.subject,
+          code: foundClass.code,
+          semester: foundClass.semester,
+          schoolYear: foundClass.schoolYear,
+          teacherName: foundClass.teacherName,
+          studentCount: 0, // Students don't see student count
+          theme: foundClass.theme
+        };
+        setClassInfo(classroomData);
+      } else {
+        // If not found in student classes, try to fetch from API
+        const fetchClassroomFromAPI = async () => {
+          try {
+            const response = await apiService.getClassroomByCode(code);
+            if (response.status && response.data) {
+              const classroomData = {
+                id: 1,
+                name: response.data.subject_name,
+                section: response.data.section_name,
+                subject: response.data.subject_name,
+                code: response.data.class_code,
+                semester: response.data.semester,
+                schoolYear: response.data.school_year,
+                teacherName: response.data.teacher_name,
+                studentCount: 0,
+                theme: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              };
+              setClassInfo(classroomData);
+            } else {
+              setClassInfo(null);
+            }
+          } catch (error) {
+            console.error('Error fetching classroom from API:', error);
             setClassInfo(null);
           }
-        } catch (error) {
-          console.error('Error fetching classroom from API:', error);
-          setClassInfo(null);
-        }
-      };
+        };
+        
+        fetchClassroomFromAPI();
+      }
+    } else {
+      // For teachers, use the existing logic
+      const classes = JSON.parse(localStorage.getItem("teacherClasses")) || [];
+      const foundClass = classes.find(cls => cls.code === code);
       
-      fetchClassroomFromAPI();
+      if (foundClass) {
+        setClassInfo(foundClass);
+      } else {
+        // If not found in localStorage, try to fetch from API
+        const fetchClassroomFromAPI = async () => {
+          try {
+            const response = await apiService.getClassroomByCode(code);
+            if (response.status && response.data) {
+              const classroomData = {
+                id: 1,
+                name: response.data.subject_name,
+                section: response.data.section_name,
+                subject: response.data.subject_name,
+                code: response.data.class_code,
+                semester: response.data.semester,
+                schoolYear: response.data.school_year,
+                studentCount: response.data.student_count || 0,
+                theme: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              };
+              setClassInfo(classroomData);
+            } else {
+              // If API also fails, show error
+              setClassInfo(null);
+            }
+          } catch (error) {
+            console.error('Error fetching classroom from API:', error);
+            setClassInfo(null);
+          }
+        };
+        
+        fetchClassroomFromAPI();
+      }
+    }
+  }, [code, studentClasses]);
+
+  // Function to fetch student classes
+  const fetchStudentClasses = async () => {
+    setLoadingStudentClasses(true);
+    setStudentClassesError(null);
+    try {
+      const response = await apiService.getStudentClasses();
+      if (response.status && response.data) {
+        console.log('Student classes fetched:', response.data);
+        setStudentClasses(response.data);
+      } else {
+        setStudentClassesError('No data received from server');
+        setStudentClasses([]);
+      }
+    } catch (error) {
+      console.error('Error fetching student classes:', error);
+      setStudentClassesError(error.message || 'Failed to fetch student classes');
+      setStudentClasses([]);
+    } finally {
+      setLoadingStudentClasses(false);
+    }
+  };
+
+  // Fetch enrolled students when component mounts
+  useEffect(() => {
+    console.log('useEffect triggered with code:', code);
+    console.log('Current localStorage token:', localStorage.getItem('token'));
+    console.log('Current localStorage user:', localStorage.getItem('user'));
+    
+    if (code) {
+      console.log('Calling fetchEnrolledStudents for code:', code);
+      fetchEnrolledStudents();
     }
   }, [code]);
+
+  // Fetch student classes when component mounts (for student role)
+  useEffect(() => {
+    // Check if user is a student
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        if (userData.role === 'student') {
+          console.log('User is a student, fetching classes...');
+          setIsStudent(true);
+          fetchStudentClasses();
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Ensure all announcements have reactions property
   useEffect(() => {
@@ -2632,10 +2913,28 @@ useEffect(() => {
   // Add this to the ClassroomDetail component:
   const [audioUrl, setAudioUrl] = useState(null);
   useEffect(() => {
-    if (previewAttachment && previewAttachment.file && previewAttachment.file.type.startsWith('audio/')) {
-      const url = URL.createObjectURL(previewAttachment.file);
-      setAudioUrl(url);
-      return () => URL.revokeObjectURL(url);
+    console.log('audioUrl useEffect triggered with previewAttachment:', previewAttachment);
+    if (previewAttachment) {
+      // Handle file objects
+      if (previewAttachment.file && previewAttachment.file.type.startsWith('audio/')) {
+        const url = URL.createObjectURL(previewAttachment.file);
+        console.log('Setting audioUrl for file object:', url);
+        setAudioUrl(url);
+        return () => URL.revokeObjectURL(url);
+      }
+      // Handle URLs for audio files
+      else if (previewAttachment.url && ['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(previewAttachment.name?.split('.').pop()?.toLowerCase())) {
+        console.log('Setting audioUrl for URL:', previewAttachment.url);
+        setAudioUrl(previewAttachment.url);
+      }
+      // Clear audio URL for non-audio files
+      else {
+        console.log('Clearing audioUrl for non-audio file');
+        setAudioUrl(null);
+      }
+    } else {
+      console.log('Clearing audioUrl - no previewAttachment');
+      setAudioUrl(null);
     }
   }, [previewAttachment]);
 
@@ -4241,6 +4540,7 @@ useEffect(() => {
                                   url = att.url;
                                 }
                                 const isLink = att.type === "Link" || att.type === "YouTube" || att.type === "Google Drive";
+                                // Show just the filename (e.g., assignment1.pdf) as display name, but keep full path in database
                                 const displayName = isLink ? att.url : att.name;
                                 return (
                                   <div
@@ -5633,61 +5933,97 @@ useEffect(() => {
             <Card className="mb-4" style={{ borderRadius: 18, boxShadow: '0 8px 32px rgba(50,76,221,0.10)', background: 'linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%)', border: '1.5px solid #e9ecef' }}>
               <CardBody>
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h4 className="mb-0" style={{ fontWeight: 800, color: '#111111', letterSpacing: 1 }}>People <i className="ni ni-single-02 text-success ml-2" /></h4>
-                  <Button size="sm" style={{ borderRadius: "8px", backgroundColor: "#7B8CFF", borderColor: "#7B8CFF", color: "white" }} onClick={() => setShowInviteModal(true)}>
-                    <i className="fa fa-user-plus mr-1" style={{ color: "white" }}></i> Invite
-                  </Button>
-                          </div>
+                  <div>
+                    <h4 className="mb-0" style={{ fontWeight: 800, color: '#111111', letterSpacing: 1 }}>People <i className="ni ni-single-02 text-success ml-2" /></h4>
+                    {!loadingStudents && (
+                      <small className="text-muted">
+                        {students.length} {students.length === 1 ? 'student' : 'students'} enrolled
+                      </small>
+                    )}
+                  </div>
+                  <div>
+                    <Button 
+                      size="sm" 
+                      style={{ borderRadius: "8px", backgroundColor: "#28a745", borderColor: "#28a745", color: "white", marginRight: "8px" }} 
+                      onClick={fetchEnrolledStudents}
+                      disabled={loadingStudents}
+                    >
+                      <i className={`fa fa-refresh mr-1 ${loadingStudents ? 'fa-spin' : ''}`} style={{ color: "white" }}></i> 
+                      {loadingStudents ? 'Loading...' : 'Refresh'}
+                    </Button>
+                    <Button size="sm" style={{ borderRadius: "8px", backgroundColor: "#7B8CFF", borderColor: "#7B8CFF", color: "white" }} onClick={() => setShowInviteModal(true)}>
+                      <i className="fa fa-user-plus mr-1" style={{ color: "white" }}></i> Invite
+                    </Button>
+                  </div>
+                </div>
                 
-                <Table responsive>
-                  <thead>
-                    <tr>
-                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Name</th>
-                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Email</th>
-                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Student ID</th>
-                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Joined</th>
-                      <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((student) => (
-                      <tr key={student.id} style={{ minHeight: '32px', height: '36px' }}>
-                        <td style={{ paddingTop: '6px', paddingBottom: '6px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <img 
-                              src={getAvatarForUser(student)} 
-                              alt={student.name}
-                              style={{ 
-                                width: '40px', 
-                                height: '40px', 
-                                borderRadius: '50%', 
-                                objectFit: 'cover',
-                                border: '2px solid #e9ecef',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                              }}
-                            />
-                            <span style={{ fontWeight: 600, color: '#232b3b', fontSize: '14px' }}>{student.name}</span>
-                              </div>
-                        </td>
-                        <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>{student.email}</td>
-                        <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
-                          {student.id}
-                        </td>
-                        <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
-                          {student.joinedDate ? new Date(student.joinedDate).toLocaleString() : ''}
-                        </td>
-                        <td style={{ verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
-                          <Button color="link" size="sm" className="p-0 mr-2">
-                            <i className="ni ni-single-02"></i>
-                          </Button>
-                          <Button color="link" size="sm" className="p-0 text-danger">
-                            <i className="ni ni-fat-remove"></i>
-                          </Button>
-                        </td>
+                {console.log('Current students state:', students)}
+                {loadingStudents ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="sr-only">Loading...</span>
+                    </div>
+                    <p className="mt-2 text-muted">Loading enrolled students...</p>
+                  </div>
+                ) : (
+                  <Table responsive>
+                    <thead>
+                      <tr>
+                        <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Name</th>
+                        <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Email</th>
+                        <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Student ID</th>
+                        <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Joined</th>
+                        <th style={{ fontWeight: 700, color: '#111111', fontSize: '14px' }}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>  
-                </Table>
+                    </thead>
+                    <tbody>
+                      {students.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center py-4 text-muted">
+                            No students enrolled in this class yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        students.map((student) => (
+                          <tr key={student.id} style={{ minHeight: '32px', height: '36px' }}>
+                            <td style={{ paddingTop: '6px', paddingBottom: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <img 
+                                  src={getAvatarForUser(student)} 
+                                  alt={student.name}
+                                  style={{ 
+                                    width: '40px', 
+                                    height: '40px', 
+                                    borderRadius: '50%', 
+                                    objectFit: 'cover',
+                                    border: '2px solid #e9ecef',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                  }}
+                                />
+                                <span style={{ fontWeight: 600, color: '#232b3b', fontSize: '14px' }}>{student.name}</span>
+                              </div>
+                            </td>
+                            <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>{student.email}</td>
+                            <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
+                              {student.student_num || student.id}
+                            </td>
+                            <td style={{ fontWeight: 500, color: '#232b3b', fontSize: '14px', verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
+                              {student.joinedDate ? new Date(student.joinedDate).toLocaleString() : ''}
+                            </td>
+                            <td style={{ verticalAlign: 'middle', paddingTop: '6px', paddingBottom: '6px' }}>
+                              <Button color="link" size="sm" className="p-0 mr-2">
+                                <i className="ni ni-single-02"></i>
+                              </Button>
+                              <Button color="link" size="sm" className="p-0 text-danger">
+                                <i className="ni ni-fat-remove"></i>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>  
+                  </Table>
+                )}
               </CardBody>
             </Card>
           </TabPane>
@@ -5747,21 +6083,49 @@ useEffect(() => {
         <ModalBody>
           {previewAttachment && (
             <div>
-              {previewAttachment.file && previewAttachment.file.type.startsWith('image/') ? (
+              {/* Handle images - both from file objects and URLs */}
+              {(previewAttachment.file && previewAttachment.file.type.startsWith('image/')) || 
+               (previewAttachment.url && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(previewAttachment.name?.split('.').pop()?.toLowerCase())) ? (
                 <img 
-                  src={URL.createObjectURL(previewAttachment.file)} 
+                  src={previewAttachment.file ? URL.createObjectURL(previewAttachment.file) : previewAttachment.url} 
                   alt={previewAttachment.name}
                   style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
                 />
-              ) : previewAttachment.file && previewAttachment.file.type.startsWith('video/') ? (
+              ) : 
+              {/* Handle PDFs - both from file objects and URLs */}
+              (previewAttachment.file && previewAttachment.file.type === 'application/pdf') || 
+              (previewAttachment.url && previewAttachment.name?.toLowerCase().endsWith('.pdf')) ? (
+                <div style={{ width: '100%', height: '600px', border: '1px solid #e9ecef', borderRadius: '8px' }}>
+                  <iframe
+                    src={previewAttachment.file ? `${URL.createObjectURL(previewAttachment.file)}#toolbar=1&navpanes=1&scrollbar=1` : `${previewAttachment.url}#toolbar=1&navpanes=1&scrollbar=1`}
+                    style={{ width: '100%', height: '100%', border: 'none', borderRadius: '8px' }}
+                    title={previewAttachment.name}
+                  />
+                </div>
+              ) : 
+              {/* Handle videos - both from file objects and URLs */}
+              (previewAttachment.file && previewAttachment.file.type.startsWith('video/')) || 
+              (previewAttachment.url && ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(previewAttachment.name?.split('.').pop()?.toLowerCase())) ? (
                 <video 
                   controls 
                   style={{ width: '100%', maxHeight: '600px', borderRadius: '8px' }}
                 >
-                  <source src={URL.createObjectURL(previewAttachment.file)} type={previewAttachment.file.type} />
+                  <source src={previewAttachment.file ? URL.createObjectURL(previewAttachment.file) : previewAttachment.url} type={
+                    previewAttachment.file?.type || 
+                    (previewAttachment.name?.toLowerCase().endsWith('.mp4') ? 'video/mp4' :
+                     previewAttachment.name?.toLowerCase().endsWith('.avi') ? 'video/x-msvideo' :
+                     previewAttachment.name?.toLowerCase().endsWith('.mov') ? 'video/quicktime' :
+                     previewAttachment.name?.toLowerCase().endsWith('.wmv') ? 'video/x-ms-wmv' :
+                     previewAttachment.name?.toLowerCase().endsWith('.flv') ? 'video/x-flv' :
+                     previewAttachment.name?.toLowerCase().endsWith('.webm') ? 'video/webm' :
+                     'video/mp4')
+                  } />
                   Your browser does not support the video tag.
                 </video>
-              ) : previewAttachment.file && previewAttachment.file.type.startsWith('audio/') ? (
+              ) : 
+              {/* Handle audio - both from file objects and URLs */}
+              (previewAttachment.file && previewAttachment.file.type.startsWith('audio/')) || 
+              (previewAttachment.url && ['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(previewAttachment.name?.split('.').pop()?.toLowerCase())) ? (
                 <div 
                   id="mp3-container"
                   style={{ 
@@ -5877,7 +6241,15 @@ useEffect(() => {
                         borderRadius: '20px'
                       }}
                     >
-                      <source src={audioUrl || ''} type={previewAttachment?.file?.type || 'audio/mp3'} />
+                      <source src={audioUrl || ''} type={
+                        previewAttachment?.file?.type || 
+                        (previewAttachment?.name?.toLowerCase().endsWith('.mp3') ? 'audio/mp3' :
+                         previewAttachment?.name?.toLowerCase().endsWith('.wav') ? 'audio/wav' :
+                         previewAttachment?.name?.toLowerCase().endsWith('.ogg') ? 'audio/ogg' :
+                         previewAttachment?.name?.toLowerCase().endsWith('.aac') ? 'audio/aac' :
+                         previewAttachment?.name?.toLowerCase().endsWith('.flac') ? 'audio/flac' :
+                         'audio/mp3')
+                      } />
                       Your browser does not support the audio tag.
                     </audio>
 
@@ -6083,25 +6455,32 @@ useEffect(() => {
                   </Button>
                 </div>
               </div>
-              ) : (
+                            ) : (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <i className="ni ni-single-copy-04" style={{ fontSize: '48px', color: '#ccc', marginBottom: '16px' }} />
                   <p style={{ color: '#666' }}>Preview not available for this file type.</p>
                   <Button 
                     color="primary" 
                     onClick={() => {
-                      const url = URL.createObjectURL(previewAttachment.file);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = previewAttachment.name;
-                      a.click();
-                      URL.revokeObjectURL(url);
+                      if (previewAttachment.file) {
+                        const url = URL.createObjectURL(previewAttachment.file);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = previewAttachment.name;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } else if (previewAttachment.url) {
+                        const a = document.createElement('a');
+                        a.href = previewAttachment.url;
+                        a.download = previewAttachment.name;
+                        a.click();
+                      }
                     }}
                   >
                     Download File
                   </Button>
                 </div>
-                                  )}
+              )}
                                 </div>
           )}
         </ModalBody>

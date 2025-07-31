@@ -1018,6 +1018,39 @@ class ApiService {
       requireAuth: true,
     });
   }
+
+  // Teacher Get Classroom Stream Posts API
+  async getClassroomStream(classCode) {
+    return this.makeRequest(`/teacher/classroom/${classCode}/stream`, {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  // Teacher Create Classroom Stream Post API
+  async createClassroomStreamPost(classCode, postData) {
+    return this.makeRequest(`/teacher/classroom/${classCode}/stream`, {
+      method: 'POST',
+      body: JSON.stringify(postData),
+      requireAuth: true,
+    });
+  }
+
+  // Student methods
+  async getStudentClasses() {
+    return this.makeRequest('/student/my-classes', {
+      method: 'GET',
+      requireAuth: true,
+    });
+  }
+
+  async joinClass(classCode) {
+    return this.makeRequest('/student/join-class', {
+      method: 'POST',
+      body: JSON.stringify({ class_code: classCode }),
+      requireAuth: true,
+    });
+  }
 }
 
 export default new ApiService(); 

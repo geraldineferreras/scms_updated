@@ -119,13 +119,26 @@ const Classroom = () => {
             code: classroom.class_code,
             semester: classroom.semester,
             schoolYear: classroom.school_year,
-            studentCount: classroom.student_count || 0,
+            studentCount: 0, // Will be updated with real count from enrolled students
             theme: getRandomTheme()
           }));
           
           setClasses(transformedClasses);
+          
+          // Fetch real student counts for each classroom
+          const updatedClasses = await Promise.all(
+            transformedClasses.map(async (cls) => {
+              const realStudentCount = await fetchStudentCount(cls.code);
+              return {
+                ...cls,
+                studentCount: realStudentCount
+              };
+            })
+          );
+          
+          setClasses(updatedClasses);
           // Save to localStorage for ClassroomDetail.js to access
-          localStorage.setItem("teacherClasses", JSON.stringify(transformedClasses));
+          localStorage.setItem("teacherClasses", JSON.stringify(updatedClasses));
         } else if (response.status && (!response.data || response.data.length === 0)) {
           // No classrooms found - this is not an error
           setClasses([]);
@@ -144,8 +157,26 @@ const Classroom = () => {
     fetchClassrooms();
   }, []);
 
+  // Function to fetch real student count for a classroom
+  const fetchStudentCount = async (classCode) => {
+    try {
+      const response = await apiService.makeRequest(`/teacher/classroom/${classCode}/students`, {
+        method: 'GET',
+        requireAuth: true,
+      });
+      
+      if (response.status && response.data && response.data.students) {
+        return response.data.students.length;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error fetching student count for classroom:', classCode, error);
+      return 0;
+    }
+  };
+
   // Function to refresh classrooms data
-  const refreshClassrooms = () => {
+  const refreshClassrooms = async () => {
     const fetchClassrooms = async () => {
       try {
         setLoading(true);
@@ -164,13 +195,26 @@ const Classroom = () => {
             code: classroom.class_code,
             semester: classroom.semester,
             schoolYear: classroom.school_year,
-            studentCount: classroom.student_count || 0,
+            studentCount: 0, // Will be updated with real count from enrolled students
             theme: getRandomTheme()
           }));
           
           setClasses(transformedClasses);
+          
+          // Fetch real student counts for each classroom
+          const updatedClasses = await Promise.all(
+            transformedClasses.map(async (cls) => {
+              const realStudentCount = await fetchStudentCount(cls.code);
+              return {
+                ...cls,
+                studentCount: realStudentCount
+              };
+            })
+          );
+          
+          setClasses(updatedClasses);
           // Save to localStorage for ClassroomDetail.js to access
-          localStorage.setItem("teacherClasses", JSON.stringify(transformedClasses));
+          localStorage.setItem("teacherClasses", JSON.stringify(updatedClasses));
         } else if (response.status && (!response.data || response.data.length === 0)) {
           // No classrooms found - this is not an error
           setClasses([]);
@@ -539,7 +583,7 @@ const Classroom = () => {
                   </div>
                   <div className="position-absolute top-0 end-0 m-3">
                     <Badge color="light" className="text-dark">
-                      {cls.studentCount} students
+                      {cls.studentCount || 0} students
                     </Badge>
                   </div>
                 </div>

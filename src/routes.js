@@ -375,6 +375,12 @@ var routes = [
     layout: "/student"
   },
   {
+    path: "/join/:classCode",
+    name: "Join Class with Code",
+    component: <StudentJoinClass />,
+    layout: "/student"
+  },
+  {
     path: "/create-section",
     name: "Create Section",
     icon: "ni ni-fat-add text-primary",

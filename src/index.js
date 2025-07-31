@@ -113,6 +113,29 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// Global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', event.error);
+  const errorFallback = document.getElementById('error-fallback');
+  const root = document.getElementById('root');
+  if (errorFallback && root) {
+    root.style.display = 'none';
+    errorFallback.style.display = 'flex';
+    document.getElementById('error-details').textContent = `Global error: ${event.error.toString()}`;
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+  const errorFallback = document.getElementById('error-fallback');
+  const root = document.getElementById('root');
+  if (errorFallback && root) {
+    root.style.display = 'none';
+    errorFallback.style.display = 'flex';
+    document.getElementById('error-details').textContent = `Promise rejection: ${event.reason.toString()}`;
+  }
+});
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 // Add error boundary and debugging
@@ -120,6 +143,7 @@ console.log('React app starting...');
 console.log('Environment:', process.env.NODE_ENV);
 console.log('API URL:', process.env.REACT_APP_API_BASE_URL);
 console.log('Root element:', document.getElementById("root"));
+console.log('Current URL:', window.location.href);
 
 try {
   root.render(

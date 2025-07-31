@@ -66,7 +66,7 @@ const Teacher = (props) => {
         routes={routes}
         logo={{
           innerLink: "/teacher/index",
-          imgSrc: require("../assets/img/brand/logo-scms.png"),
+          imgSrc: "/logo-scms.png",
           imgAlt: "SCMS Logo",
         }}
       />

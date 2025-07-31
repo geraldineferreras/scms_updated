@@ -158,14 +158,7 @@ const Login = () => {
                   style={{ fontSize: '0.8rem' }}
                 >
                   <span className="btn-inner--icon">
-                    <img
-                      alt="..."
-                      src={
-                        require("../../assets/img/icons/common/github.svg")
-                          .default
-                      }
-                      style={{ width: '16px', height: '16px' }}
-                    />
+                    <i className="fab fa-github" style={{ fontSize: '16px' }}></i>
                   </span>
                   <span className="btn-inner--text">Github</span>
                 </Button>
@@ -177,14 +170,7 @@ const Login = () => {
                   style={{ fontSize: '0.8rem' }}
                 >
                   <span className="btn-inner--icon">
-                    <img
-                      alt="..."
-                      src={
-                        require("../../assets/img/icons/common/google.svg")
-                          .default
-                      }
-                      style={{ width: '16px', height: '16px' }}
-                    />
+                    <i className="fab fa-google" style={{ fontSize: '16px' }}></i>
                   </span>
                   <span className="btn-inner--text">Google</span>
                 </Button>

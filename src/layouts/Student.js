@@ -70,7 +70,7 @@ const Student = (props) => {
         routes={routes}
         logo={{
           innerLink: "/student/index",
-          imgSrc: require("../assets/img/brand/logo-scms.png"),
+          imgSrc: "/logo-scms.png",
           imgAlt: "SCMS Logo",
         }}
       />

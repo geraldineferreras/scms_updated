@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       // Navigate to login page
-      window.location.href = '/auth/login';
+      window.location.href = '/';
     }
   };
 

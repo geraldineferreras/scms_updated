@@ -161,7 +161,7 @@ const userManagementStudents = userManagementUsers.filter(u => u.role === "stude
 const getStudentAvatar = (student) => {
   if (student.profile_pic) {
     if (student.profile_pic.startsWith('uploads/')) {
-      return `http://localhost/scms_new/${student.profile_pic}`;
+      return `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${student.profile_pic}`;
     }
     return student.profile_pic;
   }
@@ -460,7 +460,7 @@ const CreateSection = () => {
     if (t.profile_pic) {
       // If it's a relative path, construct the full URL (same logic as UserManagement)
       if (t.profile_pic.startsWith('uploads/')) {
-        avatarUrl = `http://localhost/scms_new/${t.profile_pic}`;
+        avatarUrl = `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${t.profile_pic}`;
         console.log('Constructed uploads URL:', avatarUrl);
       } else {
         avatarUrl = t.profile_pic;

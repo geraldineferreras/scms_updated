@@ -388,7 +388,7 @@ const UserManagement = () => {
     if (user.profile_pic) {
       // If it's a relative path, construct the full URL
       if (user.profile_pic.startsWith('uploads/')) {
-        return `http://localhost/scms_new/${user.profile_pic}`;
+        return `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${user.profile_pic}`;
       }
       return user.profile_pic;
     }
@@ -399,7 +399,7 @@ const UserManagement = () => {
     if (user.cover_pic) {
       // If it's a relative path, construct the full URL
       if (user.cover_pic.startsWith('uploads/')) {
-        return `http://localhost/scms_new/${user.cover_pic}`;
+        return `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${user.cover_pic}`;
       }
       return user.cover_pic;
     }

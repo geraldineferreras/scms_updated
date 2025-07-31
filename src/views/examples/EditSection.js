@@ -486,7 +486,7 @@ const EditSection = () => {
   const getStudentAvatar = (student) => {
     if (student.profile_pic) {
       if (student.profile_pic.startsWith('uploads/')) {
-        return `http://localhost/scms_new/${student.profile_pic}`;
+        return `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${student.profile_pic}`;
       }
       return student.profile_pic;
     }

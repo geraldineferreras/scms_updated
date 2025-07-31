@@ -657,7 +657,7 @@ const SectionManagement = () => {
                   <div className="d-flex align-items-center ml-2">
                     {adviser?.profile_picture ? (
                       <img 
-                        src={`http://localhost/scms_new/${adviser.profile_picture}`}
+                        src={`${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${adviser.profile_picture}`}
                         alt={adviser?.name || 'No Adviser'} 
                         className="rounded-circle mr-2"
                         style={{ width: '24px', height: '24px', objectFit: 'cover' }}
@@ -862,7 +862,7 @@ const SectionManagement = () => {
                 <div className="mb-2 d-flex align-items-center" style={{gap: 10, marginLeft: 6, marginTop: 15}}>
                   {adviser?.profile_picture ? (
                     <img 
-                      src={`http://localhost/scms_new/${adviser.profile_picture}`}
+                      src={`${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${adviser.profile_picture}`}
                       alt={adviser?.name || 'No Adviser'} 
                       className="avatar avatar-sm rounded-circle" 
                       style={{width: 32, height: 32, objectFit: 'cover'}} 
@@ -1115,7 +1115,7 @@ const SectionManagement = () => {
                                 <div className="d-flex align-items-center">
                                   {adviser?.profile_picture ? (
                                     <img 
-                                      src={`http://localhost/scms_new/${adviser.profile_picture}`}
+                                      src={`${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${adviser.profile_picture}`}
                                       alt={adviser?.name || 'No Adviser'} 
                                       className="avatar avatar-sm rounded-circle mr-2"
                                       style={{ width: '32px', height: '32px', objectFit: 'cover' }}

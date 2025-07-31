@@ -1444,7 +1444,7 @@ useEffect(() => {
 
     try {
       await axios.post(
-        `http://localhost/scms_new/index.php/api/teacher/classroom/${code}/stream`,
+        `${process.env.REACT_APP_API_BASE_URL}/teacher/classroom/${code}/stream`,
         formData,
         {
           headers: {
@@ -1551,7 +1551,7 @@ useEffect(() => {
           attachments: post.attachment_url
             ? [{
                 name: post.attachment_url.split('/').pop(),
-                url: post.attachment_url.startsWith('http') ? post.attachment_url : `http://localhost/scms_new/${post.attachment_url}`,
+                url: post.attachment_url.startsWith('http') ? post.attachment_url : `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${post.attachment_url}`,
                 type: post.attachment_type || ''
               }]
             : []
@@ -4370,7 +4370,7 @@ useEffect(() => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -4 }}>
                                 <img 
-                                  src={announcement.user_avatar ? `http://localhost/scms_new/${announcement.user_avatar}` : userDefault} 
+                                  src={announcement.user_avatar ? `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${announcement.user_avatar}` : userDefault} 
                                   alt="avatar" 
                                   style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} 
                                   onError={(e) => {

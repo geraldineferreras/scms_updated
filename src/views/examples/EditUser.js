@@ -134,7 +134,7 @@ const EditUser = () => {
           if (profileUrl.startsWith('http')) {
             setProfileImageUrl(profileUrl);
           } else {
-            setProfileImageUrl(`http://localhost/scms_new/${profileUrl}`);
+            setProfileImageUrl(`${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${profileUrl}`);
           }
         }
         
@@ -144,7 +144,7 @@ const EditUser = () => {
           if (coverUrl.startsWith('http')) {
             setCoverPhotoUrl(coverUrl);
           } else {
-            setCoverPhotoUrl(`http://localhost/scms_new/${coverUrl}`);
+            setCoverPhotoUrl(`${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${coverUrl}`);
           }
         }
         

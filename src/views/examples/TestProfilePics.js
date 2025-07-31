@@ -65,7 +65,7 @@ const TestProfilePics = () => {
     
     if (teacher.profile_pic) {
       if (teacher.profile_pic.startsWith('uploads/')) {
-        avatarUrl = `http://localhost/scms_new/${teacher.profile_pic}`;
+        avatarUrl = `${process.env.REACT_APP_API_BASE_URL.replace('/api', '')}/${teacher.profile_pic}`;
         console.log('Constructed uploads URL:', avatarUrl);
       } else {
         avatarUrl = teacher.profile_pic;

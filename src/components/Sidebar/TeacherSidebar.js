@@ -151,6 +151,13 @@ const TeacherSidebar = (props) => {
                   <img
                     alt="..."
                     src={require("../../assets/img/theme/team-1-800x800.jpg")}
+                    style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      objectFit: 'cover',
+                      backgroundColor: '#f8f9fa',
+                      border: '2px solid #e9ecef'
+                    }}
                   />
                 </span>
               </Media>

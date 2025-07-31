@@ -95,7 +95,13 @@ const StudentNavbar = (props) => {
                         e.target.onerror = null;
                         e.target.src = "/user-default.svg";
                       }}
-                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                      style={{ 
+                        width: '32px', 
+                        height: '32px', 
+                        objectFit: 'cover',
+                        backgroundColor: '#f8f9fa',
+                        border: '2px solid #e9ecef'
+                      }}
                     />
                   </span>
                   <Media className="ml-2 d-none d-lg-block">

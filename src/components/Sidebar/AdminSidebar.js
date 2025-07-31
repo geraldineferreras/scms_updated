@@ -84,6 +84,10 @@ const AdminSidebar = (props) => {
   const [collapseOpen, setCollapseOpen] = useState();
   const [reportsOpen, setReportsOpen] = useState(false);
   const location = props.location || useLocation();
+  
+  // Debug logo props
+  console.log('AdminSidebar logo props:', props.logo);
+  
   const activeRoute = (routeName) => {
     return location.pathname.indexOf(routeName) > -1 ? "active" : "";
   };
@@ -243,9 +247,19 @@ const AdminSidebar = (props) => {
               onError={(e) => {
                 console.error('Logo failed to load:', logo.imgSrc);
                 e.target.style.display = 'none';
+                // Show text fallback
+                const textFallback = document.createElement('span');
+                textFallback.textContent = 'SCMS';
+                textFallback.style.cssText = 'font-weight: bold; font-size: 18px; color: #333;';
+                e.target.parentNode.appendChild(textFallback);
               }}
               onLoad={() => {
                 console.log('Logo loaded successfully:', logo.imgSrc);
+              }}
+              style={{
+                maxHeight: '40px',
+                maxWidth: '150px',
+                objectFit: 'contain'
               }}
             />
           </NavbarBrand>
@@ -273,6 +287,13 @@ const AdminSidebar = (props) => {
                   <img
                     alt="..."
                     src={require("../../assets/img/theme/team-1-800x800.jpg")}
+                    style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      objectFit: 'cover',
+                      backgroundColor: '#f8f9fa',
+                      border: '2px solid #e9ecef'
+                    }}
                   />
                 </span>
               </Media>
@@ -318,6 +339,16 @@ const AdminSidebar = (props) => {
                         onError={(e) => {
                           console.error('Logo failed to load:', logo.imgSrc);
                           e.target.style.display = 'none';
+                          // Show text fallback
+                          const textFallback = document.createElement('span');
+                          textFallback.textContent = 'SCMS';
+                          textFallback.style.cssText = 'font-weight: bold; font-size: 16px; color: #333;';
+                          e.target.parentNode.appendChild(textFallback);
+                        }}
+                        style={{
+                          maxHeight: '30px',
+                          maxWidth: '120px',
+                          objectFit: 'contain'
                         }}
                       />
                     </Link>
@@ -329,6 +360,16 @@ const AdminSidebar = (props) => {
                         onError={(e) => {
                           console.error('Logo failed to load:', logo.imgSrc);
                           e.target.style.display = 'none';
+                          // Show text fallback
+                          const textFallback = document.createElement('span');
+                          textFallback.textContent = 'SCMS';
+                          textFallback.style.cssText = 'font-weight: bold; font-size: 16px; color: #333;';
+                          e.target.parentNode.appendChild(textFallback);
+                        }}
+                        style={{
+                          maxHeight: '30px',
+                          maxWidth: '120px',
+                          objectFit: 'contain'
                         }}
                       />
                     </a>

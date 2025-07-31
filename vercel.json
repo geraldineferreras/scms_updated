@@ -15,12 +15,17 @@
       "dest": "/manifest.json",
       "headers": {
         "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=0, must-revalidate"
       }
     },
     {
       "src": "/favicon.ico",
       "dest": "/favicon.ico"
+    },
+    {
+      "src": "/favicon.png",
+      "dest": "/favicon.png"
     },
     {
       "src": "/pdf.worker.js",

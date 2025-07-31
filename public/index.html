@@ -43,10 +43,86 @@
     />
     <title>SCMS | Student Class Management System</title>
     <!-- Google Maps JavaScript API removed - not needed for SCMS functionality -->
+    <style>
+      .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        flex-direction: column;
+      }
+      .loading-spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 4px solid white;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .error-container {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        background: #f8f9fa;
+        color: #333;
+        flex-direction: column;
+        padding: 20px;
+        text-align: center;
+      }
+      .error-button {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+      .error-button:hover {
+        background-color: #0056b3;
+      }
+    </style>
   </head>
   <body>
     <noscript> You need to enable JavaScript to run this app. </noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h2>Loading SCMS...</h2>
+        <p>Please wait while the application loads.</p>
+      </div>
+    </div>
+    <div id="error-fallback" class="error-container">
+      <h2>Failed to load application</h2>
+      <p>There was an error loading the application. Please try refreshing the page.</p>
+      <button class="error-button" onclick="window.location.reload()">Refresh Page</button>
+      <details style="margin-top: 20px; text-align: left;">
+        <summary>Error Details</summary>
+        <pre id="error-details" style="color: red; font-size: 12px;"></pre>
+      </details>
+    </div>
+    <script>
+      // Show error fallback if React doesn't load within 10 seconds
+      setTimeout(function() {
+        const root = document.getElementById('root');
+        const errorFallback = document.getElementById('error-fallback');
+        if (root && root.children.length === 1 && root.children[0].classList.contains('loading-container')) {
+          root.style.display = 'none';
+          errorFallback.style.display = 'flex';
+          document.getElementById('error-details').textContent = 'React application failed to load within 10 seconds. This could be due to a JavaScript error or network issue.';
+        }
+      }, 10000);
+    </script>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

@@ -57,26 +57,103 @@ function SessionTimeoutModal() {
   );
 }
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('React Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh', 
+          fontFamily: 'Arial, sans-serif',
+          flexDirection: 'column',
+          padding: '20px'
+        }}>
+          <h2>Something went wrong</h2>
+          <p>Please refresh the page or contact support.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Page
+          </button>
+          <details style={{ marginTop: '20px', textAlign: 'left' }}>
+            <summary>Error Details</summary>
+            <pre style={{ color: 'red', fontSize: '12px' }}>
+              {this.state.error && this.state.error.toString()}
+            </pre>
+          </details>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 // Add error boundary and debugging
 console.log('React app starting...');
 console.log('Environment:', process.env.NODE_ENV);
 console.log('API URL:', process.env.REACT_APP_API_BASE_URL);
+console.log('Root element:', document.getElementById("root"));
 
-root.render(
-  <AuthProvider>
-    <BrowserRouter>
-      <SessionTimeoutModal />
-      <Routes>
-        <Route path="/admin/*" element={<AdminLayout />} />
-        <Route path="/student/*" element={<StudentLayout />} />
-        <Route path="/teacher/*" element={<TeacherLayout />} />
-        <Route path="/video-conference/*" element={<VideoConferenceLayout />} />
-        <Route path="/auth/*" element={<AuthLayout />} />
-        <Route path="/remote-camera" element={<RemoteCameraMobile />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  </AuthProvider>
-);
+try {
+  root.render(
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <SessionTimeoutModal />
+          <Routes>
+            <Route path="/admin/*" element={<AdminLayout />} />
+            <Route path="/student/*" element={<StudentLayout />} />
+            <Route path="/teacher/*" element={<TeacherLayout />} />
+            <Route path="/video-conference/*" element={<VideoConferenceLayout />} />
+            <Route path="/auth/*" element={<AuthLayout />} />
+            <Route path="/remote-camera" element={<RemoteCameraMobile />} />
+            <Route path="*" element={<Navigate to="/auth/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+  console.log('React app rendered successfully');
+} catch (error) {
+  console.error('Error rendering React app:', error);
+  document.getElementById("root").innerHTML = `
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; flex-direction: column;">
+      <h2>Failed to load application</h2>
+      <p>Please refresh the page or contact support.</p>
+      <button onclick="window.location.reload()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Refresh Page
+      </button>
+      <details style="margin-top: 20px; text-align: left;">
+        <summary>Error Details</summary>
+        <pre style="color: red; font-size: 12px;">${error.toString()}</pre>
+      </details>
+    </div>
+  `;
+}

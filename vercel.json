@@ -61,11 +61,19 @@
       "dest": "/user-default.svg"
     },
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/index.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     }
   ],
   "env": {
-    "CI": "false"
+    "CI": "false",
+    "REACT_APP_API_BASE_URL": "https://scmsnew-production.up.railway.app/api"
   }
 }

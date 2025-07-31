@@ -75,7 +75,7 @@ root.render(
         <Route path="/video-conference/*" element={<VideoConferenceLayout />} />
         <Route path="/auth/*" element={<AuthLayout />} />
         <Route path="/remote-camera" element={<RemoteCameraMobile />} />
-        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   </AuthProvider>

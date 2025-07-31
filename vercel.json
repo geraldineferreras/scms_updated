@@ -57,6 +57,10 @@
       "dest": "/$1"
     },
     {
+      "src": "/user-default.svg",
+      "dest": "/user-default.svg"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

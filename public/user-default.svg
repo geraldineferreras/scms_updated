@@ -1,11 +1,11 @@
-<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Background circle -->
-  <circle cx="60" cy="60" r="60" fill="#f8f9fa"/>
+  <circle cx="16" cy="16" r="16" fill="#f8f9fa"/>
   
   <!-- User silhouette -->
-  <circle cx="60" cy="45" r="20" fill="#6c757d"/>
-  <ellipse cx="60" cy="85" rx="25" ry="18" fill="#6c757d"/>
+  <circle cx="16" cy="12" r="5" fill="#6c757d"/>
+  <ellipse cx="16" cy="22" rx="7" ry="4" fill="#6c757d"/>
   
-  <!-- Optional: Add a subtle border -->
-  <circle cx="60" cy="60" r="58" stroke="#e9ecef" stroke-width="2" fill="none"/>
+  <!-- Border -->
+  <circle cx="16" cy="16" r="15" stroke="#e9ecef" stroke-width="1" fill="none"/>
 </svg> 

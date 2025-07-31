@@ -66,7 +66,27 @@ const TeacherNavbar = (props) => {
                       src={user?.profile_image || user?.profile_picture || "/user-default.svg"}
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "/user-default.svg";
+                        e.target.style.display = 'none';
+                        // Create a fallback avatar with CSS
+                        const fallback = document.createElement('div');
+                        fallback.innerHTML = `
+                          <div style="
+                            width: 32px; 
+                            height: 32px; 
+                            border-radius: 50%; 
+                            background: #f8f9fa; 
+                            border: 2px solid #e9ecef;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: #6c757d;
+                            font-weight: bold;
+                            font-size: 14px;
+                          ">
+                            ${user?.full_name?.charAt(0) || user?.name?.charAt(0) || 'U'}
+                          </div>
+                        `;
+                        e.target.parentNode.appendChild(fallback.firstChild);
                       }}
                       style={{ 
                         width: '32px', 

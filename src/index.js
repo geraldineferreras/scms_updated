@@ -59,6 +59,11 @@ function SessionTimeoutModal() {
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
+// Add error boundary and debugging
+console.log('React app starting...');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('API URL:', process.env.REACT_APP_API_BASE_URL);
+
 root.render(
   <AuthProvider>
     <BrowserRouter>

@@ -31,6 +31,10 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/argon-dashboard-react/(.*)",
+      "dest": "/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

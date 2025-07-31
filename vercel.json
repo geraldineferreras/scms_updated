@@ -33,10 +33,5 @@
   ],
   "env": {
     "CI": "false"
-  },
-  "build": {
-    "env": {
-      "REACT_APP_API_BASE_URL": "https://scmsnew-production.up.railway.app/api"
-    }
   }
 }

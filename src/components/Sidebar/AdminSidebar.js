@@ -240,6 +240,13 @@ const AdminSidebar = (props) => {
               alt={logo.imgAlt}
               className="navbar-brand-img"
               src={logo.imgSrc}
+              onError={(e) => {
+                console.error('Logo failed to load:', logo.imgSrc);
+                e.target.style.display = 'none';
+              }}
+              onLoad={() => {
+                console.log('Logo loaded successfully:', logo.imgSrc);
+              }}
             />
           </NavbarBrand>
         ) : null}
@@ -305,11 +312,25 @@ const AdminSidebar = (props) => {
                 <Col className="collapse-brand" xs="6">
                   {logo.innerLink ? (
                     <Link to={logo.innerLink}>
-                      <img alt={logo.imgAlt} src={logo.imgSrc} />
+                      <img 
+                        alt={logo.imgAlt} 
+                        src={logo.imgSrc}
+                        onError={(e) => {
+                          console.error('Logo failed to load:', logo.imgSrc);
+                          e.target.style.display = 'none';
+                        }}
+                      />
                     </Link>
                   ) : (
                     <a href={logo.outterLink}>
-                      <img alt={logo.imgAlt} src={logo.imgSrc} />
+                      <img 
+                        alt={logo.imgAlt} 
+                        src={logo.imgSrc}
+                        onError={(e) => {
+                          console.error('Logo failed to load:', logo.imgSrc);
+                          e.target.style.display = 'none';
+                        }}
+                      />
                     </a>
                   )}
                 </Col>

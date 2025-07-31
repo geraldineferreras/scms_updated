@@ -89,8 +89,13 @@ const StudentNavbar = (props) => {
                 <Media className="align-items-center">
                   <span className="avatar avatar-sm rounded-circle">
                     <img
-                      alt="..."
-                      src={require("../../assets/img/theme/team-4-800x800.jpg")}
+                      alt="Profile"
+                      src={user?.profile_image || user?.profile_picture || "/user-default.svg"}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/user-default.svg";
+                      }}
+                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
                     />
                   </span>
                   <Media className="ml-2 d-none d-lg-block">

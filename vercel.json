@@ -37,6 +37,14 @@
       "dest": "/favicon.png"
     },
     {
+      "src": "/logo-scms.png",
+      "dest": "/logo-scms.png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "dest": "/apple-icon.png"
+    },
+    {
       "src": "/pdf.worker.js",
       "dest": "/pdf.worker.js"
     },

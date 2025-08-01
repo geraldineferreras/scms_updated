@@ -51,28 +51,38 @@ const Login = () => {
     setError("");
 
     try {
+      console.log('Login attempt started for:', email);
       // Use the auth context login method
       const result = await authLogin(email, password);
+      console.log('Login result:', result);
       
       if (result.success) {
+        console.log('Login successful, user data:', result.data);
         // Support both result.data.role and result.data.user.role
         const role = result.data.role || (result.data.user && result.data.user.role);
+        console.log('User role:', role);
+        
         if (role === "student") {
+          console.log('Redirecting to student dashboard');
           navigate("/student/index");
         } else if (role === "admin") {
+          console.log('Redirecting to admin dashboard');
           navigate("/admin/index");
         } else if (role === "teacher") {
+          console.log('Redirecting to teacher dashboard');
           navigate("/teacher/index");
         } else {
+          console.log('Unknown role, redirecting to root');
           navigate("/");
         }
 
       } else {
+        console.log('Login failed:', result.message);
         setError(result.message || 'Login failed');
       }
     } catch (error) {
-      setError('Login failed. Please check your credentials.');
       console.error('Login error:', error);
+      setError('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }

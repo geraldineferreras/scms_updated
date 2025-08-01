@@ -75,9 +75,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('AuthContext: Login attempt for:', email);
       const response = await ApiService.login(email, password);
+      console.log('AuthContext: API response:', response);
 
       if (response && response.status) {
+        console.log('AuthContext: Login successful, processing response');
         // Enhanced token extraction with better error handling
         let user, token;
         
@@ -97,13 +100,16 @@ export const AuthProvider = ({ children }) => {
           delete user.token;
         } else {
           // If no token found, this is a critical error
-          console.error('No authentication token received from server');
+          console.error('AuthContext: No authentication token received from server');
           return { success: false, message: 'Authentication failed: No token received' };
         }
 
+        console.log('AuthContext: Token extracted:', !!token);
+        console.log('AuthContext: User data:', user);
+
         // Validate token exists and is not empty
         if (!token || token.trim() === '') {
-          console.error('Empty or invalid token received');
+          console.error('AuthContext: Empty or invalid token received');
           return { success: false, message: 'Authentication failed: Invalid token' };
         }
 
@@ -116,12 +122,14 @@ export const AuthProvider = ({ children }) => {
         setUser(user);
         setToken(token);
         
+        console.log('AuthContext: Authentication data stored successfully');
         return { success: true, data: user };
       } else {
+        console.log('AuthContext: Login failed - response status false');
         return { success: false, message: response?.message || 'Login failed' };
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('AuthContext: Login error:', error);
       return { success: false, message: error.message || 'Login failed. Please try again.' };
     }
   };
@@ -144,8 +152,8 @@ export const AuthProvider = ({ children }) => {
       // Clear any cached authentication data
       sessionStorage.clear();
       
-      // First navigate to logout page, then redirect to login
-      window.location.href = '/auth/logout';
+      // Redirect directly to login page instead of logout page
+      window.location.href = '/auth/login';
     }
   };
 

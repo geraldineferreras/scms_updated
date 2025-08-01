@@ -21,7 +21,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     );
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to logout page
   if (!isAuthenticated()) {
     // Clear any existing authentication data to prevent back button issues
     localStorage.removeItem('token');
@@ -29,9 +29,9 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     localStorage.removeItem('scms_logged_in_user');
     
     // Replace the current history entry to prevent back button from working
-    window.history.replaceState(null, '', '/auth/login');
+    window.history.replaceState(null, '', '/auth/logout');
     
-    return <Navigate to="/auth/login" replace state={{ from: location }} />;
+    return <Navigate to="/auth/logout" replace state={{ from: location }} />;
   }
 
   // If role is required and user doesn't have it, redirect to appropriate dashboard

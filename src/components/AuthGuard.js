@@ -19,8 +19,8 @@ const AuthGuard = () => {
       localStorage.removeItem('user');
       localStorage.removeItem('scms_logged_in_user');
       
-      // Redirect to login
-      window.location.replace('/auth/login');
+      // Redirect to logout page
+      window.location.replace('/auth/logout');
     }
   }, [location, isAuthenticated, loading]);
 

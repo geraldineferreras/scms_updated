@@ -20,7 +20,7 @@ const LogoutMessage = () => {
 
   const handleOk = () => {
     setShowModal(false);
-    navigate('/auth/login', { replace: true });
+    navigate('/auth/logout', { replace: true });
   };
 
   return (

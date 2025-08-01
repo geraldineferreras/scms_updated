@@ -22,6 +22,7 @@ import Tables from "views/examples/Tables.js";
 import Icons from "views/examples/Icons.js";
 import UserManagement from "views/examples/UserManagement.js";
 import ForgotPassword from "views/examples/ForgotPassword.js";
+import Logout from "views/examples/Logout.js";
 import QRLogin from "views/examples/QRLogin.js";
 import QRRegister from "views/examples/QRRegister.js";
 import CreateUser from "views/examples/CreateUser.js";
@@ -137,6 +138,13 @@ var routes = [
     name: "Forgot Password",
     icon: "ni ni-key-25 text-info",
     component: <ForgotPassword />,
+    layout: "/auth",
+  },
+  {
+    path: "/logout",
+    name: "Logout",
+    icon: "ni ni-user-run text-danger",
+    component: <Logout />,
     layout: "/auth",
   },
   {

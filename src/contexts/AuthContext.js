@@ -132,17 +132,11 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       
-      // Clear browser history to prevent back button from working
-      // Push multiple states to clear the history stack
-      for (let i = 0; i < 10; i++) {
-        window.history.pushState(null, '', '/auth/login');
-      }
-      
       // Clear any cached authentication data
       sessionStorage.clear();
       
-      // Navigate to login page and replace history
-      window.location.replace('/auth/login');
+      // First navigate to logout page, then redirect to login
+      window.location.href = '/auth/logout';
     }
   };
 

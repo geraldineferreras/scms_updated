@@ -21,16 +21,25 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     // const legacyUser = localStorage.getItem('scms_logged_in_user');
     
-    if (storedToken && storedUser) {
+    if (storedToken && storedUser && storedToken.trim() !== '') {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
         setToken(storedToken);
       } catch (error) {
         console.error('Error parsing user data:', error);
-        logout();
+        // Clear invalid data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('scms_logged_in_user');
+        setUser(null);
+        setToken(null);
       }
     } else {
+      // Clear any invalid data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('scms_logged_in_user');
       setUser(null);
       setToken(null);
     }
@@ -161,7 +170,18 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = () => {
     const storedToken = localStorage.getItem('token');
-    return !!user && !!storedToken;
+    const storedUser = localStorage.getItem('user');
+    
+    // Check if both token and user exist in localStorage
+    if (!storedToken || !storedUser) {
+      console.log('isAuthenticated: Missing token or user data');
+      return false;
+    }
+    
+    // Also check if the state user exists
+    const authenticated = !!user && !!storedToken;
+    console.log('isAuthenticated:', authenticated, 'user:', !!user, 'token:', !!storedToken);
+    return authenticated;
   };
 
   const hasValidToken = () => {

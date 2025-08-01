@@ -32,6 +32,7 @@ const PublicRoute = ({ children }) => {
       redirectPath = '/student/index';
     }
     
+    console.log('PublicRoute: User is authenticated, redirecting to:', redirectPath);
     return <Navigate to={redirectPath} replace />;
   }
 

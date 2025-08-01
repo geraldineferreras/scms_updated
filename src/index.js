@@ -28,6 +28,11 @@ import StudentLayout from "layouts/Student.js";
 import TeacherLayout from "layouts/Teacher.js";
 import VideoConferenceLayout from "layouts/VideoConference.js";
 import RemoteCameraMobile from './components/RemoteCameraMobile';
+import ProtectedRoute from './components/ProtectedRoute.js';
+import PublicRoute from './components/PublicRoute.js';
+import HistoryBlocker from './components/HistoryBlocker.js';
+import AuthGuard from './components/AuthGuard.js';
+import LogoutMessage from './components/LogoutMessage.js';
 import { AuthProvider } from "contexts/AuthContext.js";
 
 function SessionTimeoutModal() {
@@ -151,12 +156,35 @@ try {
       <AuthProvider>
         <BrowserRouter>
           <SessionTimeoutModal />
+          <HistoryBlocker />
+          <AuthGuard />
+          <LogoutMessage />
           <Routes>
-            <Route path="/admin/*" element={<AdminLayout />} />
-            <Route path="/student/*" element={<StudentLayout />} />
-            <Route path="/teacher/*" element={<TeacherLayout />} />
-            <Route path="/video-conference/*" element={<VideoConferenceLayout />} />
-            <Route path="/auth/*" element={<AuthLayout />} />
+            <Route path="/admin/*" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminLayout />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/*" element={
+              <ProtectedRoute requiredRole="student">
+                <StudentLayout />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/*" element={
+              <ProtectedRoute requiredRole="teacher">
+                <TeacherLayout />
+              </ProtectedRoute>
+            } />
+            <Route path="/video-conference/*" element={
+              <ProtectedRoute>
+                <VideoConferenceLayout />
+              </ProtectedRoute>
+            } />
+            <Route path="/auth/*" element={
+              <PublicRoute>
+                <AuthLayout />
+              </PublicRoute>
+            } />
             <Route path="/remote-camera" element={<RemoteCameraMobile />} />
             <Route path="*" element={<Navigate to="/auth/login" replace />} />
           </Routes>

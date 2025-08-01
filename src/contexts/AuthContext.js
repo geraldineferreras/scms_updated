@@ -125,13 +125,24 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear all authentication data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('scms_logged_in_user');
       setUser(null);
       setToken(null);
-      // Navigate to login page
-      window.location.href = '/';
+      
+      // Clear browser history to prevent back button from working
+      // Push multiple states to clear the history stack
+      for (let i = 0; i < 10; i++) {
+        window.history.pushState(null, '', '/auth/login');
+      }
+      
+      // Clear any cached authentication data
+      sessionStorage.clear();
+      
+      // Navigate to login page and replace history
+      window.location.replace('/auth/login');
     }
   };
 

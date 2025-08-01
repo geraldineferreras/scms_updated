@@ -17,8 +17,6 @@ class ApiService {
     const url = `${API_BASE}${endpoint}`;
     const { method = 'GET', headers = {}, body, requireAuth = false } = options;
     
-    console.log(`ApiService: Making ${method} request to ${endpoint}, requireAuth: ${requireAuth}`);
-    
     // Get token from localStorage if authentication is required
     let authHeaders = { ...headers };
     if (requireAuth) {
@@ -53,21 +51,17 @@ class ApiService {
     
     try {
       const response = await axios(config);
-      console.log(`ApiService: ${method} ${endpoint} successful:`, response.data);
       return response.data;
     } catch (error) {
       // Axios error handling
       const message = error.response?.data?.message || error.message || 'API Error';
-      console.error(`API Error (${endpoint}):`, message, 'Status:', error.response?.status);
-      
-      // Only trigger session timeout for authenticated requests, not for login
+      console.error(`API Error (${endpoint}):`, message);
+      // Token/session expiration handling
       if (
-        requireAuth && 
-        (message.toLowerCase().includes('token expired') ||
+        message.toLowerCase().includes('token expired') ||
         message.toLowerCase().includes('unauthorized') ||
-        error.response?.status === 401)
+        error.response?.status === 401
       ) {
-        console.log(`ApiService: Session timeout triggered for ${endpoint}`);
         // Dispatch a custom event for session timeout
         window.dispatchEvent(new CustomEvent('sessionTimeout'));
         localStorage.removeItem('token');
@@ -82,18 +76,10 @@ class ApiService {
 
   // Authentication methods
   async login(email, password) {
-    console.log('ApiService: Login request for:', email);
-    try {
-      const result = await this.makeRequest('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      console.log('ApiService: Login response:', result);
-      return result;
-    } catch (error) {
-      console.error('ApiService: Login error:', error);
-      throw error;
-    }
+    return this.makeRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
   }
 
   async register(userData) {

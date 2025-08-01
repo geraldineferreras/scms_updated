@@ -21,25 +21,16 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     // const legacyUser = localStorage.getItem('scms_logged_in_user');
     
-    if (storedToken && storedUser && storedToken.trim() !== '') {
+    if (storedToken && storedUser) {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
         setToken(storedToken);
       } catch (error) {
         console.error('Error parsing user data:', error);
-        // Clear invalid data
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('scms_logged_in_user');
-        setUser(null);
-        setToken(null);
+        logout();
       }
     } else {
-      // Clear any invalid data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('scms_logged_in_user');
       setUser(null);
       setToken(null);
     }
@@ -75,12 +66,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      console.log('AuthContext: Login attempt for:', email);
       const response = await ApiService.login(email, password);
-      console.log('AuthContext: API response:', response);
 
       if (response && response.status) {
-        console.log('AuthContext: Login successful, processing response');
         // Enhanced token extraction with better error handling
         let user, token;
         
@@ -100,16 +88,13 @@ export const AuthProvider = ({ children }) => {
           delete user.token;
         } else {
           // If no token found, this is a critical error
-          console.error('AuthContext: No authentication token received from server');
+          console.error('No authentication token received from server');
           return { success: false, message: 'Authentication failed: No token received' };
         }
 
-        console.log('AuthContext: Token extracted:', !!token);
-        console.log('AuthContext: User data:', user);
-
         // Validate token exists and is not empty
         if (!token || token.trim() === '') {
-          console.error('AuthContext: Empty or invalid token received');
+          console.error('Empty or invalid token received');
           return { success: false, message: 'Authentication failed: Invalid token' };
         }
 
@@ -122,14 +107,12 @@ export const AuthProvider = ({ children }) => {
         setUser(user);
         setToken(token);
         
-        console.log('AuthContext: Authentication data stored successfully');
         return { success: true, data: user };
       } else {
-        console.log('AuthContext: Login failed - response status false');
         return { success: false, message: response?.message || 'Login failed' };
       }
     } catch (error) {
-      console.error('AuthContext: Login error:', error);
+      console.error('Login error:', error);
       return { success: false, message: error.message || 'Login failed. Please try again.' };
     }
   };
@@ -142,18 +125,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear all authentication data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('scms_logged_in_user');
       setUser(null);
       setToken(null);
-      
-      // Clear any cached authentication data
-      sessionStorage.clear();
-      
-      // Redirect directly to login page instead of logout page
-      window.location.href = '/auth/login';
+      // Navigate to login page
+      window.location.href = '/';
     }
   };
 
@@ -178,18 +156,7 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = () => {
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    // Check if both token and user exist in localStorage
-    if (!storedToken || !storedUser) {
-      console.log('isAuthenticated: Missing token or user data');
-      return false;
-    }
-    
-    // Also check if the state user exists
-    const authenticated = !!user && !!storedToken;
-    console.log('isAuthenticated:', authenticated, 'user:', !!user, 'token:', !!storedToken);
-    return authenticated;
+    return !!user && !!storedToken;
   };
 
   const hasValidToken = () => {
@@ -220,5 +187,7 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthContext;
 
  

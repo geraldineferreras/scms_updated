@@ -30,9 +30,7 @@ import VideoConferenceLayout from "layouts/VideoConference.js";
 import RemoteCameraMobile from './components/RemoteCameraMobile';
 import ProtectedRoute from './components/ProtectedRoute.js';
 import PublicRoute from './components/PublicRoute.js';
-import HistoryBlocker from './components/HistoryBlocker.js';
-import AuthGuard from './components/AuthGuard.js';
-import LogoutMessage from './components/LogoutMessage.js';
+import AppProtection from './components/AppProtection.js';
 import { AuthProvider } from "contexts/AuthContext.js";
 
 function SessionTimeoutModal() {
@@ -156,10 +154,8 @@ try {
       <AuthProvider>
         <BrowserRouter>
           <SessionTimeoutModal />
-          <HistoryBlocker />
-          <AuthGuard />
-          <LogoutMessage />
-          <Routes>
+          <AppProtection>
+            <Routes>
             <Route path="/admin/*" element={
               <ProtectedRoute requiredRole="admin">
                 <AdminLayout />
@@ -188,6 +184,7 @@ try {
             <Route path="/remote-camera" element={<RemoteCameraMobile />} />
             <Route path="*" element={<Navigate to="/auth/login" replace />} />
           </Routes>
+          </AppProtection>
         </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>

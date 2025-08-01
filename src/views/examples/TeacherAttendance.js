@@ -27,10 +27,22 @@ import {
 import { FaQrcode, FaTable, FaCheckCircle, FaTimesCircle, FaUndo, FaUser, FaDownload, FaCalendarAlt } from "react-icons/fa";
 import { QrReader } from "react-qr-reader";
 
-const mockClasses = [
-  { id: 1, name: "OOP - 3A" },
-  { id: 2, name: "Data Structures - 2B" },
-  { id: 3, name: "Web Development - 4A" },
+const mockSubjects = [
+  { id: 1, name: "Object-Oriented Programming", code: "OOP" },
+  { id: 2, name: "Data Structures and Algorithms", code: "DSA" },
+  { id: 3, name: "Web Development", code: "WEB" },
+  { id: 4, name: "Database Management", code: "DBM" },
+];
+
+const mockSections = [
+  { id: 1, name: "3A", subjectId: 1 },
+  { id: 2, name: "3B", subjectId: 1 },
+  { id: 3, name: "2A", subjectId: 2 },
+  { id: 4, name: "2B", subjectId: 2 },
+  { id: 5, name: "4A", subjectId: 3 },
+  { id: 6, name: "4B", subjectId: 3 },
+  { id: 7, name: "3A", subjectId: 4 },
+  { id: 8, name: "3B", subjectId: 4 },
 ];
 
 const mockStudents = [
@@ -53,7 +65,8 @@ const statusColors = {
 };
 
 const TeacherAttendance = () => {
-  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
   const [selectedDate, setSelectedDate] = useState(today);
   const [attendance, setAttendance] = useState(initialAttendance);
   const [qrModal, setQrModal] = useState(false);
@@ -62,6 +75,9 @@ const TeacherAttendance = () => {
   const [scanStatus, setScanStatus] = useState(null); // 'success' | 'error'
   const [lastScan, setLastScan] = useState(null);
   const [summary, setSummary] = useState({ Present: 0, Late: 0, Absent: 0 });
+
+  // Get available sections for selected subject
+  const availableSections = mockSections.filter(section => section.subjectId === parseInt(selectedSubject));
 
   // Simulate QR scan (for demo)
   const handleSimulateScan = () => {
@@ -163,9 +179,22 @@ const TeacherAttendance = () => {
     }
   };
 
+  // Reset section when subject changes
+  const handleSubjectChange = (subjectId) => {
+    setSelectedSubject(subjectId);
+    setSelectedSection(""); // Reset section when subject changes
+  };
+
   return (
     <>
-      <div className="header bg-gradient-info pb-8 pt-5 pt-md-8"></div>
+      {/* Transparent Header */}
+      <div className="header bg-gradient-info pb-12 pt-8 pt-md-12" style={{ 
+        background: 'linear-gradient(87deg, #11cdef 0, #1171ef 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+      </div>
+
       <Container className="mt--7" fluid>
         <Card className="shadow">
           <CardHeader>
@@ -176,39 +205,85 @@ const TeacherAttendance = () => {
             <Row className="mb-4 align-items-center g-2">
               <Col md={3} className="d-flex align-items-center">
                 <FormGroup className="w-100">
-                  <label className="form-control-label mb-2">Select Class</label>
+                  <label className="form-control-label mb-2">Select Subject</label>
                   <UncontrolledDropdown className="w-100">
                     <DropdownToggle
                       caret
                       color="primary"
                       className="w-100 text-left font-weight-bold shadow"
-                      style={{ borderRadius: "8px", height: "44px", display: "flex", alignItems: "center" }}
+                      style={{ 
+                        borderRadius: "8px", 
+                        height: "44px", 
+                        display: "flex", 
+                        alignItems: "center",
+                        minWidth: "200px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
                     >
-                      {selectedClass ? mockClasses.find(c => c.id === parseInt(selectedClass))?.name : "Choose a class..."}
+                      {selectedSubject ? mockSubjects.find(s => s.id === parseInt(selectedSubject))?.name : "Choose a subject..."}
                     </DropdownToggle>
-                    <DropdownMenu className="w-100">
-                      {mockClasses.map(cls => (
-                        <DropdownItem key={cls.id} onClick={() => setSelectedClass(cls.id.toString())}>
-                          {cls.name}
+                    <DropdownMenu className="w-100" style={{ minWidth: "250px" }}>
+                      {mockSubjects.map(subject => (
+                        <DropdownItem 
+                          key={subject.id} 
+                          onClick={() => handleSubjectChange(subject.id.toString())}
+                          style={{ whiteSpace: "normal", padding: "8px 16px" }}
+                        >
+                          <strong>{subject.code}</strong> - {subject.name}
                         </DropdownItem>
                       ))}
                     </DropdownMenu>
                   </UncontrolledDropdown>
                 </FormGroup>
               </Col>
-              <Col md={3} className="d-flex align-items-center">
+              <Col md={2} className="d-flex align-items-center">
+                <FormGroup className="w-100">
+                  <label className="form-control-label mb-2">Section</label>
+                  <UncontrolledDropdown className="w-100">
+                    <DropdownToggle
+                      caret
+                      color="primary"
+                      className="w-100 text-left font-weight-bold shadow"
+                      style={{ 
+                        borderRadius: "8px", 
+                        height: "44px", 
+                        display: "flex", 
+                        alignItems: "center",
+                        minWidth: "120px"
+                      }}
+                      disabled={!selectedSubject}
+                    >
+                      {selectedSection ? availableSections.find(s => s.id === parseInt(selectedSection))?.name : "Choose a section..."}
+                    </DropdownToggle>
+                    <DropdownMenu className="w-100" style={{ minWidth: "120px" }}>
+                      {availableSections.map(section => (
+                        <DropdownItem 
+                          key={section.id} 
+                          onClick={() => setSelectedSection(section.id.toString())}
+                          style={{ padding: "8px 16px" }}
+                        >
+                          {section.name}
+                        </DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  </UncontrolledDropdown>
+                </FormGroup>
+              </Col>
+              <Col md={2} className="d-flex align-items-center">
                 <FormGroup className="w-100">
                   <label className="form-control-label mb-2">Date</label>
                   <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ height: "44px", borderRadius: "8px" }} />
                 </FormGroup>
               </Col>
-              <Col md={3} className="d-flex align-items-center">
+              <Col md={2} className="d-flex align-items-center">
                 <Button
                   color="success"
                   className="w-100 font-weight-bold shadow"
                   style={{ height: "44px", borderRadius: "8px", whiteSpace: "nowrap" }}
                   onClick={() => setQrModal(true)}
-                  disabled={!selectedClass}
+                  disabled={!selectedSubject || !selectedSection}
                 >
                   <FaQrcode className="mr-2" /> Start QR Scan
                 </Button>
@@ -219,7 +294,7 @@ const TeacherAttendance = () => {
                   className="w-100 font-weight-bold shadow"
                   style={{ height: "44px", borderRadius: "8px", whiteSpace: "nowrap" }}
                   onClick={() => setManualTable(true)}
-                  disabled={!selectedClass}
+                  disabled={!selectedSubject || !selectedSection}
                 >
                   <FaTable className="mr-2" /> View Manual Attendance Table
                 </Button>
@@ -335,7 +410,7 @@ const TeacherAttendance = () => {
               <CardBody>
                 {noAttendance ? (
                   <Alert color="info" className="text-center">
-                    No attendance records yet for this class today.<br />
+                    No attendance records yet for this subject and section today.<br />
                     Scan a QR code to begin recording attendance.
                   </Alert>
                 ) : (
